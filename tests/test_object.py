@@ -153,3 +153,34 @@ def test_key():
 
     assert x._def
     assert not x._return
+
+
+def test_inheritance():
+    class B(Object):
+        i: int = 1
+        s: str
+        f: float = 3
+
+    class X(B):
+        i = 2
+        j: int
+
+    data = {'s': 'str', 'j': 0}
+    x = X(data)
+
+    assert x.i == 2
+    assert x.s == 'str'
+    assert x.f == 3
+    assert x.j == 0
+
+    data = {'i': 9, 's': 'str', 'f': 99, 'j': 0}
+    x = X(data)
+
+    assert x.i == 9
+    assert x.s == 'str'
+    assert x.f == 99
+    assert x.j == 0
+
+    flds = fields(X)
+
+    assert len(flds) == 4
