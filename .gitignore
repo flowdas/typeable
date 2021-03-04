@@ -1,0 +1,9 @@
+.venv/
+.tox/
+.eggs/
+.coverage
+dist/
+__pycache__/
+*.egg-info/
+Thumbs.db
+.DS_Store
