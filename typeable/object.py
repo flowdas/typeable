@@ -30,7 +30,7 @@ _FIELDS = '__fields'
 
 class Object:
 
-    def __init__(self, value=None):
+    def __init__(self, value=None, *, ctx=None):
         if isinstance(value, Mapping):
             flds = fields(self)
             for field in flds:
@@ -41,7 +41,7 @@ class Object:
                 else:
                     continue
                 if val is not None:
-                    val = cast(field.type, val)
+                    val = cast(field.type, val, ctx=ctx)
                 self.__dict__[field.name] = val
         elif value is not None:
             raise TypeError(
@@ -109,5 +109,5 @@ def field(*, key=None, default=MISSING, default_factory=None):
 
 
 @cast.register
-def _(cls: Type[Object], val) -> Object:
-    return cls(val)
+def _(cls: Type[Object], val, ctx) -> Object:
+    return cls(val, ctx=ctx)

@@ -27,9 +27,9 @@ _registry = {}
 
 def _register(func):
     sig = signature(func)
-    if len(sig.parameters) < 2:
+    if len(sig.parameters) < 3:
         raise TypeError(
-            f"{func!r}() takes {len(sig.parameters)} arguments but 2 required")
+            f"{func!r}() takes {len(sig.parameters)} arguments but 3 required")
     argname, parameter = next(iter(sig.parameters.items()))
     hints = get_type_hints(func)
     typ = hints.get(argname)
@@ -66,10 +66,10 @@ def _dispatch(cls):
         return func
 
 
-def cast(cls: Type[_T], val) -> _T:
+def cast(cls: Type[_T], val, *, ctx=None) -> _T:
     origin = get_origin(cls) or cls
     func = _dispatch(origin)
-    return func(origin, val, *get_args(cls))
+    return func(origin, val, ctx, *get_args(cls))
 
 
 cast.register = _register
@@ -77,27 +77,27 @@ cast.dispatch = _dispatch
 
 
 @cast.register
-def _(cls: Type[int], val):
+def _(cls: Type[int], val, ctx):
     return cls(val)
 
 
 @cast.register
-def _(cls: Type[bool], val):
+def _(cls: Type[bool], val, ctx):
     return cls(val)
 
 
 @cast.register
-def _(cls: Type[float], val):
+def _(cls: Type[float], val, ctx):
     return cls(val)
 
 
 @cast.register
-def _(cls: Type[str], val):
+def _(cls: Type[str], val, ctx):
     return cls(val)
 
 
 @cast.register
-def _(cls: Type[datetime.datetime], val):
+def _(cls: Type[datetime.datetime], val, ctx):
     if isinstance(val, str):
         return datetime.datetime.fromisoformat(val)
     else:
@@ -105,20 +105,20 @@ def _(cls: Type[datetime.datetime], val):
 
 
 @cast.register
-def _(cls: Type[list], val, T=None):
+def _(cls: Type[list], val, ctx, T=None):
     if T is None:
         return cls(val)
     else:
-        return cls(cast(T, v) if v is not None else v for v in val)
+        return cls(cast(T, v, ctx=ctx) if v is not None else v for v in val)
 
 
 @cast.register
-def _(cls: Type[dict], val, K=None, V=None):
+def _(cls: Type[dict], val, ctx, K=None, V=None):
     if K is None:
         return cls(val)
     else:
         return cls(
-            (cast(K, k) if k is not None else k,
-             cast(V, v) if v is not None else v)
+            (cast(K, k, ctx=ctx) if k is not None else k,
+             cast(V, v, ctx=ctx) if v is not None else v)
             for k, v in val.items()
         )

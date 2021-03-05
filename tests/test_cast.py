@@ -38,7 +38,7 @@ def test_get_args():
 def test_register():
     with pytest.raises(RuntimeError):
         @cast.register
-        def _(cls, val) -> Object:
+        def _(cls, val, ctx) -> Object:
             return cls(val)
 
 
@@ -50,12 +50,12 @@ def test_invalid_register():
 
     with pytest.raises(TypeError):
         @cast.register
-        def _(cls, val):
+        def _(cls, val, ctx):
             pass
 
     with pytest.raises(TypeError):
         @cast.register
-        def _(cls: Object, val) -> Object:
+        def _(cls: Object, val, ctx) -> Object:
             pass
 
 
