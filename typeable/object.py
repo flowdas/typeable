@@ -1,5 +1,14 @@
+# Copyright (C) 2021 Flowdas Inc. & Dong-gweon Oh <prospero@flowdas.com>
+#
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at https://mozilla.org/MPL/2.0/.
 from collections.abc import Mapping
-from .typing import get_type_hints
+from .typing import (
+    Type,
+    get_type_hints,
+)
+from .cast import cast
 
 try:
     from dataclasses import MISSING
@@ -22,7 +31,6 @@ _FIELDS = '__fields'
 class Object:
 
     def __init__(self, value=None):
-        # TODO: conversion chain
         if isinstance(value, Mapping):
             flds = fields(self)
             for field in flds:
@@ -33,7 +41,7 @@ class Object:
                 else:
                     continue
                 if val is not None:
-                    val = field.type(val)
+                    val = cast(field.type, val)
                 self.__dict__[field.name] = val
         elif value is not None:
             raise TypeError(
@@ -98,3 +106,8 @@ def field(*, key=None, default=MISSING, default_factory=None):
     if default is not MISSING and default_factory is not None:
         raise ValueError('cannot specify both default and default_factory')
     return _Field(key, default, default_factory)
+
+
+@cast.register
+def _(cls: Type[Object], val) -> Object:
+    return cls(val)
