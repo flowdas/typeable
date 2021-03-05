@@ -117,4 +117,8 @@ def _(cls: Type[dict], val, K=None, V=None):
     if K is None:
         return cls(val)
     else:
-        return cls((cast(K, k) if k is not None else k, cast(V, v) if v is not None else v) for k, v in val.items())
+        return cls(
+            (cast(K, k) if k is not None else k,
+             cast(V, v) if v is not None else v)
+            for k, v in val.items()
+        )
