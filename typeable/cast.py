@@ -16,6 +16,8 @@ from .typing import (
     get_type_hints,
 )
 
+from .context import Context
+
 __all__ = [
     'cast',
 ]
@@ -69,6 +71,8 @@ def _dispatch(cls):
 def cast(cls: Type[_T], val, *, ctx=None) -> _T:
     origin = get_origin(cls) or cls
     func = _dispatch(origin)
+    if ctx is None:
+        ctx = Context()
     return func(origin, val, ctx, *get_args(cls))
 
 
