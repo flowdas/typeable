@@ -12,18 +12,35 @@ import sys
 import typing
 
 if sys.version_info < (3, 8):  # pragma: no cover
+    import collections.abc
 
-    def get_origin(tp):
-        if isinstance(tp, typing._GenericAlias):
-            return tp.__origin__
-        if tp is Generic:
-            return tp
-        return None
+    if hasattr(typing, '_GenericAlias'):
+        # 3.7
+        generic_types = typing._GenericAlias
+
+        def get_origin(tp):
+            if isinstance(tp, generic_types):
+                return tp.__origin__
+            if tp is Generic:
+                return tp
+            return None
+
+    else:
+        # 3.6
+        generic_types = (typing.GenericMeta, typing._Union,
+                         typing._Optional, typing._ClassVar)
+
+        def get_origin(tp):
+            if isinstance(tp, generic_types):
+                return type if tp.__origin__ is typing.Type else tp.__origin__
+            return None
 
     def get_args(tp):
-        if isinstance(tp, typing._GenericAlias):
+        if isinstance(tp, generic_types):
             res = tp.__args__
             if get_origin(tp) is collections.abc.Callable and res[0] is not Ellipsis:
                 res = (list(res[:-1]), res[-1])
             return res
         return ()
+
+cast
