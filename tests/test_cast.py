@@ -6,18 +6,33 @@
 import sys
 import pytest
 from typeable.typing import (
+    Dict,
     List,
+    Type,
     get_args,
+    get_origin,
 )
 from typeable import *
+
+
+def test_get_origin():
+    assert get_origin(Type[int]) == type
+    assert get_origin(List[int]) == list
+    assert get_origin(List) == list
+    assert get_origin(Dict[str, str]) == dict
+    assert get_origin(Dict) == dict
 
 
 def test_get_args():
     class X(Object):
         i: int
 
-    assert get_args(List[int])[0] == int
-    assert get_args(List[X])[0] == X
+    assert get_args(Type[int]) == (int,)
+    assert get_args(List[int]) == (int,)
+    assert get_args(List[X]) == (X,)
+    assert get_args(List) == ()
+    assert get_args(Dict[str, X]) == (str, X)
+    assert get_args(Dict) == ()
 
 
 def test_register():
@@ -42,6 +57,10 @@ def test_invalid_register():
         @cast.register
         def _(cls: Object, val) -> Object:
             pass
+
+
+def test_int():
+    assert cast(int, "123") == 123
 
 
 def test_Object():
@@ -84,5 +103,35 @@ def test_list():
             assert l[i].i == i
 
 
-def test_int():
-    assert cast(int, "123") == 123
+def test_dict():
+    class X(Object):
+        i: int
+
+    data = {i: {'i': i} for i in range(10)}
+
+    r = cast(Dict, data)
+    assert isinstance(r, dict)
+    assert r == data
+
+    r = cast(dict, data)
+    assert isinstance(r, dict)
+    assert r == data
+
+    r = cast(Dict[str, X], data)
+
+    assert isinstance(r, dict)
+    assert len(r) == len(data)
+    for i, (k, v) in enumerate(r.items()):
+        assert k == str(i)
+        assert isinstance(v, X)
+        assert v.i == i
+
+    if sys.version_info >= (3, 9):
+        r = cast(dict[str, X], data)
+
+        assert isinstance(r, dict)
+        assert len(r) == len(data)
+        for i, (k, v) in enumerate(r.items()):
+            assert k == str(i)
+            assert isinstance(v, X)
+            assert v.i == i

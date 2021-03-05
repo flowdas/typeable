@@ -31,8 +31,9 @@ if sys.version_info < (3, 8):  # pragma: no cover
                          typing._Optional, typing._ClassVar)
 
         _origin_map = {
-            Type: type,
+            Dict: dict,
             List: list,
+            Type: type,
         }
 
         def get_origin(tp):
@@ -50,5 +51,5 @@ if sys.version_info < (3, 8):  # pragma: no cover
                 res = (list(res[:-1]), res[-1])
             if res and isinstance(res[0], TypeVar):
                 res = ()
-            return res
+            return res or ()
         return ()

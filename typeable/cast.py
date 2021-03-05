@@ -69,8 +69,7 @@ def _dispatch(cls):
 def cast(cls: Type[_T], val) -> _T:
     origin = get_origin(cls) or cls
     func = _dispatch(origin)
-    args = get_args(cls) or ()
-    return func(origin, val, *args)
+    return func(origin, val, *get_args(cls))
 
 
 cast.register = _register
@@ -110,4 +109,12 @@ def _(cls: Type[list], val, T=None):
     if T is None:
         return cls(val)
     else:
-        return cls(cast(T, v) for v in val)
+        return cls(cast(T, v) if v is not None else v for v in val)
+
+
+@cast.register
+def _(cls: Type[dict], val, K=None, V=None):
+    if K is None:
+        return cls(val)
+    else:
+        return cls((cast(K, k) if k is not None else k, cast(V, v) if v is not None else v) for k, v in val.items())
