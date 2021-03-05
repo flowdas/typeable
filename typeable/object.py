@@ -31,7 +31,6 @@ _FIELDS = '__fields'
 class Object:
 
     def __init__(self, value=None):
-        # TODO: conversion chain
         if isinstance(value, Mapping):
             flds = fields(self)
             for field in flds:
@@ -42,7 +41,7 @@ class Object:
                 else:
                     continue
                 if val is not None:
-                    val = field.type(val)
+                    val = cast(field.type, val)
                 self.__dict__[field.name] = val
         elif value is not None:
             raise TypeError(

@@ -30,9 +30,17 @@ if sys.version_info < (3, 8):  # pragma: no cover
         generic_types = (typing.GenericMeta, typing._Union,
                          typing._Optional, typing._ClassVar)
 
+        _origin_map = {
+            Type: type,
+            List: list,
+        }
+
         def get_origin(tp):
             if isinstance(tp, generic_types):
-                return type if tp.__origin__ is typing.Type else tp.__origin__
+                if tp.__origin__:
+                    return _origin_map.get(tp.__origin__, tp.__origin__)
+                else:
+                    return _origin_map.get(tp)
             return None
 
     def get_args(tp):
@@ -40,7 +48,7 @@ if sys.version_info < (3, 8):  # pragma: no cover
             res = tp.__args__
             if get_origin(tp) is collections.abc.Callable and res[0] is not Ellipsis:
                 res = (list(res[:-1]), res[-1])
+            if res and isinstance(res[0], TypeVar):
+                res = ()
             return res
         return ()
-
-cast

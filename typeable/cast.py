@@ -3,6 +3,8 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
+import datetime
+from functools import _find_impl
 from inspect import (
     signature,
 )
@@ -13,7 +15,6 @@ from .typing import (
     get_origin,
     get_type_hints,
 )
-from functools import _find_impl
 
 __all__ = [
     'cast',
@@ -74,3 +75,39 @@ def cast(cls: Type[_T], val) -> _T:
 
 cast.register = _register
 cast.dispatch = _dispatch
+
+
+@cast.register
+def _(cls: Type[int], val):
+    return cls(val)
+
+
+@cast.register
+def _(cls: Type[bool], val):
+    return cls(val)
+
+
+@cast.register
+def _(cls: Type[float], val):
+    return cls(val)
+
+
+@cast.register
+def _(cls: Type[str], val):
+    return cls(val)
+
+
+@cast.register
+def _(cls: Type[datetime.datetime], val):
+    if isinstance(val, str):
+        return datetime.datetime.fromisoformat(val)
+    else:
+        return cls(val)
+
+
+@cast.register
+def _(cls: Type[list], val, T=None):
+    if T is None:
+        return cls(val)
+    else:
+        return cls(cast(T, v) for v in val)
