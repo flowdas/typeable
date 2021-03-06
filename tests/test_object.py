@@ -205,3 +205,19 @@ def test_nullable():
         assert getattr(x, key) is None
 
     assert X.d is None
+
+
+def test_required():
+    class X(Object):
+        a: int  # not required
+        b: int = field(required=True)  # required
+
+    data = {'b': 1}
+    x = cast(X, data)
+    assert x.b == 1
+    with pytest.raises(AttributeError):
+        x.a
+
+    data = {'a': 1}
+    with pytest.raises(TypeError):
+        cast(X, data)

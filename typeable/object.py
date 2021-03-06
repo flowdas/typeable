@@ -42,6 +42,9 @@ class Object:
             for field in flds:
                 if field.key in value:
                     val = value[field.key]
+                elif field.required:
+                    raise TypeError(
+                        f"Missing key '{field.key}' for '{self.__class__.__qualname__}' object")
                 elif field.default_factory is not None:
                     val = field.default_factory()
                 else:
@@ -73,15 +76,17 @@ class _Field:
         'default',
         'default_factory',
         'nullable',
+        'required',
     )
 
-    def __init__(self, key, default, default_factory, nullable):
+    def __init__(self, key, default, default_factory, nullable, required):
         self.name = None
         self.type = MISSING
         self.key = key
         self.default = default
         self.default_factory = default_factory
         self.nullable = nullable
+        self.required = required
 
 
 def fields(class_or_instance):
@@ -110,7 +115,8 @@ def fields(class_or_instance):
                     if f.nullable is None:
                         f.nullable = True
                 else:
-                    f.default = cast(f.type, f.default)  # validation
+                    # validate default. Note ctx not transferred. Is this wrong decision?
+                    f.default = cast(f.type, f.default)
                 setattr(cls, name, f.default)
             elif has_class_var:
                 delattr(cls, name)
@@ -120,10 +126,10 @@ def fields(class_or_instance):
     return fields
 
 
-def field(*, key=None, default=MISSING, default_factory=None, nullable=None):
+def field(*, key=None, default=MISSING, default_factory=None, nullable=None, required=False):
     if default is not MISSING and default_factory is not None:
         raise ValueError('cannot specify both default and default_factory')
-    return _Field(key, default, default_factory, nullable)
+    return _Field(key, default, default_factory, nullable, required)
 
 
 @cast.register
