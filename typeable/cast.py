@@ -124,45 +124,30 @@ cast.register = _register
 cast.dispatch = _dispatch
 
 #
-# int
+# object (fallback)
 #
 
 
 @cast.register
-def _(cls: Type[int], val, ctx):
+def _(cls: Type[object], val, ctx):
     return cls(val)
 
 #
-# bool
+# None
 #
 
 
 @cast.register
-def _(cls: Type[bool], val, ctx):
-    return cls(val)
-
-#
-# float
-#
-
-
-@cast.register
-def _(cls: Type[float], val, ctx):
-    return cls(val)
-
-#
-# str
-#
-
-
-@cast.register
-def _(cls: Type[str], val, ctx):
-    return cls(val)
-
+def _(cls: Type[None], val, ctx):
+    if val is None:
+        return None
+    raise TypeError(f"{val!r} is not None")
 
 #
 # datetime.datetime
 #
+
+
 @cast.register
 def _(cls: Type[datetime.datetime], val, ctx):
     if isinstance(val, str):

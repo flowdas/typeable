@@ -6,7 +6,10 @@
 from collections.abc import Mapping
 from .typing import (
     Type,
+    Union,
     get_type_hints,
+    get_origin,
+    get_args,
 )
 from .cast import cast
 from .context import Context
@@ -43,7 +46,13 @@ class Object:
                     val = field.default_factory()
                 else:
                     continue
-                if val is not None:  # TODO: nullable
+                if val is None and field.nullable is not None:
+                    if field.nullable:
+                        self.__dict__[field.name] = val
+                    else:
+                        with ctx.traverse(field.key):
+                            raise TypeError("None not allowed")
+                else:
                     with ctx.traverse(field.key):
                         val = cast(field.type, val, ctx=ctx)
                 self.__dict__[field.name] = val
@@ -63,14 +72,16 @@ class _Field:
         'key',
         'default',
         'default_factory',
+        'nullable',
     )
 
-    def __init__(self, key, default, default_factory):
+    def __init__(self, key, default, default_factory, nullable):
         self.name = None
         self.type = MISSING
         self.key = key
         self.default = default
         self.default_factory = default_factory
+        self.nullable = nullable
 
 
 def fields(class_or_instance):
@@ -95,8 +106,11 @@ def fields(class_or_instance):
             if f.key is None:
                 f.key = name
             if f.default is not MISSING:
-                if f.default is not None:
-                    f.default = f.type(f.default)  # validation
+                if f.default is None:
+                    if f.nullable is None:
+                        f.nullable = True
+                else:
+                    f.default = cast(f.type, f.default)  # validation
                 setattr(cls, name, f.default)
             elif has_class_var:
                 delattr(cls, name)
@@ -106,10 +120,10 @@ def fields(class_or_instance):
     return fields
 
 
-def field(*, key=None, default=MISSING, default_factory=None):
+def field(*, key=None, default=MISSING, default_factory=None, nullable=None):
     if default is not MISSING and default_factory is not None:
         raise ValueError('cannot specify both default and default_factory')
-    return _Field(key, default, default_factory)
+    return _Field(key, default, default_factory, nullable)
 
 
 @cast.register
