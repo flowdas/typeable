@@ -68,7 +68,7 @@ def _dispatch(cls):
         return func
 
 
-def cast(cls: Type[_T], val, *, ctx=None) -> _T:
+def cast(cls: Type[_T], val, *, ctx: Context = None) -> _T:
     origin = get_origin(cls) or cls
     func = _dispatch(origin)
     if ctx is None:
@@ -113,7 +113,14 @@ def _(cls: Type[list], val, ctx, T=None):
     if T is None:
         return cls(val)
     else:
-        return cls(cast(T, v, ctx=ctx) if v is not None else v for v in val)
+        r = cls()
+        for i, v in enumerate(val):
+            if v is None:
+                r.append(v)
+            else:
+                with ctx.traverse(i):
+                    r.append(cast(T, v, ctx=ctx))
+        return r
 
 
 @cast.register
@@ -121,8 +128,12 @@ def _(cls: Type[dict], val, ctx, K=None, V=None):
     if K is None:
         return cls(val)
     else:
-        return cls(
-            (cast(K, k, ctx=ctx) if k is not None else k,
-             cast(V, v, ctx=ctx) if v is not None else v)
-            for k, v in val.items()
-        )
+        r = cls()
+        for k, v in val.items():
+            with ctx.traverse(k):
+                if k is not None:
+                    k = cast(K, k, ctx=ctx)
+                if v is not None:
+                    v = cast(V, v, ctx=ctx)
+                r[k] = v
+        return r

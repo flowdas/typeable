@@ -9,6 +9,7 @@ from .typing import (
     get_type_hints,
 )
 from .cast import cast
+from .context import Context
 
 try:
     from dataclasses import MISSING
@@ -31,6 +32,8 @@ _FIELDS = '__fields'
 class Object:
 
     def __init__(self, value=None, *, ctx=None):
+        if ctx is None:
+            ctx = Context()
         if isinstance(value, Mapping):
             flds = fields(self)
             for field in flds:
@@ -41,7 +44,8 @@ class Object:
                 else:
                     continue
                 if val is not None:
-                    val = cast(field.type, val, ctx=ctx)
+                    with ctx.traverse(field.key):
+                        val = cast(field.type, val, ctx=ctx)
                 self.__dict__[field.name] = val
         elif value is not None:
             raise TypeError(
