@@ -8,6 +8,7 @@ import pytest
 from typeable.typing import (
     Dict,
     List,
+    Optional,
     Type,
     Union,
     get_args,
@@ -168,3 +169,8 @@ def test_Union():
 
     r = cast(Union[int, str], data)
     assert r == 123
+
+
+def test_Optional():
+    assert cast(Optional[int], 1) == 1
+    assert cast(Optional[int], None) == None

@@ -132,10 +132,22 @@ cast.dispatch = _dispatch
 def _(cls: Type[object], val, ctx):
     return cls(val)
 
+#
+# None
+#
+
+
+@cast.register
+def _(cls: Type[None], val, ctx):
+    if val is None:
+        return None
+    raise TypeError(f"{val!r} is not None")
 
 #
 # datetime.datetime
 #
+
+
 @cast.register
 def _(cls: Type[datetime.datetime], val, ctx):
     if isinstance(val, str):
