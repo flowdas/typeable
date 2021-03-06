@@ -31,12 +31,12 @@ def test_capture():
     exc_type, exc_val, traceback = error.exc_info
     assert exc_type == NotImplementedError
 
-    with pytest.raises(NotImplementedError):
+    with pytest.raises(TypeError):
         with ctx.capture() as error:
-            cast(List[T], [None, 1], ctx=ctx)
+            cast(List[int], [0, None], ctx=ctx)
     assert error.location == (1,)
 
-    with pytest.raises(NotImplementedError):
+    with pytest.raises(TypeError):
         with ctx.capture() as error:
-            cast(Dict[T, List[T]], {None: [None, 1]}, ctx=ctx)
+            cast(Dict[T, List[int]], {None: [0, None]}, ctx=ctx)
     assert error.location == (None, 1)

@@ -31,7 +31,7 @@ _FIELDS = '__fields'
 
 class Object:
 
-    def __init__(self, value=None, *, ctx=None):
+    def __init__(self, value=MISSING, *, ctx=None):
         if ctx is None:
             ctx = Context()
         if isinstance(value, Mapping):
@@ -43,11 +43,11 @@ class Object:
                     val = field.default_factory()
                 else:
                     continue
-                if val is not None:
+                if val is not None:  # TODO: nullable
                     with ctx.traverse(field.key):
                         val = cast(field.type, val, ctx=ctx)
                 self.__dict__[field.name] = val
-        elif value is not None:
+        elif value is not MISSING:
             raise TypeError(
                 f"'{value.__class__.__qualname__}' object is not mapping")
 

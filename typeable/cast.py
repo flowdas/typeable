@@ -158,11 +158,8 @@ def _(cls: Type[list], val, ctx, T=None):
     else:
         r = cls()
         for i, v in enumerate(val):
-            if v is None:
-                r.append(v)
-            else:
-                with ctx.traverse(i):
-                    r.append(cast(T, v, ctx=ctx))
+            with ctx.traverse(i):
+                r.append(cast(T, v, ctx=ctx))
         return r
 
 
@@ -174,9 +171,5 @@ def _(cls: Type[dict], val, ctx, K=None, V=None):
         r = cls()
         for k, v in val.items():
             with ctx.traverse(k):
-                if k is not None:
-                    k = cast(K, k, ctx=ctx)
-                if v is not None:
-                    v = cast(V, v, ctx=ctx)
-                r[k] = v
+                r[cast(K, k, ctx=ctx)] = cast(V, v, ctx=ctx)
         return r
