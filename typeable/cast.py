@@ -4,11 +4,14 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 import datetime
+import weakref
+from abc import get_cache_token
 from functools import _find_impl
 from inspect import (
     signature,
 )
 from .typing import (
+    Any,
     Type,
     TypeVar,
     get_args,
@@ -25,14 +28,18 @@ __all__ = [
 _T = TypeVar('_T')
 
 _registry = {}
+_dispatch_cache = {}
+_cache_token = None
 
 
 def _register(func):
+    global _cache_token
     sig = signature(func)
     if len(sig.parameters) < 3:
         raise TypeError(
             f"{func!r}() takes {len(sig.parameters)} arguments but 3 required")
-    argname, parameter = next(iter(sig.parameters.items()))
+    it = iter(sig.parameters.items())
+    argname, parameter = next(it)
     hints = get_type_hints(func)
     typ = hints.get(argname)
     if typ:
@@ -50,27 +57,63 @@ def _register(func):
                 f"Invalid signature to `cast.register()`. "
                 f"Use either typing.Type[] annotation or return type annotation."
             )
-    if cls in _registry:
-        raise RuntimeError(f"Ambiguous `cast.register()`")
 
-    _registry[cls] = func
+    argname, parameter = next(it)
+    vcls = hints.get(argname)
+    if not vcls:
+        vcls = Any
+    if vcls == Any:
+        vcls = object
+
+    if cls in _registry:
+        if vcls in _registry[cls]:
+            raise RuntimeError(f"Ambiguous `cast.register()`")
+        _registry[cls][vcls] = func
+    else:
+        _registry[cls] = {vcls: func}
+
+    if _cache_token is None:
+        if hasattr(cls, '__abstractmethods__') or hasattr(vcls, '__abstractmethods__'):
+            _cache_token = get_cache_token()
+    _dispatch_cache.clear()
+
     return func
 
 
-def _dispatch(cls):
+def _dispatch(cls, vcls):
+    global _cache_token
+    if _cache_token is not None:
+        current_token = get_cache_token()
+        if _cache_token != current_token:
+            _dispatch_cache.clear()
+            _cache_token = current_token
+
     try:
-        return _registry[cls]
+        func = _dispatch_cache[(cls, vcls)]
     except KeyError:
-        func = _find_impl(cls, _registry)
-        if not func:
-            raise NotImplementedError(
-                f"No implementation found for '{cls.__qualname__}'")
-        return func
+        try:
+            vreg = _registry[cls]
+        except KeyError:
+            vreg = _find_impl(cls, _registry)
+            if not vreg:
+                raise NotImplementedError(
+                    f"No implementation found for '{cls.__qualname__}'")
+
+        try:
+            return vreg[vcls]
+        except KeyError:
+            func = _find_impl(vcls, vreg)
+            if not func:
+                raise NotImplementedError(
+                    f"No implementation found for '{cls.__qualname__}' from {vcls.__qualname__}")
+        _dispatch_cache[(cls, vcls)] = func
+
+    return func
 
 
 def cast(cls: Type[_T], val, *, ctx: Context = None) -> _T:
     origin = get_origin(cls) or cls
-    func = _dispatch(origin)
+    func = _dispatch(origin, val.__class__)
     if ctx is None:
         ctx = Context()
     return func(origin, val, ctx, *get_args(cls))

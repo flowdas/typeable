@@ -59,6 +59,26 @@ def test_invalid_register():
             pass
 
 
+def test_double_dispatch():
+    class X:
+        pass
+
+    class Y(Object):
+        pass
+
+    @cast.register
+    def _(cls, val: X, ctx) -> Object:
+        return 1
+
+    assert cast(Y, X()) == 1
+    assert isinstance(cast(Y, {}), Y)
+
+    with pytest.raises(RuntimeError):
+        @cast.register
+        def _(cls, val: X, ctx) -> Object:
+            return 1
+
+
 def test_int():
     assert cast(int, "123") == 123
 
