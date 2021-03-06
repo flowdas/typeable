@@ -124,39 +124,12 @@ cast.register = _register
 cast.dispatch = _dispatch
 
 #
-# int
+# object (fallback)
 #
 
 
 @cast.register
-def _(cls: Type[int], val, ctx):
-    return cls(val)
-
-#
-# bool
-#
-
-
-@cast.register
-def _(cls: Type[bool], val, ctx):
-    return cls(val)
-
-#
-# float
-#
-
-
-@cast.register
-def _(cls: Type[float], val, ctx):
-    return cls(val)
-
-#
-# str
-#
-
-
-@cast.register
-def _(cls: Type[str], val, ctx):
+def _(cls: Type[object], val, ctx):
     return cls(val)
 
 
