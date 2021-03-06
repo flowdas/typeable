@@ -221,3 +221,20 @@ def test_required():
     data = {'a': 1}
     with pytest.raises(TypeError):
         cast(X, data)
+
+
+def test_class_validate():
+    def positive(self):
+        if self.i <= 0:
+            raise ValueError
+
+    class X(Object, validate=positive):
+        i: int
+
+    data = {'i': 1}
+    x = cast(X, data)
+    assert x.i == 1
+
+    data = {'i': 0}
+    with pytest.raises(ValueError):
+        x = cast(X, data)

@@ -30,6 +30,7 @@ __all__ = [
 
 # avoid name mangling
 _FIELDS = '__fields'
+_VALIDATE = '__validate'
 
 
 class Object:
@@ -59,13 +60,17 @@ class Object:
                     with ctx.traverse(field.key):
                         val = cast(field.type, val, ctx=ctx)
                 self.__dict__[field.name] = val
+            validate = getattr(self.__class__, _VALIDATE)
+            if validate:
+                validate(self)
         elif value is not MISSING:
             raise TypeError(
                 f"'{value.__class__.__qualname__}' object is not mapping")
 
-    def __init_subclass__(cls, **kwargs):
+    def __init_subclass__(cls, *, validate=None, **kwargs):
         super().__init_subclass__(**kwargs)
         setattr(cls, _FIELDS, None)
+        setattr(cls, _VALIDATE, validate)
 
 
 class _Field:
