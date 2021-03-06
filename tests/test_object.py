@@ -184,3 +184,24 @@ def test_inheritance():
     flds = fields(X)
 
     assert len(flds) == 4
+
+
+def test_nullable():
+    class X(Object):
+        a: int          # not allowed
+        b: int = None   # allowed
+        c: int = field(nullable=True)  # allowed
+        # not allowed, but default is None
+        d: int = field(default=None, nullable=False)
+
+    for key in ('a', 'd'):
+        data = {key: None}
+        with pytest.raises(TypeError):
+            cast(X, data)
+
+    for key in ('b', 'c'):
+        data = {key: None}
+        x = cast(X, data)
+        assert getattr(x, key) is None
+
+    assert X.d is None
