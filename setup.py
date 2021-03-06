@@ -24,7 +24,7 @@ setup(
     name='typeable',
     version=open('VERSION').read().strip(),
     url='https://github.com/flowdas/typeable',
-    description='A platform-agnostic library for schema modeling, validation and conversion',
+    description='A library for schema modeling, validation and conversion',
     author='Flowdas Inc.',
     author_email='prospero@flowdas.com',
     packages=[
