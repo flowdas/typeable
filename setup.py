@@ -24,7 +24,7 @@ setup(
     name='typeable',
     version=open('VERSION').read().strip(),
     url='https://github.com/flowdas/typeable',
-    description='A library for schema modeling, validation and conversion',
+    description='A Python type casting at runtime',
     author='Flowdas Inc.',
     author_email='prospero@flowdas.com',
     packages=[
@@ -39,7 +39,7 @@ setup(
     scripts=[],
     entry_points={},
     zip_safe=True,
-    keywords=('validation', 'modeling', 'schema', 'typing'),
+    keywords=('validation', 'modeling', 'schema', 'typing', 'serialization', 'type casting'),
     classifiers=[
         'Development Status :: 5 - Production/Stable',
         'Intended Audience :: Developers',
