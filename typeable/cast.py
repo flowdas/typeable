@@ -4,17 +4,23 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 import datetime
+import weakref
+from abc import get_cache_token
 from functools import _find_impl
 from inspect import (
     signature,
 )
 from .typing import (
+    Any,
     Type,
     TypeVar,
+    Union,
     get_args,
     get_origin,
     get_type_hints,
 )
+
+from .context import Context
 
 __all__ = [
     'cast',
@@ -23,14 +29,18 @@ __all__ = [
 _T = TypeVar('_T')
 
 _registry = {}
+_dispatch_cache = {}
+_cache_token = None
 
 
 def _register(func):
+    global _cache_token
     sig = signature(func)
-    if len(sig.parameters) < 2:
+    if len(sig.parameters) < 3:
         raise TypeError(
-            f"{func!r}() takes {len(sig.parameters)} arguments but 2 required")
-    argname, parameter = next(iter(sig.parameters.items()))
+            f"{func!r}() takes {len(sig.parameters)} arguments but 3 required")
+    it = iter(sig.parameters.items())
+    argname, parameter = next(it)
     hints = get_type_hints(func)
     typ = hints.get(argname)
     if typ:
@@ -48,77 +58,147 @@ def _register(func):
                 f"Invalid signature to `cast.register()`. "
                 f"Use either typing.Type[] annotation or return type annotation."
             )
-    if cls in _registry:
-        raise RuntimeError(f"Ambiguous `cast.register()`")
 
-    _registry[cls] = func
+    argname, parameter = next(it)
+    vcls = hints.get(argname)
+    if not vcls:
+        vcls = Any
+    if vcls == Any:
+        vcls = object
+
+    if cls in _registry:
+        if vcls in _registry[cls]:
+            raise RuntimeError(f"Ambiguous `cast.register()`")
+        _registry[cls][vcls] = func
+    else:
+        _registry[cls] = {vcls: func}
+
+    if _cache_token is None:
+        if hasattr(cls, '__abstractmethods__') or hasattr(vcls, '__abstractmethods__'):
+            _cache_token = get_cache_token()
+    _dispatch_cache.clear()
+
     return func
 
 
-def _dispatch(cls):
+def _dispatch(cls, vcls):
+    global _cache_token
+    if _cache_token is not None:
+        current_token = get_cache_token()
+        if _cache_token != current_token:
+            _dispatch_cache.clear()
+            _cache_token = current_token
+
     try:
-        return _registry[cls]
+        func = _dispatch_cache[(cls, vcls)]
     except KeyError:
-        func = _find_impl(cls, _registry)
-        if not func:
-            raise NotImplementedError(
-                f"No implementation found for '{cls.__qualname__}'")
-        return func
+        try:
+            vreg = _registry[cls]
+        except KeyError:
+            vreg = _find_impl(cls, _registry)
+            if not vreg:
+                raise NotImplementedError(
+                    f"No implementation found for '{cls.__qualname__}'")
+
+        try:
+            return vreg[vcls]
+        except KeyError:
+            func = _find_impl(vcls, vreg)
+            if not func:
+                raise NotImplementedError(
+                    f"No implementation found for '{cls.__qualname__}' from {vcls.__qualname__}")
+        _dispatch_cache[(cls, vcls)] = func
+
+    return func
 
 
-def cast(cls: Type[_T], val) -> _T:
+def cast(cls: Type[_T], val, *, ctx: Context = None) -> _T:
     origin = get_origin(cls) or cls
-    func = _dispatch(origin)
-    return func(origin, val, *get_args(cls))
+    func = _dispatch(origin, val.__class__)
+    if ctx is None:
+        ctx = Context()
+    return func(origin, val, ctx, *get_args(cls))
 
 
 cast.register = _register
 cast.dispatch = _dispatch
 
+#
+# object (fallback)
+#
+
 
 @cast.register
-def _(cls: Type[int], val):
+def _(cls: Type[object], val, ctx):
     return cls(val)
 
-
-@cast.register
-def _(cls: Type[bool], val):
-    return cls(val)
-
-
-@cast.register
-def _(cls: Type[float], val):
-    return cls(val)
+#
+# None
+#
 
 
 @cast.register
-def _(cls: Type[str], val):
-    return cls(val)
+def _(cls: Type[None], val, ctx):
+    if val is None:
+        return None
+    raise TypeError(f"{val!r} is not None")
+
+#
+# datetime.datetime
+#
 
 
 @cast.register
-def _(cls: Type[datetime.datetime], val):
+def _(cls: Type[datetime.datetime], val, ctx):
     if isinstance(val, str):
         return datetime.datetime.fromisoformat(val)
     else:
         return cls(val)
 
+#
+# list
+#
+
 
 @cast.register
-def _(cls: Type[list], val, T=None):
+def _(cls: Type[list], val, ctx, T=None):
     if T is None:
         return cls(val)
     else:
-        return cls(cast(T, v) if v is not None else v for v in val)
+        r = cls()
+        for i, v in enumerate(val):
+            with ctx.traverse(i):
+                r.append(cast(T, v, ctx=ctx))
+        return r
+
+#
+# dict
+#
 
 
 @cast.register
-def _(cls: Type[dict], val, K=None, V=None):
+def _(cls: Type[dict], val, ctx, K=None, V=None):
     if K is None:
         return cls(val)
     else:
-        return cls(
-            (cast(K, k) if k is not None else k,
-             cast(V, v) if v is not None else v)
-            for k, v in val.items()
-        )
+        r = cls()
+        for k, v in val.items():
+            with ctx.traverse(k):
+                r[cast(K, k, ctx=ctx)] = cast(V, v, ctx=ctx)
+        return r
+
+#
+# Union
+#
+
+
+@cast.register
+def _(cls, val, ctx, *Ts) -> Union:
+    vcls = val.__class__
+    for T in Ts:
+        try:
+            return cast(T, val)
+        except:
+            continue
+    else:
+        raise TypeError("no match")

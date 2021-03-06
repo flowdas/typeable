@@ -8,7 +8,9 @@ import pytest
 from typeable.typing import (
     Dict,
     List,
+    Optional,
     Type,
+    Union,
     get_args,
     get_origin,
 )
@@ -21,6 +23,7 @@ def test_get_origin():
     assert get_origin(List) == list
     assert get_origin(Dict[str, str]) == dict
     assert get_origin(Dict) == dict
+    assert get_origin(Union[int, None]) == Union
 
 
 def test_get_args():
@@ -33,12 +36,13 @@ def test_get_args():
     assert get_args(List) == ()
     assert get_args(Dict[str, X]) == (str, X)
     assert get_args(Dict) == ()
+    assert get_args(Union[int, None]) == (int, type(None))
 
 
 def test_register():
     with pytest.raises(RuntimeError):
         @cast.register
-        def _(cls, val) -> Object:
+        def _(cls, val, ctx) -> Object:
             return cls(val)
 
 
@@ -50,13 +54,33 @@ def test_invalid_register():
 
     with pytest.raises(TypeError):
         @cast.register
-        def _(cls, val):
+        def _(cls, val, ctx):
             pass
 
     with pytest.raises(TypeError):
         @cast.register
-        def _(cls: Object, val) -> Object:
+        def _(cls: Object, val, ctx) -> Object:
             pass
+
+
+def test_double_dispatch():
+    class X:
+        pass
+
+    class Y(Object):
+        pass
+
+    @cast.register
+    def _(cls, val: X, ctx) -> Object:
+        return 1
+
+    assert cast(Y, X()) == 1
+    assert isinstance(cast(Y, {}), Y)
+
+    with pytest.raises(RuntimeError):
+        @cast.register
+        def _(cls, val: X, ctx) -> Object:
+            return 1
 
 
 def test_int():
@@ -135,3 +159,18 @@ def test_dict():
             assert k == str(i)
             assert isinstance(v, X)
             assert v.i == i
+
+
+def test_Union():
+    data = '123'
+
+    r = cast(Union[str, int], data)
+    assert r == '123'
+
+    r = cast(Union[int, str], data)
+    assert r == 123
+
+
+def test_Optional():
+    assert cast(Optional[int], 1) == 1
+    assert cast(Optional[int], None) == None
