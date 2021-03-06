@@ -9,6 +9,7 @@ from typeable.typing import (
     Dict,
     List,
     Type,
+    Union,
     get_args,
     get_origin,
 )
@@ -21,6 +22,7 @@ def test_get_origin():
     assert get_origin(List) == list
     assert get_origin(Dict[str, str]) == dict
     assert get_origin(Dict) == dict
+    assert get_origin(Union[int, None]) == Union
 
 
 def test_get_args():
@@ -33,6 +35,7 @@ def test_get_args():
     assert get_args(List) == ()
     assert get_args(Dict[str, X]) == (str, X)
     assert get_args(Dict) == ()
+    assert get_args(Union[int, None]) == (int, type(None))
 
 
 def test_register():
@@ -155,3 +158,13 @@ def test_dict():
             assert k == str(i)
             assert isinstance(v, X)
             assert v.i == i
+
+
+def test_Union():
+    data = '123'
+
+    r = cast(Union[str, int], data)
+    assert r == '123'
+
+    r = cast(Union[int, str], data)
+    assert r == 123

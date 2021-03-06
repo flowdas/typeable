@@ -14,6 +14,7 @@ from .typing import (
     Any,
     Type,
     TypeVar,
+    Union,
     get_args,
     get_origin,
     get_type_hints,
@@ -122,20 +123,36 @@ def cast(cls: Type[_T], val, *, ctx: Context = None) -> _T:
 cast.register = _register
 cast.dispatch = _dispatch
 
+#
+# int
+#
+
 
 @cast.register
 def _(cls: Type[int], val, ctx):
     return cls(val)
+
+#
+# bool
+#
 
 
 @cast.register
 def _(cls: Type[bool], val, ctx):
     return cls(val)
 
+#
+# float
+#
+
 
 @cast.register
 def _(cls: Type[float], val, ctx):
     return cls(val)
+
+#
+# str
+#
 
 
 @cast.register
@@ -143,12 +160,19 @@ def _(cls: Type[str], val, ctx):
     return cls(val)
 
 
+#
+# datetime.datetime
+#
 @cast.register
 def _(cls: Type[datetime.datetime], val, ctx):
     if isinstance(val, str):
         return datetime.datetime.fromisoformat(val)
     else:
         return cls(val)
+
+#
+# list
+#
 
 
 @cast.register
@@ -162,6 +186,10 @@ def _(cls: Type[list], val, ctx, T=None):
                 r.append(cast(T, v, ctx=ctx))
         return r
 
+#
+# dict
+#
+
 
 @cast.register
 def _(cls: Type[dict], val, ctx, K=None, V=None):
@@ -173,3 +201,19 @@ def _(cls: Type[dict], val, ctx, K=None, V=None):
             with ctx.traverse(k):
                 r[cast(K, k, ctx=ctx)] = cast(V, v, ctx=ctx)
         return r
+
+#
+# Union
+#
+
+
+@cast.register
+def _(cls, val, ctx, *Ts) -> Union:
+    vcls = val.__class__
+    for T in Ts:
+        try:
+            return cast(T, val)
+        except:
+            continue
+    else:
+        raise TypeError("no match")
