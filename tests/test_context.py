@@ -15,6 +15,40 @@ from typeable.typing import (
 )
 
 
+def test_policies():
+    class MyContext(Context):
+        test_option: int = 0
+
+    ctx = MyContext()
+    assert ctx.empty_is_null is False
+    assert ctx.default_encoding == 'utf-8'
+    assert ctx.test_option == 0
+
+    ctx = MyContext(empty_is_null=True)
+    assert ctx.empty_is_null is True
+    assert ctx.default_encoding == 'utf-8'
+    assert ctx.test_option == 0
+
+    ctx = MyContext(default_encoding='ascii')
+    assert ctx.empty_is_null is False
+    assert ctx.default_encoding == 'ascii'
+    assert ctx.test_option == 0
+
+    ctx = MyContext(test_option=1)
+    assert ctx.empty_is_null is False
+    assert ctx.default_encoding == 'utf-8'
+    assert ctx.test_option == 1
+
+    with pytest.raises(TypeError):
+        MyContext(test_option=None)
+
+    with pytest.raises(TypeError):
+        MyContext(traverse=lambda: 0)
+
+    with pytest.raises(TypeError):
+        MyContext(unknown_option=0)
+
+
 def test_capture():
     class T:
         pass
