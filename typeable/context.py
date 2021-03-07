@@ -14,6 +14,7 @@ except ImportError:  # pragma: no cover
 
         def __exit__(self, *excinfo):
             pass
+from .typing import get_type_hints
 
 __all__ = [
     'Context',
@@ -28,8 +29,30 @@ class Error:
 
 
 class Context:
-    def __init__(self):
+    # default policies
+    type_is_default_factory: bool = False
+    null_is_missing: bool = False
+    missing_is_null: bool = False
+    null_is_empty: bool = False
+    empty_is_null: bool = False
+    default_encoding: str = 'utf-8'
+    bool_is_int: bool = True
+    accept_nan: bool = True
+    js_safe_integer: bool = False
+
+    def __init__(self, **policies):
         self._stack = None
+        if policies:
+            from .cast import cast  # avoid partial import
+            hints = get_type_hints(self.__class__)
+            ctx = Context()
+            for key, val in policies.items():
+                try:
+                    cls = hints[key]
+                except KeyError:
+                    raise TypeError(
+                        f"{self.__class__.__qualname__}() got an unexpected keyword argument '{key}'")
+                setattr(self, key, cast(cls, val, ctx=ctx))
 
     @contextmanager
     def capture(self):
