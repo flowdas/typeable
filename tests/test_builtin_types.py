@@ -147,6 +147,45 @@ def test_complex():
     # complex
     assert cast(complex, complex(123, 456)) == complex(123, 456)
 
+#
+# str
+#
+
+
+def test_str():
+    # bool
+    assert cast(str, True) == 'True'
+
+    # int
+    assert cast(str, 123) == '123'
+
+    # float
+    assert cast(str, 123.456) == str(123.456)
+
+    # complex
+    assert cast(str, complex(1, 2)) == '(1+2j)'
+
+    # bytes
+    assert cast(str, b'hello') == 'hello'
+
+    # bytearray
+    assert cast(str, bytearray(b'hello')) == 'hello'
+
+    # object
+    with pytest.raises(TypeError):
+        cast(str, object())
+    print(object)
+    cast(str, object(), ctx=Context(strict_str=False))
+
+    # None
+    with pytest.raises(TypeError):
+        cast(str, None)
+    with pytest.raises(TypeError):
+        cast(str, None, ctx=Context(strict_str=False))
+
+    # str
+    assert cast(str, 'hello') == 'hello'
+
 
 def test_list():
     class X(Object):

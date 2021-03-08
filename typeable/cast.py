@@ -9,7 +9,7 @@ import math
 import weakref
 from abc import get_cache_token
 from functools import _find_impl
-from numbers import Real
+from numbers import Real, Number
 from inspect import (
     signature,
 )
@@ -233,6 +233,31 @@ def _cast_complex_bool(cls: Type[complex], val: bool, ctx):
     if not ctx.bool_is_int:
         raise TypeError(f'ctx.bool_is_int={ctx.bool_is_int}')
     return cls(val)
+
+#
+# str
+#
+
+
+@cast.register
+def _cast_str_object(cls: Type[str], val, ctx):
+    if ctx.strict_str:
+        if not isinstance(val, (str, Number)):
+            raise TypeError(f'ctx.strict_str={ctx.strict_str}')
+    else:
+        if val is None:
+            raise TypeError
+    return cls(val)
+
+
+@cast.register
+def _cast_str_bytes(cls: Type[str], val: bytes, ctx):
+    return cls(val, encoding=ctx.bytes_encoding, errors=ctx.encoding_errors)
+
+
+@cast.register
+def _cast_str_bytearray(cls: Type[str], val: bytearray, ctx):
+    return cls(val, encoding=ctx.bytes_encoding, errors=ctx.encoding_errors)
 
 #
 # datetime.datetime

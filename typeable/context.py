@@ -43,11 +43,9 @@ class Context:
     bytes_encoding: str = 'utf-8'
     encoding_errors: str = 'strict'
     lossy_conversion: bool = True
+    strict_str: bool = True
 
-    null_is_missing: bool = False
     missing_is_null: bool = False
-    null_is_empty: bool = False
-    empty_is_null: bool = False
     js_safe_integer: bool = False
 
     def __init__(self, **policies):

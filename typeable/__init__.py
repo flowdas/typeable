@@ -6,3 +6,4 @@
 from .cast import *
 from .context import *
 from .object import *
+del context, object
