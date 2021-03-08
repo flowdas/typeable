@@ -3,6 +3,7 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
+import math
 import sys
 import pytest
 
@@ -83,6 +84,35 @@ def test_int():
 
     # int
     assert cast(int, 123) == 123
+
+#
+# float
+#
+
+
+def test_float():
+    # str
+    assert cast(float, "123.456") == 123.456
+    assert math.isnan(cast(float, "nan"))
+    with pytest.raises(ValueError):
+        cast(float, "nan", ctx=Context(accept_nan=False))
+    with pytest.raises(ValueError):
+        cast(float, "inf", ctx=Context(accept_nan=False))
+
+    # bool
+    assert cast(float, True) == 1.0
+    with pytest.raises(TypeError):
+        cast(float, True, ctx=Context(bool_is_int=False))
+
+    # int
+    assert cast(float, 123) == 123
+
+    # complex
+    with pytest.raises(TypeError):
+        cast(float, complex())
+
+    # float
+    assert cast(float, 123.456) == 123.456
 
 
 def test_list():

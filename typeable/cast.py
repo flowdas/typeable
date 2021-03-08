@@ -4,6 +4,7 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 import datetime
+import math
 import weakref
 from abc import get_cache_token
 from functools import _find_impl
@@ -190,6 +191,26 @@ def _cast_int_bool(cls: Type[int], val: bool, ctx):
         raise TypeError(f'ctx.bool_is_int={ctx.bool_is_int}')
     return cls(val)
 
+#
+# float
+#
+
+
+@cast.register
+def _cast_float_object(cls: Type[float], val, ctx):
+    if ctx.accept_nan:
+        return cls(val)
+    r = cls(val)
+    if not math.isfinite(r):
+        raise ValueError(f'ctx.accept_nan={ctx.accept_nan}')
+    return r
+
+
+@cast.register
+def _cast_float_bool(cls: Type[float], val: bool, ctx):
+    if not ctx.bool_is_int:
+        raise TypeError(f'ctx.bool_is_int={ctx.bool_is_int}')
+    return cls(val)
 
 #
 # datetime.datetime
