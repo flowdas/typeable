@@ -3,6 +3,7 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
+import cmath
 import datetime
 import math
 import weakref
@@ -208,6 +209,27 @@ def _cast_float_object(cls: Type[float], val, ctx):
 
 @cast.register
 def _cast_float_bool(cls: Type[float], val: bool, ctx):
+    if not ctx.bool_is_int:
+        raise TypeError(f'ctx.bool_is_int={ctx.bool_is_int}')
+    return cls(val)
+
+#
+# complex
+#
+
+
+@cast.register
+def _cast_complex_object(cls: Type[complex], val, ctx):
+    if ctx.accept_nan:
+        return cls(val)
+    r = cls(val)
+    if not cmath.isfinite(r):
+        raise ValueError(f'ctx.accept_nan={ctx.accept_nan}')
+    return r
+
+
+@cast.register
+def _cast_complex_bool(cls: Type[complex], val: bool, ctx):
     if not ctx.bool_is_int:
         raise TypeError(f'ctx.bool_is_int={ctx.bool_is_int}')
     return cls(val)

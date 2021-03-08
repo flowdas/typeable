@@ -3,6 +3,7 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
+import cmath
 import math
 import sys
 import pytest
@@ -113,6 +114,38 @@ def test_float():
 
     # float
     assert cast(float, 123.456) == 123.456
+
+#
+# complex
+#
+
+
+def test_complex():
+    # str
+    assert cast(complex, "123+456j") == complex(123, 456)
+    assert cmath.isnan(cast(complex, "nan+nanj"))
+    with pytest.raises(ValueError):
+        cast(complex, "nan+nanj", ctx=Context(accept_nan=False))
+    with pytest.raises(ValueError):
+        cast(complex, "inf", ctx=Context(accept_nan=False))
+
+    # bool
+    assert cast(complex, True) == 1.0+0j
+    with pytest.raises(TypeError):
+        cast(complex, True, ctx=Context(bool_is_int=False))
+
+    # int
+    assert cast(complex, 123) == 123+0j
+
+    # float
+    assert cast(complex, 123.456) == 123.456+0j
+
+    # complex
+    with pytest.raises(TypeError):
+        cast(float, complex())
+
+    # complex
+    assert cast(complex, complex(123, 456)) == complex(123, 456)
 
 
 def test_list():
