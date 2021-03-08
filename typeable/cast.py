@@ -277,6 +277,23 @@ def _cast_bytes_str(cls: Type[bytes], val: str, ctx):
 
 
 #
+# bytearray
+#
+
+
+@cast.register
+def _cast_bytearray_object(cls: Type[bytearray], val, ctx):
+    if isinstance(val, int):
+        raise TypeError
+    return cls(val)
+
+
+@cast.register
+def _cast_bytearray_str(cls: Type[bytearray], val: str, ctx):
+    return cls(val, encoding=ctx.bytes_encoding, errors=ctx.encoding_errors)
+
+
+#
 # datetime.datetime
 #
 
