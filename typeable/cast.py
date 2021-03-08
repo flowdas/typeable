@@ -105,7 +105,7 @@ def _dispatch(cls, vcls):
         except KeyError:
             func = _find_impl(vcls, vreg)
             if not func:
-                raise NotImplementedError(
+                raise TypeError(
                     f"No implementation found for '{cls.__qualname__}' from {vcls.__qualname__}")
         _dispatch_cache[(cls, vcls)] = func
 
@@ -138,10 +138,35 @@ def _(cls: Type[object], val, ctx):
 
 
 @cast.register
-def _(cls: Type[None], val, ctx):
+def _cast_None_Any(cls: Type[None], val, ctx):
     if val is None:
         return None
     raise TypeError(f"{val!r} is not None")
+
+#
+# bool
+#
+
+
+@cast.register
+def _cast_bool_int(cls: Type[bool], val: int, ctx):
+    if isinstance(val, bool):
+        return cls(val)
+    if not ctx.bool_is_int:
+        raise TypeError(f'ctx.bool_is_int={ctx.bool_is_int}')
+    if not ctx.lossy_conversion and not (val == 0 or val == 1):
+        raise ValueError(f'ctx.lossy_conversion={ctx.lossy_conversion}')
+    return cls(val)
+
+
+@cast.register
+def _cast_bool_str(cls: Type[bool], val: str, ctx):
+    if not ctx.bool_strings:
+        raise TypeError
+    try:
+        return cls(ctx.bool_strings[val.lower()])
+    except KeyError:
+        raise ValueError
 
 #
 # datetime.datetime

@@ -207,6 +207,16 @@ def test_nullable():
     assert X.d is None
 
 
+def test_cast():
+    class X(Object):
+        i: int
+
+    data = {'i': 0}
+
+    x = cast(X, data)
+    assert x.i == data['i']
+
+
 def test_required():
     class X(Object):
         a: int  # not required
