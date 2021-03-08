@@ -186,6 +186,32 @@ def test_str():
     # str
     assert cast(str, 'hello') == 'hello'
 
+#
+# bytes
+#
+
+
+def test_bytes():
+    # str
+    assert cast(bytes, 'hello') == b'hello'
+
+    # list[int]
+    assert cast(bytes, [0, 1, 2, 3, 4]) == b'\x00\x01\x02\x03\x04'
+
+    # int
+    with pytest.raises(TypeError):
+        cast(bytes, 5)
+
+    # None
+    with pytest.raises(TypeError):
+        cast(bytes, None)
+
+    # bytearray
+    assert cast(bytes, bytearray(b'hello')) == b'hello'
+
+    # bytes
+    assert cast(bytes, b'hello') == b'hello'
+
 
 def test_list():
     class X(Object):
