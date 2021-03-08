@@ -64,7 +64,25 @@ def test_bool():
 
 
 def test_int():
+    # str
     assert cast(int, "123") == 123
+
+    # bool
+    assert cast(int, True) == 1
+    with pytest.raises(TypeError):
+        cast(int, True, ctx=Context(bool_is_int=False))
+
+    # float
+    assert cast(int, 123.456) == 123
+    with pytest.raises(ValueError):
+        cast(int, 123.456, ctx=Context(lossy_conversion=False))
+
+    # complex
+    with pytest.raises(TypeError):
+        cast(int, complex())
+
+    # int
+    assert cast(int, 123) == 123
 
 
 def test_list():

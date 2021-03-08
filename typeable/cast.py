@@ -7,6 +7,7 @@ import datetime
 import weakref
 from abc import get_cache_token
 from functools import _find_impl
+from numbers import Real
 from inspect import (
     signature,
 )
@@ -129,7 +130,7 @@ cast.dispatch = _dispatch
 
 
 @cast.register
-def _(cls: Type[object], val, ctx):
+def _cast_object_object(cls: Type[object], val, ctx):
     return cls(val)
 
 #
@@ -138,7 +139,7 @@ def _(cls: Type[object], val, ctx):
 
 
 @cast.register
-def _cast_None_Any(cls: Type[None], val, ctx):
+def _cast_None_object(cls: Type[None], val, ctx):
     if val is None:
         return None
     raise TypeError(f"{val!r} is not None")
@@ -167,6 +168,28 @@ def _cast_bool_str(cls: Type[bool], val: str, ctx):
         return cls(ctx.bool_strings[val.lower()])
     except KeyError:
         raise ValueError
+
+#
+# int
+#
+
+
+@cast.register
+def _cast_int_object(cls: Type[int], val, ctx):
+    if ctx.lossy_conversion or isinstance(val, int) or not isinstance(val, Real):
+        return cls(val)
+    r = cls(val)
+    if r != val:
+        raise ValueError(f'ctx.lossy_conversion={ctx.lossy_conversion}')
+    return r
+
+
+@cast.register
+def _cast_int_bool(cls: Type[int], val: bool, ctx):
+    if not ctx.bool_is_int:
+        raise TypeError(f'ctx.bool_is_int={ctx.bool_is_int}')
+    return cls(val)
+
 
 #
 # datetime.datetime
