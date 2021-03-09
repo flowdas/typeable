@@ -3,10 +3,13 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
+import cmath
 import datetime
+import math
 import weakref
 from abc import get_cache_token
 from functools import _find_impl
+from numbers import Real, Number
 from inspect import (
     signature,
 )
@@ -105,7 +108,7 @@ def _dispatch(cls, vcls):
         except KeyError:
             func = _find_impl(vcls, vreg)
             if not func:
-                raise NotImplementedError(
+                raise TypeError(
                     f"No implementation found for '{cls.__qualname__}' from {vcls.__qualname__}")
         _dispatch_cache[(cls, vcls)] = func
 
@@ -129,7 +132,7 @@ cast.dispatch = _dispatch
 
 
 @cast.register
-def _(cls: Type[object], val, ctx):
+def _cast_object_object(cls: Type[object], val, ctx):
     return cls(val)
 
 #
@@ -138,10 +141,157 @@ def _(cls: Type[object], val, ctx):
 
 
 @cast.register
-def _(cls: Type[None], val, ctx):
+def _cast_None_object(cls: Type[None], val, ctx):
     if val is None:
         return None
     raise TypeError(f"{val!r} is not None")
+
+#
+# bool
+#
+
+
+@cast.register
+def _cast_bool_int(cls: Type[bool], val: int, ctx):
+    if isinstance(val, bool):
+        return cls(val)
+    if not ctx.bool_is_int:
+        raise TypeError(f'ctx.bool_is_int={ctx.bool_is_int}')
+    if not ctx.lossy_conversion and not (val == 0 or val == 1):
+        raise ValueError(f'ctx.lossy_conversion={ctx.lossy_conversion}')
+    return cls(val)
+
+
+@cast.register
+def _cast_bool_str(cls: Type[bool], val: str, ctx):
+    if not ctx.bool_strings:
+        raise TypeError
+    try:
+        return cls(ctx.bool_strings[val.lower()])
+    except KeyError:
+        raise ValueError
+
+#
+# int
+#
+
+
+@cast.register
+def _cast_int_object(cls: Type[int], val, ctx):
+    if ctx.lossy_conversion or isinstance(val, int) or not isinstance(val, Real):
+        return cls(val)
+    r = cls(val)
+    if r != val:
+        raise ValueError(f'ctx.lossy_conversion={ctx.lossy_conversion}')
+    return r
+
+
+@cast.register
+def _cast_int_bool(cls: Type[int], val: bool, ctx):
+    if not ctx.bool_is_int:
+        raise TypeError(f'ctx.bool_is_int={ctx.bool_is_int}')
+    return cls(val)
+
+#
+# float
+#
+
+
+@cast.register
+def _cast_float_object(cls: Type[float], val, ctx):
+    if ctx.accept_nan:
+        return cls(val)
+    r = cls(val)
+    if not math.isfinite(r):
+        raise ValueError(f'ctx.accept_nan={ctx.accept_nan}')
+    return r
+
+
+@cast.register
+def _cast_float_bool(cls: Type[float], val: bool, ctx):
+    if not ctx.bool_is_int:
+        raise TypeError(f'ctx.bool_is_int={ctx.bool_is_int}')
+    return cls(val)
+
+#
+# complex
+#
+
+
+@cast.register
+def _cast_complex_object(cls: Type[complex], val, ctx):
+    if ctx.accept_nan:
+        return cls(val)
+    r = cls(val)
+    if not cmath.isfinite(r):
+        raise ValueError(f'ctx.accept_nan={ctx.accept_nan}')
+    return r
+
+
+@cast.register
+def _cast_complex_bool(cls: Type[complex], val: bool, ctx):
+    if not ctx.bool_is_int:
+        raise TypeError(f'ctx.bool_is_int={ctx.bool_is_int}')
+    return cls(val)
+
+#
+# str
+#
+
+
+@cast.register
+def _cast_str_object(cls: Type[str], val, ctx):
+    if ctx.strict_str:
+        if not isinstance(val, (str, Number)):
+            raise TypeError(f'ctx.strict_str={ctx.strict_str}')
+    else:
+        if val is None:
+            raise TypeError
+    return cls(val)
+
+
+@cast.register
+def _cast_str_bytes(cls: Type[str], val: bytes, ctx):
+    return cls(val, encoding=ctx.bytes_encoding, errors=ctx.encoding_errors)
+
+
+@cast.register
+def _cast_str_bytearray(cls: Type[str], val: bytearray, ctx):
+    return cls(val, encoding=ctx.bytes_encoding, errors=ctx.encoding_errors)
+
+#
+# bytes
+#
+
+
+@cast.register
+def _cast_bytes_object(cls: Type[bytes], val, ctx):
+    if isinstance(val, int):
+        raise TypeError
+    return cls(val)
+
+
+@cast.register
+def _cast_bytes_str(cls: Type[bytes], val: str, ctx):
+    return cls(val, encoding=ctx.bytes_encoding, errors=ctx.encoding_errors)
+
+
+#
+# bytearray
+#
+
+
+@cast.register
+def _cast_bytearray_object(cls: Type[bytearray], val, ctx):
+    if isinstance(val, int):
+        raise TypeError
+    return cls(val)
+
+
+@cast.register
+def _cast_bytearray_str(cls: Type[bytearray], val: str, ctx):
+    return cls(val, encoding=ctx.bytes_encoding, errors=ctx.encoding_errors)
+
 
 #
 # datetime.datetime
