@@ -45,9 +45,6 @@ class Context:
     lossy_conversion: bool = True
     strict_str: bool = True
 
-    missing_is_null: bool = False
-    js_safe_integer: bool = False
-
     def __init__(self, **policies):
         self._stack = None
         if policies:

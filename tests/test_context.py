@@ -20,22 +20,22 @@ def test_policies():
         test_option: int = 0
 
     ctx = MyContext()
-    assert ctx.missing_is_null is False
+    assert ctx.bool_is_int is True
     assert ctx.bytes_encoding == 'utf-8'
     assert ctx.test_option == 0
 
-    ctx = MyContext(missing_is_null=True)
-    assert ctx.missing_is_null is True
+    ctx = MyContext(bool_is_int=False)
+    assert ctx.bool_is_int is False
     assert ctx.bytes_encoding == 'utf-8'
     assert ctx.test_option == 0
 
     ctx = MyContext(bytes_encoding='ascii')
-    assert ctx.missing_is_null is False
+    assert ctx.bool_is_int is True
     assert ctx.bytes_encoding == 'ascii'
     assert ctx.test_option == 0
 
     ctx = MyContext(test_option=1)
-    assert ctx.missing_is_null is False
+    assert ctx.bool_is_int is True
     assert ctx.bytes_encoding == 'utf-8'
     assert ctx.test_option == 1
 
