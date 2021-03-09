@@ -4,6 +4,7 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 import cmath
+import collections
 import math
 import sys
 import pytest
@@ -294,8 +295,26 @@ def test_list():
             assert isinstance(l[i], X)
             assert l[i].i == i
 
+#
+# dict
+#
+
 
 def test_dict():
+    # mapping
+    d = {'a': 1, 'b': 2}
+    r = cast(dict, collections.OrderedDict(d))
+    assert r == {'a': 1, 'b': 2}
+    assert r.__class__ is dict
+
+    # list
+    assert cast(dict, [('a', 1), ('b', 2)]) == {'a': 1, 'b': 2}
+
+    # None
+    with pytest.raises(TypeError):
+        cast(dict, None)
+
+    # dict
     class X(Object):
         i: int
 
@@ -309,6 +328,7 @@ def test_dict():
     assert isinstance(r, dict)
     assert r == data
 
+    # generic dict
     r = cast(Dict[str, X], data)
 
     assert isinstance(r, dict)
@@ -317,6 +337,8 @@ def test_dict():
         assert k == str(i)
         assert isinstance(v, X)
         assert v.i == i
+
+    assert cast(Dict[str, int], [('a', 1), ('b', 2)]) == {'a': 1, 'b': 2}
 
     if sys.version_info >= (3, 9):
         r = cast(dict[str, X], data)

@@ -328,11 +328,14 @@ def _(cls: Type[dict], val, ctx, K=None, V=None):
     if K is None:
         return cls(val)
     else:
+        if isinstance(val, Mapping):
+            val = val.items()
         r = cls()
-        for k, v in val.items():
+        for k, v in val:
             with ctx.traverse(k):
                 r[cast(K, k, ctx=ctx)] = cast(V, v, ctx=ctx)
         return r
+
 
 #
 # Union
