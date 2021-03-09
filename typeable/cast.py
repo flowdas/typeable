@@ -136,6 +136,10 @@ cast.dispatch = _dispatch
 
 @cast.register
 def _cast_object_object(cls: Type[object], val, ctx):
+    if cls is object:
+        if isinstance(val, object):
+            return object()
+        raise TypeError
     return cls(val)
 
 #

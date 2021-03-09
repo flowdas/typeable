@@ -15,6 +15,18 @@ from typeable.typing import (
 from typeable import *
 
 #
+# object
+#
+
+
+def test_object():
+    # None
+    cast(object, None).__class__ is object
+
+    # object
+    assert cast(object, object()).__class__ is object
+
+#
 # None
 #
 
