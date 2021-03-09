@@ -11,6 +11,7 @@ import pytest
 
 from typeable.typing import (
     Dict,
+    FrozenSet,
     List,
     Set,
 )
@@ -356,34 +357,35 @@ def test_dict():
 #
 
 
-def test_set():
+@pytest.mark.parametrize('T,GT', [(set, Set), (frozenset, FrozenSet)])
+def test_set(T, GT):
     # dict
-    assert cast(set, {'a': 1, 'b': 2}) == {'a', 'b'}
+    assert cast(T, {'a': 1, 'b': 2}) == {'a', 'b'}
 
     # None
     with pytest.raises(TypeError):
-        cast(set, None)
+        cast(T, None)
 
     # set
     expected = {i for i in range(10)}
     data = {str(v) for v in expected}
 
-    l = cast(Set, data)
-    assert isinstance(l, set)
+    l = cast(GT, data)
+    assert isinstance(l, T)
     assert l == data
 
-    l = cast(set, data)
-    assert isinstance(l, set)
+    l = cast(T, data)
+    assert isinstance(l, T)
     assert l == data
 
     # generic set
-    l = cast(Set[int], data)
+    l = cast(GT[int], data)
 
-    assert isinstance(l, set)
+    assert isinstance(l, T)
     assert l == expected
 
     if sys.version_info >= (3, 9):
-        l = cast(set[int], data)
+        l = cast(T[int], data)
 
-        assert isinstance(l, set)
+        assert isinstance(l, T)
         assert l == expected

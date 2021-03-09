@@ -352,6 +352,22 @@ def _cast_set_object(cls: Type[set], val, ctx, T=None):
                 r.add(cast(T, v, ctx=ctx))
         return r
 
+#
+# frozenset
+#
+
+
+@cast.register
+def _cast_set_object(cls: Type[frozenset], val, ctx, T=None):
+    if T is None:
+        return cls(val)
+    else:
+        r = set()
+        for v in val:
+            with ctx.traverse(v):
+                r.add(cast(T, v, ctx=ctx))
+        return cls(r)
+
 
 #
 # Union
