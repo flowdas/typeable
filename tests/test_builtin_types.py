@@ -239,8 +239,20 @@ def test_bytearray():
     # bytearray
     assert cast(bytearray, bytearray(b'hello')) == bytearray(b'hello')
 
+#
+# list
+#
+
 
 def test_list():
+    # dict
+    assert cast(list, {'a': 1, 'b': 2}) == [('a', 1), ('b', 2)]
+
+    # None
+    with pytest.raises(TypeError):
+        cast(list, None)
+
+    # list
     class X(Object):
         i: int
 
@@ -254,6 +266,7 @@ def test_list():
     assert isinstance(l, list)
     assert l == data
 
+    # generic list
     l = cast(List[X], data)
 
     assert isinstance(l, list)

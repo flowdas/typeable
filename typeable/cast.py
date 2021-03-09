@@ -8,6 +8,9 @@ import datetime
 import math
 import weakref
 from abc import get_cache_token
+from collections.abc import (
+    Mapping,
+)
 from functools import _find_impl
 from numbers import Real, Number
 from inspect import (
@@ -294,24 +297,14 @@ def _cast_bytearray_str(cls: Type[bytearray], val: str, ctx):
 
 
 #
-# datetime.datetime
-#
-
-
-@cast.register
-def _(cls: Type[datetime.datetime], val, ctx):
-    if isinstance(val, str):
-        return datetime.datetime.fromisoformat(val)
-    else:
-        return cls(val)
-
-#
 # list
 #
 
 
 @cast.register
-def _(cls: Type[list], val, ctx, T=None):
+def _cast_list_object(cls: Type[list], val, ctx, T=None):
+    if isinstance(val, Mapping):
+        val = val.items()
     if T is None:
         return cls(val)
     else:
@@ -352,3 +345,15 @@ def _(cls, val, ctx, *Ts) -> Union:
             continue
     else:
         raise TypeError("no match")
+
+#
+# datetime.datetime
+#
+
+
+@cast.register
+def _(cls: Type[datetime.datetime], val, ctx):
+    if isinstance(val, str):
+        return datetime.datetime.fromisoformat(val)
+    else:
+        return cls(val)
