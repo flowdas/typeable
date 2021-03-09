@@ -253,7 +253,7 @@ def _cast_str_object(cls: Type[str], val, ctx):
             raise TypeError(f'ctx.strict_str={ctx.strict_str}')
     else:
         if val is None:
-            raise TypeError
+            raise TypeError(f"{cls.__qualname__} is required, but {val!r} is given")
     return cls(val)
 
 
