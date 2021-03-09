@@ -4,15 +4,31 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 import cmath
+import collections
 import math
 import sys
 import pytest
 
 from typeable.typing import (
     Dict,
+    FrozenSet,
     List,
+    Set,
+    Tuple,
 )
 from typeable import *
+
+#
+# object
+#
+
+
+def test_object():
+    # None
+    cast(object, None).__class__ is object
+
+    # object
+    assert cast(object, object()).__class__ is object
 
 #
 # None
@@ -239,8 +255,20 @@ def test_bytearray():
     # bytearray
     assert cast(bytearray, bytearray(b'hello')) == bytearray(b'hello')
 
+#
+# list
+#
+
 
 def test_list():
+    # dict
+    assert cast(list, {'a': 1, 'b': 2}) == [('a', 1), ('b', 2)]
+
+    # None
+    with pytest.raises(TypeError):
+        cast(list, None)
+
+    # list
     class X(Object):
         i: int
 
@@ -254,6 +282,7 @@ def test_list():
     assert isinstance(l, list)
     assert l == data
 
+    # generic list
     l = cast(List[X], data)
 
     assert isinstance(l, list)
@@ -269,8 +298,26 @@ def test_list():
             assert isinstance(l[i], X)
             assert l[i].i == i
 
+#
+# dict
+#
+
 
 def test_dict():
+    # mapping
+    d = {'a': 1, 'b': 2}
+    r = cast(dict, collections.OrderedDict(d))
+    assert r == {'a': 1, 'b': 2}
+    assert r.__class__ is dict
+
+    # list
+    assert cast(dict, [('a', 1), ('b', 2)]) == {'a': 1, 'b': 2}
+
+    # None
+    with pytest.raises(TypeError):
+        cast(dict, None)
+
+    # dict
     class X(Object):
         i: int
 
@@ -284,6 +331,7 @@ def test_dict():
     assert isinstance(r, dict)
     assert r == data
 
+    # generic dict
     r = cast(Dict[str, X], data)
 
     assert isinstance(r, dict)
@@ -292,6 +340,8 @@ def test_dict():
         assert k == str(i)
         assert isinstance(v, X)
         assert v.i == i
+
+    assert cast(Dict[str, int], [('a', 1), ('b', 2)]) == {'a': 1, 'b': 2}
 
     if sys.version_info >= (3, 9):
         r = cast(dict[str, X], data)
@@ -302,3 +352,135 @@ def test_dict():
             assert k == str(i)
             assert isinstance(v, X)
             assert v.i == i
+
+#
+# set, frozenset
+#
+
+
+@pytest.mark.parametrize('T,GT', [(set, Set), (frozenset, FrozenSet)])
+def test_set(T, GT):
+    # dict
+    assert cast(T, {'a': 1, 'b': 2}) == {'a', 'b'}
+
+    # None
+    with pytest.raises(TypeError):
+        cast(T, None)
+
+    # set
+    expected = {i for i in range(10)}
+    data = {str(v) for v in expected}
+
+    l = cast(GT, data)
+    assert isinstance(l, T)
+    assert l == data
+
+    l = cast(T, data)
+    assert isinstance(l, T)
+    assert l == data
+
+    # generic set
+    l = cast(GT[int], data)
+
+    assert isinstance(l, T)
+    assert l == expected
+
+    if sys.version_info >= (3, 9):
+        l = cast(T[int], data)
+
+        assert isinstance(l, T)
+        assert l == expected
+
+#
+# tuple
+#
+
+
+def test_tuple():
+    # dict
+    assert cast(tuple, {'a': 1, 'b': 2}) == (('a', 1), ('b', 2))
+
+    # None
+    with pytest.raises(TypeError):
+        cast(tuple, None)
+
+    # homogeneous tuple
+    expected = tuple(range(10))
+    data = tuple(str(i) for i in range(10))
+
+    l = cast(Tuple, data)
+    assert isinstance(l, tuple)
+    assert l == data
+
+    l = cast(tuple, data)
+    assert isinstance(l, tuple)
+    assert l == data
+
+    # homogeneous generic tuple
+    l = cast(Tuple[int, ...], data)
+
+    assert isinstance(l, tuple)
+    assert l == expected
+
+    if sys.version_info >= (3, 9):
+        l = cast(tuple[int, ...], data)
+
+        assert isinstance(l, tuple)
+        assert l == expected
+
+    # heterogeneous tuple
+    data = (1, "2", "3")
+    expected = ("1", 2, "3")
+
+    l = cast(Tuple, data)
+    assert isinstance(l, tuple)
+    assert l == data
+
+    l = cast(tuple, data)
+    assert isinstance(l, tuple)
+    assert l == data
+
+    # heterogeneous generic tuple
+    l = cast(Tuple[str, int, str], data)
+
+    assert isinstance(l, tuple)
+    assert l == expected
+
+    if sys.version_info >= (3, 9):
+        l = cast(tuple[str, int, str], data)
+
+        assert isinstance(l, tuple)
+        assert l == expected
+
+    # empty tuple
+    data = ()
+
+    l = cast(Tuple, data)
+    assert isinstance(l, tuple)
+    assert l == data
+
+    l = cast(tuple, data)
+    assert isinstance(l, tuple)
+    assert l == data
+
+    # empty generic tuple
+    l = cast(Tuple[()], data)
+
+    assert isinstance(l, tuple)
+    assert l == data
+
+    if sys.version_info >= (3, 9):
+        l = cast(tuple[()], data)
+
+        assert isinstance(l, tuple)
+        assert l == data
+
+    # length mismatch
+    with pytest.raises(TypeError):
+        cast(Tuple[()], (1,))
+
+    with pytest.raises(TypeError):
+        cast(Tuple[int], (1, 2))
+
+    with pytest.raises(TypeError):
+        cast(Tuple[int], ())

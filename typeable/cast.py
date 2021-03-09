@@ -8,6 +8,9 @@ import datetime
 import math
 import weakref
 from abc import get_cache_token
+from collections.abc import (
+    Mapping,
+)
 from functools import _find_impl
 from numbers import Real, Number
 from inspect import (
@@ -132,7 +135,11 @@ cast.dispatch = _dispatch
 
 
 @cast.register
-def _cast_object_object(cls: Type[object], val, ctx):
+def _cast_object_object(cls: Type[object], val, ctx, *Ts):
+    if cls is object:
+        if isinstance(val, object):
+            return object()
+        raise TypeError
     return cls(val)
 
 #
@@ -294,24 +301,14 @@ def _cast_bytearray_str(cls: Type[bytearray], val: str, ctx):
 
 
 #
-# datetime.datetime
-#
-
-
-@cast.register
-def _(cls: Type[datetime.datetime], val, ctx):
-    if isinstance(val, str):
-        return datetime.datetime.fromisoformat(val)
-    else:
-        return cls(val)
-
-#
 # list
 #
 
 
 @cast.register
-def _(cls: Type[list], val, ctx, T=None):
+def _cast_list_object(cls: Type[list], val, ctx, T=None):
+    if isinstance(val, Mapping):
+        val = val.items()
     if T is None:
         return cls(val)
     else:
@@ -327,15 +324,86 @@ def _(cls: Type[list], val, ctx, T=None):
 
 
 @cast.register
-def _(cls: Type[dict], val, ctx, K=None, V=None):
+def _cast_dict_object(cls: Type[dict], val, ctx, K=None, V=None):
     if K is None:
         return cls(val)
     else:
+        if isinstance(val, Mapping):
+            val = val.items()
         r = cls()
-        for k, v in val.items():
+        for k, v in val:
             with ctx.traverse(k):
                 r[cast(K, k, ctx=ctx)] = cast(V, v, ctx=ctx)
         return r
+
+#
+# set
+#
+
+
+@cast.register
+def _cast_set_object(cls: Type[set], val, ctx, T=None):
+    if T is None:
+        return cls(val)
+    else:
+        r = cls()
+        for v in val:
+            with ctx.traverse(v):
+                r.add(cast(T, v, ctx=ctx))
+        return r
+
+#
+# frozenset
+#
+
+
+@cast.register
+def _cast_set_object(cls: Type[frozenset], val, ctx, T=None):
+    if T is None:
+        return cls(val)
+    else:
+        r = set()
+        for v in val:
+            with ctx.traverse(v):
+                r.add(cast(T, v, ctx=ctx))
+        return cls(r)
+
+#
+# tuple
+#
+
+
+@cast.register
+def _cast_tuple_object(cls: Type[tuple], val, ctx, *Ts):
+    if isinstance(val, Mapping):
+        val = val.items()
+    if not Ts:
+        return cls(val)
+    elif Ts[-1] == ...:
+        r = []
+        for i, v in enumerate(val):
+            with ctx.traverse(i):
+                r.append(cast(Ts[0], v, ctx=ctx))
+        return cls(r)
+    else:
+        if Ts[0] == ():
+            Ts = ()
+        r = []
+        it = iter(val)
+        for i, T in enumerate(Ts):
+            with ctx.traverse(i):
+                try:
+                    v = next(it)
+                except StopIteration:
+                    raise TypeError('length mismatch')
+                r.append(cast(T, v, ctx=ctx))
+        try:
+            with ctx.traverse(len(Ts)):
+                next(it)
+                raise TypeError('length mismatch')
+        except StopIteration:
+            return cls(r)
+
 
 #
 # Union
@@ -343,7 +411,7 @@ def _(cls: Type[dict], val, ctx, K=None, V=None):
 
 
 @cast.register
-def _(cls, val, ctx, *Ts) -> Union:
+def _cast_Union_object(cls, val, ctx, *Ts) -> Union:
     vcls = val.__class__
     for T in Ts:
         try:
@@ -352,3 +420,15 @@ def _(cls, val, ctx, *Ts) -> Union:
             continue
     else:
         raise TypeError("no match")
+
+#
+# datetime.datetime
+#
+
+
+@cast.register
+def _cast_datetime_object(cls: Type[datetime.datetime], val, ctx):
+    if isinstance(val, str):
+        return datetime.datetime.fromisoformat(val)
+    else:
+        return cls(val)

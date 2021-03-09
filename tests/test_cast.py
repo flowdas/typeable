@@ -6,7 +6,10 @@
 import pytest
 from typeable.typing import (
     Dict,
+    FrozenSet,
     List,
+    Set,
+    Tuple,
     Type,
     Union,
     get_args,
@@ -21,6 +24,15 @@ def test_get_origin():
     assert get_origin(List) == list
     assert get_origin(Dict[str, str]) == dict
     assert get_origin(Dict) == dict
+    assert get_origin(Set[int]) == set
+    assert get_origin(Set) == set
+    assert get_origin(FrozenSet[int]) == frozenset
+    assert get_origin(FrozenSet) == frozenset
+    assert get_origin(Tuple[int]) == tuple
+    assert get_origin(Tuple[int, str]) == tuple
+    assert get_origin(Tuple[int, ...]) == tuple
+    assert get_origin(Tuple[()]) == tuple
+    assert get_origin(Tuple) == tuple
     assert get_origin(Union[int, None]) == Union
 
 
@@ -34,6 +46,15 @@ def test_get_args():
     assert get_args(List) == ()
     assert get_args(Dict[str, X]) == (str, X)
     assert get_args(Dict) == ()
+    assert get_args(Set[int]) == (int,)
+    assert get_args(Set) == ()
+    assert get_args(FrozenSet[int]) == (int,)
+    assert get_args(FrozenSet) == ()
+    assert get_args(Tuple[int]) == (int,)
+    assert get_args(Tuple[int, str]) == (int, str)
+    assert get_args(Tuple[int, ...]) == (int, ...)
+    assert get_args(Tuple[()]) == ((),)
+    assert get_args(Tuple) == ()
     assert get_args(Union[int, None]) == (int, type(None))
 
 
