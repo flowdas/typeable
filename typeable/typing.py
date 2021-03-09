@@ -35,6 +35,7 @@ if sys.version_info < (3, 8):  # pragma: no cover
             FrozenSet: frozenset,
             List: list,
             Set: set,
+            Tuple: tuple,
             Type: type,
         }
 

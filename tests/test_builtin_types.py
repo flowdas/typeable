@@ -14,6 +14,7 @@ from typeable.typing import (
     FrozenSet,
     List,
     Set,
+    Tuple,
 )
 from typeable import *
 
@@ -353,7 +354,7 @@ def test_dict():
             assert v.i == i
 
 #
-# set
+# set, frozenset
 #
 
 
@@ -389,3 +390,97 @@ def test_set(T, GT):
 
         assert isinstance(l, T)
         assert l == expected
+
+#
+# tuple
+#
+
+
+def test_tuple():
+    # dict
+    assert cast(tuple, {'a': 1, 'b': 2}) == (('a', 1), ('b', 2))
+
+    # None
+    with pytest.raises(TypeError):
+        cast(tuple, None)
+
+    # homogeneous tuple
+    expected = tuple(range(10))
+    data = tuple(str(i) for i in range(10))
+
+    l = cast(Tuple, data)
+    assert isinstance(l, tuple)
+    assert l == data
+
+    l = cast(tuple, data)
+    assert isinstance(l, tuple)
+    assert l == data
+
+    # homogeneous generic tuple
+    l = cast(Tuple[int, ...], data)
+
+    assert isinstance(l, tuple)
+    assert l == expected
+
+    if sys.version_info >= (3, 9):
+        l = cast(tuple[int, ...], data)
+
+        assert isinstance(l, tuple)
+        assert l == expected
+
+    # heterogeneous tuple
+    data = (1, "2", "3")
+    expected = ("1", 2, "3")
+
+    l = cast(Tuple, data)
+    assert isinstance(l, tuple)
+    assert l == data
+
+    l = cast(tuple, data)
+    assert isinstance(l, tuple)
+    assert l == data
+
+    # heterogeneous generic tuple
+    l = cast(Tuple[str, int, str], data)
+
+    assert isinstance(l, tuple)
+    assert l == expected
+
+    if sys.version_info >= (3, 9):
+        l = cast(tuple[str, int, str], data)
+
+        assert isinstance(l, tuple)
+        assert l == expected
+
+    # empty tuple
+    data = ()
+
+    l = cast(Tuple, data)
+    assert isinstance(l, tuple)
+    assert l == data
+
+    l = cast(tuple, data)
+    assert isinstance(l, tuple)
+    assert l == data
+
+    # empty generic tuple
+    l = cast(Tuple[()], data)
+
+    assert isinstance(l, tuple)
+    assert l == data
+
+    if sys.version_info >= (3, 9):
+        l = cast(tuple[()], data)
+
+        assert isinstance(l, tuple)
+        assert l == data
+
+    # length mismatch
+    with pytest.raises(TypeError):
+        cast(Tuple[()], (1,))
+
+    with pytest.raises(TypeError):
+        cast(Tuple[int], (1, 2))
+
+    with pytest.raises(TypeError):
+        cast(Tuple[int], ())

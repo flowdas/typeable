@@ -368,6 +368,42 @@ def _cast_set_object(cls: Type[frozenset], val, ctx, T=None):
                 r.add(cast(T, v, ctx=ctx))
         return cls(r)
 
+#
+# tuple
+#
+
+
+@cast.register
+def _cast_tuple_object(cls: Type[tuple], val, ctx, *Ts):
+    if isinstance(val, Mapping):
+        val = val.items()
+    if not Ts:
+        return cls(val)
+    elif Ts[-1] == ...:
+        r = []
+        for i, v in enumerate(val):
+            with ctx.traverse(i):
+                r.append(cast(Ts[0], v, ctx=ctx))
+        return cls(r)
+    else:
+        if Ts[0] == ():
+            Ts = ()
+        r = []
+        it = iter(val)
+        for i, T in enumerate(Ts):
+            with ctx.traverse(i):
+                try:
+                    v = next(it)
+                except StopIteration:
+                    raise TypeError('length mismatch')
+                r.append(cast(T, v, ctx=ctx))
+        try:
+            with ctx.traverse(len(Ts)):
+                next(it)
+                raise TypeError('length mismatch')
+        except StopIteration:
+            return cls(r)
+
 
 #
 # Union
@@ -375,7 +411,7 @@ def _cast_set_object(cls: Type[frozenset], val, ctx, T=None):
 
 
 @cast.register
-def _(cls, val, ctx, *Ts) -> Union:
+def _cast_Union_object(cls, val, ctx, *Ts) -> Union:
     vcls = val.__class__
     for T in Ts:
         try:
@@ -391,7 +427,7 @@ def _(cls, val, ctx, *Ts) -> Union:
 
 
 @cast.register
-def _(cls: Type[datetime.datetime], val, ctx):
+def _cast_datetime_object(cls: Type[datetime.datetime], val, ctx):
     if isinstance(val, str):
         return datetime.datetime.fromisoformat(val)
     else:
