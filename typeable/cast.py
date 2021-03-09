@@ -135,7 +135,7 @@ cast.dispatch = _dispatch
 
 
 @cast.register
-def _cast_object_object(cls: Type[object], val, ctx):
+def _cast_object_object(cls: Type[object], val, ctx, *Ts):
     if cls is object:
         if isinstance(val, object):
             return object()
@@ -324,7 +324,7 @@ def _cast_list_object(cls: Type[list], val, ctx, T=None):
 
 
 @cast.register
-def _(cls: Type[dict], val, ctx, K=None, V=None):
+def _cast_dict_object(cls: Type[dict], val, ctx, K=None, V=None):
     if K is None:
         return cls(val)
     else:
@@ -334,6 +334,22 @@ def _(cls: Type[dict], val, ctx, K=None, V=None):
         for k, v in val:
             with ctx.traverse(k):
                 r[cast(K, k, ctx=ctx)] = cast(V, v, ctx=ctx)
+        return r
+
+#
+# set
+#
+
+
+@cast.register
+def _cast_set_object(cls: Type[set], val, ctx, T=None):
+    if T is None:
+        return cls(val)
+    else:
+        r = cls()
+        for v in val:
+            with ctx.traverse(v):
+                r.add(cast(T, v, ctx=ctx))
         return r
 
 

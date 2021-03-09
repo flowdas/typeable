@@ -12,6 +12,7 @@ import pytest
 from typeable.typing import (
     Dict,
     List,
+    Set,
 )
 from typeable import *
 
@@ -349,3 +350,40 @@ def test_dict():
             assert k == str(i)
             assert isinstance(v, X)
             assert v.i == i
+
+#
+# set
+#
+
+
+def test_set():
+    # dict
+    assert cast(set, {'a': 1, 'b': 2}) == {'a', 'b'}
+
+    # None
+    with pytest.raises(TypeError):
+        cast(set, None)
+
+    # set
+    expected = {i for i in range(10)}
+    data = {str(v) for v in expected}
+
+    l = cast(Set, data)
+    assert isinstance(l, set)
+    assert l == data
+
+    l = cast(set, data)
+    assert isinstance(l, set)
+    assert l == data
+
+    # generic set
+    l = cast(Set[int], data)
+
+    assert isinstance(l, set)
+    assert l == expected
+
+    if sys.version_info >= (3, 9):
+        l = cast(set[int], data)
+
+        assert isinstance(l, set)
+        assert l == expected

@@ -33,6 +33,7 @@ if sys.version_info < (3, 8):  # pragma: no cover
         _origin_map = {
             Dict: dict,
             List: list,
+            Set: set,
             Type: type,
         }
 
