@@ -5,6 +5,8 @@ Typeable
 
 Version |version|.
 
+Korean - https://typeable.flowdas.com
+
 This package defines the following functions:
 
 .. function:: cast(typ: typing.Type[_T], val: object, *, ctx: Context = None) -> _T

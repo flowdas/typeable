@@ -35,6 +35,7 @@ version = '.'.join(release.split('.')[:2])
 # ones.
 extensions = [
     'sphinx.ext.intersphinx',
+    'sphinx.ext.githubpages',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -61,5 +62,5 @@ html_static_path = ['_static']
 # -- Options for intersphinx extension ---------------------------------------
 
 intersphinx_mapping = {
-        'python': ('https://docs.python.org/3/', None),
+        'python': ('https://python.flowdas.com/', None),
 }

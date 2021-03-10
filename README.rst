@@ -10,9 +10,14 @@ assertion and structural transformation can all be viewed as type casting.
 
 The code is currently at the proof-of-concept stage. Although ``typeable.cast`` 
 understands and casts generic types, it is still lacking in consistency and 
-completeness. The documentation is also being prepared at 
-https://typeable.readthedocs.io/. The Long and Winding Road.
+completeness.
 
 Your criticism and participation are always welcome.
 
 Typeable requires Python 3.6+. And it doesn't require any other dependencies.
+
+Documentations:
+
+* English - https://typeable.readthedocs.io/
+* Korean - https://typeable.flowdas.com/
+
