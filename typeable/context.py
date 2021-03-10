@@ -41,8 +41,10 @@ class Context:
         't': True, 'true': True, 'y': True, 'yes': True,
     }
     bytes_encoding: str = 'utf-8'
+    datetime_format: str = 'iso'
     encoding_errors: str = 'strict'
     lossy_conversion: bool = True
+    naive_timestamp: bool = False
     strict_str: bool = True
 
     def __init__(self, **policies):

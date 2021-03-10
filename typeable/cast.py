@@ -5,7 +5,9 @@
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 import cmath
 import datetime
+from email.utils import parsedate_to_datetime
 import math
+import re
 import weakref
 from abc import get_cache_token
 from collections.abc import (
@@ -253,7 +255,8 @@ def _cast_str_object(cls: Type[str], val, ctx):
             raise TypeError(f'ctx.strict_str={ctx.strict_str}')
     else:
         if val is None:
-            raise TypeError(f"{cls.__qualname__} is required, but {val!r} is given")
+            raise TypeError(
+                f"{cls.__qualname__} is required, but {val!r} is given")
     return cls(val)
 
 
@@ -428,7 +431,112 @@ def _cast_Union_object(cls, val, ctx, *Ts) -> Union:
 
 @cast.register
 def _cast_datetime_object(cls: Type[datetime.datetime], val, ctx):
-    if isinstance(val, str):
-        return datetime.datetime.fromisoformat(val)
+    if isinstance(val, (int, float)):
+        if ctx.naive_timestamp:
+            return cls.utcfromtimestamp(val)
+        else:
+            return cls.fromtimestamp(val, datetime.timezone.utc)
     else:
-        return cls(val)
+        return cls(*val)
+
+
+ISO_TIME = r'(?P<H>\d{1,2}):(?P<M>\d{1,2})(:(?P<S>\d{1,2}(.\d*)?))?(?P<tzd>[+-](?P<tzh>\d{1,2}):(?P<tzm>\d{1,2})|Z)?'
+ISO_PATTERN1 = re.compile(
+    r'(?P<Y>\d{4})(-(?P<m>\d{1,2})(-(?P<d>\d{1,2})([T ]' + ISO_TIME + r')?)?)?')
+ISO_PATTERN2 = re.compile(ISO_TIME)
+
+
+@cast.register
+def _cast_datetime_str(cls: Type[datetime.datetime], val: str, ctx):
+    if ctx.datetime_format == 'iso':
+        m = ISO_PATTERN1.match(val.strip())
+        if m is None:
+            raise ValueError()
+
+        date = datetime.date(
+            *map(lambda x: 1 if x is None else int(x), m.group('Y', 'm', 'd')))
+
+        if m.group('H'):
+            hour, min, sec = m.group('H', 'M', 'S')
+            hour = int(hour)
+            min = int(min) if min else 0
+            sec = float(sec) if sec else 0.0
+            time = datetime.time(hour, min, int(
+                sec), int((sec % 1.0) * 1000000))
+        else:
+            time = datetime.time()
+
+        if m.group('tzd'):
+            if m.group('tzd') in ('Z', '+00:00', '-00:00'):
+                tzinfo = datetime.timezone.utc
+            else:
+                offset = int(m.group('tzh')) * 60 + int(m.group('tzm'))
+                if m.group('tzd').startswith('-'):
+                    offset = -offset
+                tzinfo = datetime.timezone(datetime.timedelta(minutes=offset))
+            time = time.replace(tzinfo=tzinfo)
+
+        return cls.combine(date, time)
+    elif ctx.datetime_format == 'timestamp':
+        return cast(cls, float(val), ctx=ctx)
+    elif ctx.datetime_format == 'http' or ctx.datetime_format == 'email':
+        dt = parsedate_to_datetime(val.strip())
+        if cls is not datetime.datetime:
+            dt = cls.combine(dt.date(), dt.timetz())
+        return dt
+    else:
+        return cls.strptime(val, ctx.datetime_format)
+
+
+@cast.register
+def _cast_datetime_datetime(cls: Type[datetime.datetime], val: datetime.datetime, ctx):
+    return cls.combine(val.date(), val.timetz())
+
+
+@cast.register
+def _cast_float_datetime(cls: Type[float], val: datetime.datetime, ctx):
+    return val.timestamp()
+
+
+@cast.register
+def _cast_int_datetime(cls: Type[int], val: datetime.datetime, ctx):
+    if issubclass(cls, bool):
+        raise TypeError
+    ts = val.timestamp()
+    r = cls(ts)
+    if ctx.lossy_conversion:
+        return r
+    if r != ts:
+        raise ValueError(f'ctx.lossy_conversion={ctx.lossy_conversion}')
+    return r
+
+
+WDAY = ('Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun')
+MON = ('Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+       'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec')
+
+
+@cast.register
+def _cast_str_datetime(cls: Type[str], val: datetime.datetime, ctx):
+    if ctx.datetime_format == 'iso':
+        r = val.isoformat()
+        return cls(r[:-6]+'Z') if r.endswith('+00:00') else cls(r)
+    elif ctx.datetime_format == 'timestamp':
+        if val.microsecond > 0:
+            return cls(val.timestamp())
+        else:
+            return cls(int(val.timestamp()))
+    elif ctx.datetime_format == 'http' or ctx.datetime_format == 'email':
+        if ctx.datetime_format == 'http':
+            if val.tzinfo and val.utcoffset() != datetime.timedelta():
+                val = val.replace(
+                    tzinfo=datetime.timezone.utc) - val.utcoffset()
+            format = '%s, %%d %s %%Y %%H:%%M:%%S GMT'
+        else:
+            TZ = (' %%z' if val.utcoffset() != datetime.timedelta()
+                  else ' GMT') if val.tzinfo else ''
+            format = '%s, %%d %s %%Y %%H:%%M:%%S' + TZ
+        format = format % (WDAY[val.weekday()], MON[val.month - 1])
+        return cls(val.strftime(format))
+    else:
+        return cls(val.strftime(ctx.datetime_format))
