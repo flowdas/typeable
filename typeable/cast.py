@@ -444,13 +444,15 @@ def _cast_datetime_object(cls: Type[datetime.datetime], val, ctx):
         return cls(*val)
 
 
-ISO_DATE_HEAD = r'(?P<Y>\d{4})(-(?P<m>\d{1,2})(-(?P<d>\d{1,2})'
+ISO_DATE_HEAD = r'(?P<Y>\d{4})(-(?P<m>\d{1,2})(-(?P<D>\d{1,2})'
 ISO_DATE_TAIL = r')?)?'
-ISO_TIME = r'(?P<H>\d{1,2}):(?P<M>\d{1,2})(:(?P<S>\d{1,2}(.\d*)?))?(?P<tzd>[+-](?P<tzh>\d{1,2}):(?P<tzm>\d{1,2})|Z)?'
+ISO_TIME = r'(?P<H>\d{1,2}):(?P<M>\d{1,2})(:(?P<S>\d{1,2}([.]\d*)?))?(?P<tzd>[+-](?P<tzh>\d{1,2}):(?P<tzm>\d{1,2})|Z)?'
+ISO_DURATION = r'(?P<sgn>[+-])?P?((?P<W>\d+)[Ww])?((?P<D>\d+)[Dd])?T?((?P<H>\d+)[Hh])?((?P<M>\d+)[Mm])?((?P<S>\d+([.]\d*)?)[Ss]?)?'
 ISO_PATTERN1 = re.compile(
     ISO_DATE_HEAD + r'([T ](' + ISO_TIME + r')?)?' + ISO_DATE_TAIL + '$')
 ISO_PATTERN2 = re.compile(ISO_DATE_HEAD + ISO_DATE_TAIL + '$')
 ISO_PATTERN3 = re.compile(ISO_TIME + '$')
+ISO_PATTERN4 = re.compile(ISO_DURATION + '$')
 
 
 def _parse_isotzinfo(m):
@@ -478,7 +480,19 @@ def _parse_isotime(cls, m):
 
 
 def _parse_isodate(cls, m):
-    return datetime.date(*map(lambda x: 1 if x is None else int(x), m.group('Y', 'm', 'd')))
+    return datetime.date(*map(lambda x: 1 if x is None else int(x), m.group('Y', 'm', 'D')))
+
+
+def _parse_isoduration(cls, m):
+    sign, week, day, hour, min, sec = m.group('sgn', 'W', 'D', 'H', 'M', 'S')
+    week = int(week) if week else 0
+    day = int(day) if day else 0
+    hour = int(hour) if hour else 0
+    min = int(min) if min else 0
+    sec = float(sec) if sec else 0.0
+
+    td = cls(weeks=week, days=day, hours=hour, minutes=min, seconds=sec)
+    return -td if sign == '-' else td
 
 
 @cast.register
@@ -509,7 +523,7 @@ def _cast_datetime_str(cls: Type[datetime.datetime], val: str, ctx):
 
 @cast.register
 def _cast_float_datetime(cls: Type[float], val: datetime.datetime, ctx):
-    return val.timestamp()
+    return cls(val.timestamp())
 
 
 @cast.register
@@ -620,9 +634,71 @@ def _cast_time_str(cls: Type[datetime.time], val: str, ctx):
         return cls(dt.hour, dt.minute, dt.second, dt.microsecond, tzinfo=dt.tzinfo)
 
 
-@ cast.register
+@cast.register
 def _cast_str_time(cls: Type[str], val: datetime.time, ctx):
     if ctx.time_format == 'iso':
         return cls(val.isoformat())
     else:
         return cls(val.strftime(ctx.time_format))
+
+#
+# datetime.timedelta
+#
+
+
+@cast.register
+def _cast_timedelta_object(cls: Type[datetime.timedelta], val, ctx):
+    if isinstance(val, datetime.timedelta):
+        return cls(days=val.days, seconds=val.seconds, microseconds=val.microseconds)
+    elif isinstance(val, (int, float)):
+        return cls(seconds=val)
+    elif isinstance(val, str):
+        m = ISO_PATTERN4.match(val.strip())
+        if m is None:
+            raise ValueError()
+        return _parse_isoduration(cls, m)
+    else:
+        raise TypeError
+
+
+@cast.register
+def _cast_float_timedelta(cls: Type[float], val: datetime.timedelta, ctx):
+    return cls(val.total_seconds())
+
+
+@cast.register
+def _cast_int_timedelta(cls: Type[int], val: datetime.timedelta, ctx):
+    if issubclass(cls, bool):
+        raise TypeError
+    td = val.total_seconds()
+    r = cls(td)
+    if ctx.lossy_conversion:
+        return r
+    if r != td:
+        raise ValueError(f'ctx.lossy_conversion={ctx.lossy_conversion}')
+    return r
+
+
+@cast.register
+def _cast_str_timedelta(cls: Type[str], val: datetime.timedelta, ctx):
+    r = []
+    if val.days < 0:
+        r.append('-P')
+        val = -val
+    else:
+        r.append('P')
+    if val.days:
+        r.append(f'{val.days}D')
+    if val.seconds or val.microseconds:
+        r.append('T')
+        min, sec = divmod(val.seconds, 60)
+        hour, min = divmod(min, 60)
+        if hour:
+            r.append(f'{hour}H')
+        if min:
+            r.append(f'{min}M')
+        if val.microseconds:
+            sec += val.microseconds / 1000000
+        if sec:
+            r.append(f'{sec}S')
+    return cls(''.join(r))

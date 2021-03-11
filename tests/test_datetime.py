@@ -312,3 +312,90 @@ def test_str_from_time():
     # strftime
     ctx = Context(time_format=r'=%H:%M:%S.%f%z=')
     assert cast(str, t, ctx=ctx) == '=12:34:56.000789='
+
+#
+# timedelta
+#
+
+
+def test_timedelta():
+    # int, float
+    for T in (int, float):
+        td = timedelta(days=12, hours=9, minutes=36, seconds=7)
+        assert cast(timedelta, T(td.total_seconds())) == td
+
+    # str
+    td = timedelta(days=12, hours=9, minutes=36, seconds=7)
+    assert cast(timedelta, 'P12DT9H36M7S') == td
+    assert cast(timedelta, '+P12DT9H36M7S') == td
+    assert cast(timedelta, '-P12DT9H36M7S') == -td
+    assert cast(timedelta, 'P12DT34567S') == td
+    assert cast(timedelta, 'PT1071367S') == td
+    assert cast(timedelta, '-PT1071367S') == -td
+
+    assert cast(timedelta, '12DT9H36M7S') == td
+    assert cast(timedelta, '+12DT9H36M7S') == td
+    assert cast(timedelta, '-12DT9H36M7S') == -td
+    assert cast(timedelta, '12DT34567S') == td
+    assert cast(timedelta, 'T1071367S') == td
+    assert cast(timedelta, '-T1071367S') == -td
+
+    assert cast(timedelta, '12D9H36M7S') == td
+    assert cast(timedelta, '+12D9H36M7S') == td
+    assert cast(timedelta, '-12D9H36M7S') == -td
+    assert cast(timedelta, '12D34567S') == td
+    assert cast(timedelta, '1071367S') == td
+    assert cast(timedelta, '-1071367S') == -td
+
+    assert cast(timedelta, '12D9H36M7') == td
+    assert cast(timedelta, '+12D9H36M7') == td
+    assert cast(timedelta, '-12D9H36M7') == -td
+    assert cast(timedelta, '12D34567') == td
+    assert cast(timedelta, '1071367') == td
+    assert cast(timedelta, '-1071367') == -td
+
+    assert cast(timedelta, '12w') == timedelta(weeks=12)
+
+    assert cast(timedelta, '') == timedelta()
+
+    # None
+    with pytest.raises(TypeError):
+        cast(timedelta, None)
+
+    # timedelta
+    td = timedelta()
+    assert cast(timedelta, td) == td
+
+
+def test_float_from_timedelta():
+    td = timedelta(days=12, hours=9, minutes=36, seconds=7)
+
+    assert cast(float, td) == td.total_seconds()
+
+
+def test_int_from_timedelta():
+    td = timedelta(days=12, hours=9, minutes=36, seconds=7)
+
+    assert cast(int, td) == int(td.total_seconds())
+
+
+def test_bool_from_timedelta():
+    td = timedelta(days=12, hours=9, minutes=36, seconds=7)
+
+    with pytest.raises(TypeError):
+        cast(bool, td)
+
+
+def test_str_from_timedelta():
+    td = timedelta(days=12, hours=9, minutes=36, seconds=7)
+
+    assert cast(str, td) == 'P12DT9H36M7S'
+    assert cast(str, -td) == '-P12DT9H36M7S'
+
+    td = timedelta(hours=9, seconds=7)
+    assert cast(str, td) == 'PT9H7S'
+    assert cast(str, -td) == '-PT9H7S'
+
+    td = timedelta(days=12)
+    assert cast(str, td) == 'P12D'
+    assert cast(str, -td) == '-P12D'
