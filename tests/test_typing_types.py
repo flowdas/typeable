@@ -13,13 +13,13 @@ from typeable import *
 
 
 def test_Union():
-    data = '123'
+    assert cast(Union[str, int], '123') == '123'
+    assert cast(Union[str, int], 123) == 123
+    assert cast(Union[str, int], 123.0) == '123.0'
 
-    r = cast(Union[str, int], data)
-    assert r == '123'
-
-    r = cast(Union[int, str], data)
-    assert r == 123
+    assert cast(Union[int, str], '123') == '123'
+    assert cast(Union[int, str], 123) == 123
+    assert cast(Union[int, str], 123.0) == 123
 
 
 def test_Optional():
