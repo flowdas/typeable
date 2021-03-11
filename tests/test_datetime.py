@@ -82,6 +82,14 @@ def test_datetime():
     with pytest.raises(TypeError):
         cast(datetime, None)
 
+    # date
+    d = date(1970, 1, 1)
+    assert cast(datetime, d) == naive_epoch
+
+    # time
+    with pytest.raises(TypeError):
+        cast(datetime, time())
+
     # datetime
     dt = datetime.utcnow()  # naive
     assert cast(datetime, dt) == dt
@@ -180,11 +188,25 @@ def test_date():
         cast(date, None)
 
     # datetime
+    ctx = Context(lossy_conversion=False)
+
     dt = datetime.utcnow()  # naive
+    if dt.microsecond == 0:
+        dt = dt.replace(microsecond=1)
     assert cast(date, dt) == dt.date()
+    with pytest.raises(ValueError):
+        print(dt)
+        print(cast(date, dt, ctx=ctx))
+    assert cast(date, datetime(1970, 1, 1, 0, 0), ctx=ctx) == date(1970, 1, 1)
 
     dt = datetime.now(timezone.utc)  # aware
     assert cast(date, dt) == dt.date()
+    with pytest.raises(ValueError):
+        cast(date, dt, ctx=ctx)
+
+    # time
+    with pytest.raises(TypeError):
+        cast(date, time())
 
     # date
     d = date(1970, 1, 1)

@@ -436,6 +436,10 @@ def _cast_datetime_object(cls: Type[datetime.datetime], val, ctx):
             return cls.utcfromtimestamp(val)
         else:
             return cls.fromtimestamp(val, datetime.timezone.utc)
+    elif isinstance(val, datetime.datetime):  # datetime is subclass of date
+        return cls.combine(val.date(), val.timetz())
+    elif isinstance(val, datetime.date):
+        return cls.combine(val, datetime.time())
     else:
         return cls(*val)
 
@@ -489,11 +493,6 @@ def _cast_datetime_str(cls: Type[datetime.datetime], val: str, ctx):
         return dt
     else:
         return cls.strptime(val, ctx.datetime_format)
-
-
-@cast.register
-def _cast_datetime_datetime(cls: Type[datetime.datetime], val: datetime.datetime, ctx):
-    return cls.combine(val.date(), val.timetz())
 
 
 @cast.register
@@ -551,7 +550,11 @@ def _cast_str_datetime(cls: Type[str], val: datetime.datetime, ctx):
 
 @cast.register
 def _cast_date_object(cls: Type[datetime.date], val, ctx):
-    if isinstance(val, (datetime.date, datetime.datetime)):
+    if isinstance(val, datetime.datetime):  # datetime is subclass of date
+        if not ctx.lossy_conversion and (val.tzinfo or val.time() != datetime.time()):
+            raise ValueError(f'ctx.lossy_conversion={ctx.lossy_conversion}')
+        return cls(val.year, val.month, val.day)
+    elif isinstance(val, datetime.date):
         return cls(val.year, val.month, val.day)
     else:
         return cls(*val)
