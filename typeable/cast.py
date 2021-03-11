@@ -453,6 +453,34 @@ ISO_PATTERN2 = re.compile(ISO_DATE_HEAD + ISO_DATE_TAIL + '$')
 ISO_PATTERN3 = re.compile(ISO_TIME + '$')
 
 
+def _parse_isotzinfo(m):
+    if m.group('tzd'):
+        if m.group('tzd') in ('Z', '+00:00', '-00:00'):
+            tzinfo = datetime.timezone.utc
+        else:
+            offset = int(m.group('tzh')) * 60 + int(m.group('tzm'))
+            if m.group('tzd').startswith('-'):
+                offset = -offset
+            tzinfo = datetime.timezone(datetime.timedelta(minutes=offset))
+    else:
+        tzinfo = None
+    return tzinfo
+
+
+def _parse_isotime(cls, m):
+    hour, min, sec = m.group('H', 'M', 'S')
+    hour = int(hour)
+    min = int(min) if min else 0
+    sec = float(sec) if sec else 0.0
+
+    tzinfo = _parse_isotzinfo(m)
+    return cls(hour, min, int(sec), int((sec % 1.0) * 1000000), tzinfo=tzinfo)
+
+
+def _parse_isodate(cls, m):
+    return datetime.date(*map(lambda x: 1 if x is None else int(x), m.group('Y', 'm', 'd')))
+
+
 @cast.register
 def _cast_datetime_str(cls: Type[datetime.datetime], val: str, ctx):
     if ctx.datetime_format == 'iso':
@@ -460,28 +488,12 @@ def _cast_datetime_str(cls: Type[datetime.datetime], val: str, ctx):
         if m is None:
             raise ValueError()
 
-        date = datetime.date(
-            *map(lambda x: 1 if x is None else int(x), m.group('Y', 'm', 'd')))
+        date = _parse_isodate(datetime.date, m)
 
         if m.group('H'):
-            hour, min, sec = m.group('H', 'M', 'S')
-            hour = int(hour)
-            min = int(min) if min else 0
-            sec = float(sec) if sec else 0.0
-            time = datetime.time(hour, min, int(
-                sec), int((sec % 1.0) * 1000000))
+            time = _parse_isotime(datetime.time, m)
         else:
-            time = datetime.time()
-
-        if m.group('tzd'):
-            if m.group('tzd') in ('Z', '+00:00', '-00:00'):
-                tzinfo = datetime.timezone.utc
-            else:
-                offset = int(m.group('tzh')) * 60 + int(m.group('tzm'))
-                if m.group('tzd').startswith('-'):
-                    offset = -offset
-                tzinfo = datetime.timezone(datetime.timedelta(minutes=offset))
-            time = time.replace(tzinfo=tzinfo)
+            time = datetime.time(tzinfo=_parse_isotzinfo(m))
 
         return cls.combine(date, time)
     elif ctx.datetime_format == 'timestamp':
@@ -566,8 +578,7 @@ def _cast_date_str(cls: Type[datetime.date], val: str, ctx):
         m = ISO_PATTERN2.match(val.strip())
         if m is None:
             raise ValueError()
-
-        return cls(*map(lambda x: 1 if x is None else int(x), m.group('Y', 'm', 'd')))
+        return _parse_isodate(cls, m)
     else:
         dt = datetime.datetime.strptime(val, ctx.date_format)
         return cls(dt.year, dt.month, dt.day)
@@ -579,3 +590,39 @@ def _cast_str_date(cls: Type[str], val: datetime.date, ctx):
         return cls(val.isoformat())
     else:
         return cls(val.strftime(ctx.date_format))
+
+#
+# datetime.time
+#
+
+
+@cast.register
+def _cast_time_object(cls: Type[datetime.time], val, ctx):
+    if isinstance(val, datetime.time):
+        return cls(val.hour, val.minute, val.second, val.microsecond, tzinfo=val.tzinfo)
+    elif isinstance(val, datetime.datetime):
+        if not ctx.lossy_conversion:
+            raise ValueError(f'ctx.lossy_conversion={ctx.lossy_conversion}')
+        return cls(val.hour, val.minute, val.second, val.microsecond, tzinfo=val.tzinfo)
+    else:
+        return cls(*val)
+
+
+@cast.register
+def _cast_time_str(cls: Type[datetime.time], val: str, ctx):
+    if ctx.time_format == 'iso':
+        m = ISO_PATTERN3.match(val.strip())
+        if m is None:
+            raise ValueError()
+        return _parse_isotime(cls, m)
+    else:
+        dt = datetime.datetime.strptime(val, ctx.time_format)
+        return cls(dt.hour, dt.minute, dt.second, dt.microsecond, tzinfo=dt.tzinfo)
+
+
+@ cast.register
+def _cast_str_time(cls: Type[str], val: datetime.time, ctx):
+    if ctx.time_format == 'iso':
+        return cls(val.isoformat())
+    else:
+        return cls(val.strftime(ctx.time_format))

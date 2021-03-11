@@ -195,8 +195,7 @@ def test_date():
         dt = dt.replace(microsecond=1)
     assert cast(date, dt) == dt.date()
     with pytest.raises(ValueError):
-        print(dt)
-        print(cast(date, dt, ctx=ctx))
+        cast(date, dt, ctx=ctx)
     assert cast(date, datetime(1970, 1, 1, 0, 0), ctx=ctx) == date(1970, 1, 1)
 
     dt = datetime.now(timezone.utc)  # aware
@@ -229,3 +228,87 @@ def test_str_from_date():
     # strftime
     ctx = Context(date_format=r'=%Y-%m-%d=')
     assert cast(str, d, ctx=ctx) == '=1970-01-01='
+
+#
+# time
+#
+
+
+def test_time():
+    naive_epoch = datetime(1970, 1, 1, 0, 0)
+    aware_epoch = naive_epoch.replace(tzinfo=timezone.utc)
+
+    # int, float
+    for T in (int, float):
+        t = T(0)
+        with pytest.raises(TypeError):
+            cast(time, t)
+
+    # str - iso
+    with pytest.raises(ValueError):
+        cast(time, '1970-01-01T00:00:00.000Z')
+    with pytest.raises(ValueError):
+        cast(time, '1970-01-01T')
+
+    assert cast(time, '00:00:00.000Z') == aware_epoch.timetz()
+    assert cast(time, '00:00:00.000+00:00') == aware_epoch.timetz()
+    assert cast(time, '00:00:00.000-00:00') == aware_epoch.timetz()
+    assert cast(time, '09:00:00.000+09:00') == aware_epoch.timetz()
+    assert cast(time, '00:00:00.000') == naive_epoch.time()
+    assert cast(time, '0:00:00.000') == naive_epoch.time()
+    assert cast(time, '00:0:00.000') == naive_epoch.time()
+    assert cast(time, '00:00:0.000') == naive_epoch.time()
+    assert cast(time, '00:00:0.') == naive_epoch.time()
+    assert cast(time, '00:00:0') == naive_epoch.time()
+    assert cast(time, '0:0') == naive_epoch.time()
+
+    # str - stptime
+    ctx = Context(time_format=r'%H:%M:%S.%f')
+    assert cast(time, '12:34:56.000789', ctx=ctx) == time(12, 34, 56, 789)
+
+    # empty string
+    with pytest.raises(ValueError):
+        cast(time, '')
+    with pytest.raises(ValueError):
+        cast(time, ' ')
+
+    # None
+    with pytest.raises(TypeError):
+        cast(time, None)
+
+    # datetime
+    ctx = Context(lossy_conversion=False)
+
+    dt = datetime.utcnow()  # naive
+    assert cast(time, dt) == dt.time()
+    with pytest.raises(ValueError):
+        cast(time, dt, ctx=ctx)
+
+    dt = datetime.now(timezone.utc)  # aware
+    assert cast(time, dt) == dt.timetz()
+
+    # date
+    with pytest.raises(TypeError):
+        cast(time, date(1970, 1, 1))
+
+    # time
+    t = time(12, 34, 56, 789)
+    assert cast(time, t) == t
+
+
+def test_bool_from_time():
+    t = time(12, 34, 56, 789)
+
+    with pytest.raises(TypeError):
+        cast(bool, t)
+
+
+def test_str_from_time():
+    t = time(12, 34, 56, 789)
+
+    # iso
+    assert cast(str, t) == '12:34:56.000789'
+
+    # strftime
+    ctx = Context(time_format=r'=%H:%M:%S.%f%z=')
+    assert cast(str, t, ctx=ctx) == '=12:34:56.000789='

@@ -47,6 +47,7 @@ class Context:
     lossy_conversion: bool = True
     naive_timestamp: bool = False
     strict_str: bool = True
+    time_format: str = 'iso'
 
     def __init__(self, **policies):
         self._stack = None
