@@ -41,6 +41,7 @@ class Context:
         't': True, 'true': True, 'y': True, 'yes': True,
     }
     bytes_encoding: str = 'utf-8'
+    date_format: str = 'iso'
     datetime_format: str = 'iso'
     encoding_errors: str = 'strict'
     lossy_conversion: bool = True

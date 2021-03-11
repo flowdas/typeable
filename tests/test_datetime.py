@@ -15,6 +15,10 @@ import pytest
 
 from typeable import *
 
+#
+# datetime
+#
+
 
 def test_datetime():
     naive_epoch = datetime(1970, 1, 1, 0, 0)
@@ -28,6 +32,8 @@ def test_datetime():
             naive_timestamp=True)) == naive_epoch
 
     # str - iso
+    with pytest.raises(ValueError):
+        cast(datetime, '1970-01-01T00:00:00.000Z #')
     assert cast(datetime, '1970-01-01T00:00:00.000Z') == aware_epoch
     assert cast(datetime, '1970-01-01T00:00:00.000+00:00') == aware_epoch
     assert cast(datetime, '1970-01-01T00:00:00.000-00:00') == aware_epoch
@@ -45,6 +51,7 @@ def test_datetime():
     assert cast(datetime, '1970-1-1 0:0') == naive_epoch
     assert cast(datetime, '1970-1-1T') == naive_epoch
     assert cast(datetime, '1970-1-1') == naive_epoch
+    assert cast(datetime, ' 1970-1-1 ') == naive_epoch
 
     # str - timestamp
     assert cast(datetime, '0', ctx=Context(
@@ -83,7 +90,7 @@ def test_datetime():
     assert cast(datetime, dt) == dt
 
 
-def test_float():
+def test_float_from_datetime():
     naive_epoch = datetime(1970, 1, 1, 0, 0)
     aware_epoch = naive_epoch.replace(tzinfo=timezone.utc)
 
@@ -91,7 +98,7 @@ def test_float():
     assert cast(float, aware_epoch) == 0
 
 
-def test_int():
+def test_int_from_datetime():
     naive_epoch = datetime(1970, 1, 1, 0, 0)
     aware_epoch = naive_epoch.replace(tzinfo=timezone.utc)
 
@@ -99,14 +106,14 @@ def test_int():
     assert cast(int, aware_epoch) == 0
 
 
-def test_bool():
+def test_bool_from_datetime():
     naive_epoch = datetime(1970, 1, 1, 0, 0)
 
     with pytest.raises(TypeError):
-        cast(bool, None)
+        cast(bool, naive_epoch)
 
 
-def test_str():
+def test_str_from_datetime():
     naive_epoch = datetime(1970, 1, 1, 0, 0)
     aware_epoch = naive_epoch.replace(tzinfo=timezone.utc)
 
@@ -129,5 +136,74 @@ def test_str():
     assert cast(str, aware_epoch, ctx=ctx) == '0'
 
     # strftime
-    ctx = Context(datetime_format=r'%Y-%m-%dT%H:%M:%S.%f%z')
-    assert cast(str, aware_epoch, ctx=ctx) == '1970-01-01T00:00:00.000000+0000'
+    ctx = Context(datetime_format=r'=%Y-%m-%dT%H:%M:%S.%f%z=')
+    assert cast(str, aware_epoch,
+                ctx=ctx) == '=1970-01-01T00:00:00.000000+0000='
+
+#
+# date
+#
+
+
+def test_date():
+    # int, float
+    for T in (int, float):
+        t = T(0)
+        with pytest.raises(TypeError):
+            cast(date, t)
+
+    # str - iso
+    with pytest.raises(ValueError):
+        cast(date, '1970-01-01T00:00:00.000Z')
+    with pytest.raises(ValueError):
+        cast(date, '1970-01-01T')
+
+    assert cast(date, '1970-01-01') == date(1970, 1, 1)
+    assert cast(date, '1969-12-31') == date(1969, 12, 31)
+    assert cast(date, '1970-1-01') == date(1970, 1, 1)
+    assert cast(date, '1970-01-1') == date(1970, 1, 1)
+    assert cast(date, '1970-1-1') == date(1970, 1, 1)
+    assert cast(date, ' 1970-1-1 ') == date(1970, 1, 1)
+
+    # str - stptime
+    ctx = Context(date_format=r'%Y-%m-%d')
+    assert cast(date, '1970-01-01', ctx=ctx) == date(1970, 1, 1)
+
+    # empty string
+    with pytest.raises(ValueError):
+        cast(date, '')
+    with pytest.raises(ValueError):
+        cast(date, ' ')
+
+    # None
+    with pytest.raises(TypeError):
+        cast(date, None)
+
+    # datetime
+    dt = datetime.utcnow()  # naive
+    assert cast(date, dt) == dt.date()
+
+    dt = datetime.now(timezone.utc)  # aware
+    assert cast(date, dt) == dt.date()
+
+    # date
+    d = date(1970, 1, 1)
+    assert cast(date, d) == d
+
+
+def test_bool_from_date():
+    d = date(1970, 1, 1)
+
+    with pytest.raises(TypeError):
+        cast(bool, d)
+
+
+def test_str_from_date():
+    d = date(1970, 1, 1)
+
+    # iso
+    assert cast(str, d) == '1970-01-01'
+
+    # strftime
+    ctx = Context(date_format=r'=%Y-%m-%d=')
+    assert cast(str, d, ctx=ctx) == '=1970-01-01='

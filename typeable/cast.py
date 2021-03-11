@@ -440,10 +440,13 @@ def _cast_datetime_object(cls: Type[datetime.datetime], val, ctx):
         return cls(*val)
 
 
+ISO_DATE_HEAD = r'(?P<Y>\d{4})(-(?P<m>\d{1,2})(-(?P<d>\d{1,2})'
+ISO_DATE_TAIL = r')?)?'
 ISO_TIME = r'(?P<H>\d{1,2}):(?P<M>\d{1,2})(:(?P<S>\d{1,2}(.\d*)?))?(?P<tzd>[+-](?P<tzh>\d{1,2}):(?P<tzm>\d{1,2})|Z)?'
 ISO_PATTERN1 = re.compile(
-    r'(?P<Y>\d{4})(-(?P<m>\d{1,2})(-(?P<d>\d{1,2})([T ]' + ISO_TIME + r')?)?)?')
-ISO_PATTERN2 = re.compile(ISO_TIME)
+    ISO_DATE_HEAD + r'([T ](' + ISO_TIME + r')?)?' + ISO_DATE_TAIL + '$')
+ISO_PATTERN2 = re.compile(ISO_DATE_HEAD + ISO_DATE_TAIL + '$')
+ISO_PATTERN3 = re.compile(ISO_TIME + '$')
 
 
 @cast.register
@@ -540,3 +543,36 @@ def _cast_str_datetime(cls: Type[str], val: datetime.datetime, ctx):
         return cls(val.strftime(format))
     else:
         return cls(val.strftime(ctx.datetime_format))
+
+#
+# datetime.date
+#
+
+
+@cast.register
+def _cast_date_object(cls: Type[datetime.date], val, ctx):
+    if isinstance(val, (datetime.date, datetime.datetime)):
+        return cls(val.year, val.month, val.day)
+    else:
+        return cls(*val)
+
+
+@cast.register
+def _cast_date_str(cls: Type[datetime.date], val: str, ctx):
+    if ctx.date_format == 'iso':
+        m = ISO_PATTERN2.match(val.strip())
+        if m is None:
+            raise ValueError()
+
+        return cls(*map(lambda x: 1 if x is None else int(x), m.group('Y', 'm', 'd')))
+    else:
+        dt = datetime.datetime.strptime(val, ctx.date_format)
+        return cls(dt.year, dt.month, dt.day)
+
+
+@cast.register
+def _cast_str_date(cls: Type[str], val: datetime.date, ctx):
+    if ctx.date_format == 'iso':
+        return cls(val.isoformat())
+    else:
+        return cls(val.strftime(ctx.date_format))
