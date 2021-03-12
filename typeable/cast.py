@@ -415,8 +415,20 @@ def _cast_tuple_object(cls: Type[tuple], val, ctx, *Ts):
 
 @cast.register
 def _cast_Union_object(cls, val, ctx, *Ts) -> Union:
-    vcls = val.__class__
+    bases = []
+    others = []
     for T in Ts:
+        origin = get_origin(T) or T
+        match = False
+        try:
+            match = isinstance(val, origin)
+        except TypeError:
+            pass
+        if match:
+            bases.append(T)
+        else:
+            others.append(T)
+    for T in bases + others:
         try:
             return cast(T, val)
         except:
