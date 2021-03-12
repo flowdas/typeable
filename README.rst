@@ -14,7 +14,7 @@ completeness.
 
 Your criticism and participation are always welcome.
 
-Typeable requires Python 3.6+. And it doesn't require any other dependencies.
+Typeable requires Python 3.7+. And it doesn't require any other dependencies.
 
 Documentations:
 
