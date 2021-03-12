@@ -6,6 +6,7 @@
 import pytest
 from typeable.typing import (
     Dict,
+    ForwardRef,
     FrozenSet,
     List,
     Set,
@@ -56,6 +57,19 @@ def test_get_args():
     assert get_args(Tuple[()]) == ((),)
     assert get_args(Tuple) == ()
     assert get_args(Union[int, None]) == (int, type(None))
+
+
+Integer = int
+
+
+def test_declare():
+    with declare('Integer') as Ref:
+        T = List[Ref]
+
+    assert get_args(T) == (ForwardRef('Integer'),)
+
+    assert cast(T, [2]) == [2]
+    assert cast(T, ["2"]) == [2]
 
 
 def test_register():

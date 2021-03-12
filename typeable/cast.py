@@ -4,10 +4,13 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 import cmath
+from contextlib import contextmanager
 import datetime
 from email.utils import parsedate_to_datetime
+import inspect
 import math
 import re
+import sys
 import weakref
 from abc import get_cache_token
 from collections.abc import (
@@ -20,25 +23,68 @@ from inspect import (
 )
 from .typing import (
     Any,
+    ForwardRef,
     Type,
     TypeVar,
     Union,
     get_args,
     get_origin,
     get_type_hints,
+    _RECURSIVE_GUARD,
 )
 
 from .context import Context
 
 __all__ = [
     'cast',
+    'declare',
 ]
+
+#
+# declare
+#
+
+
+@contextmanager
+def declare(name):
+    ref = ForwardRef(name)
+    yield ref
+    frame = inspect.currentframe().f_back.f_back
+    try:
+        if _RECURSIVE_GUARD:
+            ref._evaluate(frame.f_globals, frame.f_locals, set())
+        else:
+            ref._evaluate(frame.f_globals, frame.f_locals)
+    finally:
+        del frame
+
+#
+# cast
+#
+
 
 _T = TypeVar('_T')
 
 _registry = {}
 _dispatch_cache = {}
 _cache_token = None
+
+
+def _get_type_args(tp):
+    args = get_args(tp)
+    evaled = list(args)
+    changed = False
+    for i, arg in enumerate(evaled):
+        try:
+            if isinstance(arg, ForwardRef):
+                if _RECURSIVE_GUARD:
+                    evaled[i] = arg._evaluate(None, None, frozenset())
+                else:
+                    evaled[i] = arg._evaluate(None, None)
+                changed = True
+        except TypeError:
+            continue
+    return tuple(evaled) if changed else args
 
 
 def _register(func):
@@ -52,7 +98,7 @@ def _register(func):
     hints = get_type_hints(func)
     typ = hints.get(argname)
     if typ:
-        type_args = get_args(typ)
+        type_args = _get_type_args(typ)
         if get_origin(typ) is not type or not type_args:
             raise TypeError(
                 f"Invalid first argument to `cast.register()`: {typ!r}. "
@@ -125,11 +171,12 @@ def cast(cls: Type[_T], val, *, ctx: Context = None) -> _T:
     func = _dispatch(origin, val.__class__)
     if ctx is None:
         ctx = Context()
-    return func(origin, val, ctx, *get_args(cls))
+    return func(origin, val, ctx, *_get_type_args(cls))
 
 
 cast.register = _register
 cast.dispatch = _dispatch
+
 
 #
 # object (fallback)

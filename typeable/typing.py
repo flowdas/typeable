@@ -30,3 +30,8 @@ if sys.version_info < (3, 8):  # pragma: no cover
                 res = ()
             return res or ()
         return ()
+
+if sys.version_info < (3, 9):
+    _RECURSIVE_GUARD = False
+else:
+    _RECURSIVE_GUARD = True
