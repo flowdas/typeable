@@ -5,6 +5,7 @@
 scratch.py
 _build/
 dist/
+tmp/
 __pycache__/
 *.egg-info/
 Thumbs.db
