@@ -20,6 +20,8 @@
 
 :class:`float`
 
+:class:`typing.ForwardRef`
+
 :class:`frozenset`, :class:`typing.FrozenSet`
 
 :class:`int`
