@@ -3,7 +3,7 @@
 
 .. py:currentmodule:: typeable
 
-이 패키지는 다음과 같은 함수들을 정의합니다:
+이 패키지는 다음과 같은 함수와 데코레이터를 정의합니다:
 
 .. function:: cast(typ: typing.Type[_T], val: object, *, ctx: Context = None) -> _T
 
@@ -19,7 +19,20 @@
    예외가 발생할 수 있습니다. 원한다면, *ctx* 를 사용하여 에러가 발생한 *val* 에서의 위치를 얻을 수 
    있습니다. 
 
-이 패키지는 클래스를 정의합니다. 아래에 나오는 절에서 자세히 설명합니다.
+.. decorator:: cast.register
+
+.. function:: declare(name: str)
+
+.. function:: field(*, key=None, default=MISSING, default_factory=None, nullable=None, required=False)
+
+.. function:: fields(class_or_instance)
+
+이 패키지는 다음과 같은 상수를 정의합니다.
+
+.. data:: MISSING
+
+
+이 패키지는 몇 가지 클래스를 정의합니다. 아래에 나오는 절에서 자세히 설명합니다.
 
 .. class:: Context(**policies)
 
@@ -30,7 +43,35 @@
    :class:`Context` 인스턴스의 어트리뷰트로 제공됩니다. :class:`Context` 를 서브클래싱해서
    파라미터의 기본값을 변경하거나, 새 파라미터를 추가할 수 있습니다. 현제 정의된 파라미터는 다음과 같습니다:
 
-       앞으로 설명될 예정입니다.
+   .. attribute:: accept_nan: bool = True
+
+   .. attribute:: bool_is_int: bool = True
+
+   .. attribute:: bool_strings: dict[str, bool] = {'0': False, '1': True, 'f': False, 'false': False, 'n': False, 'no': False, 'off': False, 'on': True, 't': True, 'true': True, 'y': True, 'yes': True,}
+
+   .. attribute:: bytes_encoding: str = 'utf-8'
+
+   .. attribute:: date_format: str = 'iso'
+
+   .. attribute:: datetime_format: str = 'iso'
+
+   .. attribute:: encoding_errors: str = 'strict'
+
+   .. attribute:: lossy_conversion: bool = True
+
+   .. attribute:: naive_timestamp: bool = False
+
+   .. attribute:: strict_str: bool = True
+
+   .. attribute:: time_format: str = 'iso'
+
+   .. attribute:: union_prefers_same_type: bool = True
+
+   .. attribute:: union_prefers_base_type: bool = True
+
+   .. attribute:: union_prefers_super_type: bool = True
+
+   .. attribute:: union_prefers_nearest_type: bool = True
 
    변환 중에 발생한 에러의 위치는 :meth:`capture` 로 찾을 수 있습니다.
 
@@ -56,4 +97,8 @@
           TypeError: int() argument must be a string, a bytes-like object or a number, not 'NoneType'
           >>> error.location
           ('b', 2)
+
+   .. method:: traverse(key)
+
+.. class:: Object(value = MISSING, *, ctx: Context = None)
 

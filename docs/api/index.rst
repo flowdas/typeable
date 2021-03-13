@@ -3,7 +3,7 @@ Developer Interface
 
 .. py:currentmodule:: typeable
 
-This package defines the following functions:
+This package defines the following functions and decorators:
 
 .. function:: cast(typ: typing.Type[_T], val: object, *, ctx: Context = None) -> _T
 
@@ -19,7 +19,19 @@ This package defines the following functions:
    exceptions such as :exc:`TypeError` and :exc:`ValueError` can be thrown. 
    If you wish, you can use *ctx* to locate the error position on *val*.
 
-This package defines a class, which are detailed in the sections
+.. decorator:: cast.register
+
+.. function:: declare(name: str)
+
+.. function:: field(*, key=None, default=MISSING, default_factory=None, nullable=None, required=False)
+
+.. function:: fields(class_or_instance)   
+   
+This module defines the following constant:
+
+.. data:: MISSING
+
+This package defines a couple of classes, which are detailed in the sections
 below.
 
 .. class:: Context(**policies)
@@ -34,8 +46,36 @@ below.
    values of parameters, or add new parameters. The currently defined 
    parameters are:
 
-       To be documented.
+   .. attribute:: accept_nan: bool = True
 
+   .. attribute:: bool_is_int: bool = True
+
+   .. attribute:: bool_strings: dict[str, bool] = {'0': False, '1': True, 'f': False, 'false': False, 'n': False, 'no': False, 'off': False, 'on': True, 't': True, 'true': True, 'y': True, 'yes': True,}
+
+   .. attribute:: bytes_encoding: str = 'utf-8'
+
+   .. attribute:: date_format: str = 'iso'
+
+   .. attribute:: datetime_format: str = 'iso'
+
+   .. attribute:: encoding_errors: str = 'strict'
+
+   .. attribute:: lossy_conversion: bool = True
+
+   .. attribute:: naive_timestamp: bool = False
+
+   .. attribute:: strict_str: bool = True
+
+   .. attribute:: time_format: str = 'iso'
+
+   .. attribute:: union_prefers_same_type: bool = True
+
+   .. attribute:: union_prefers_base_type: bool = True
+
+   .. attribute:: union_prefers_super_type: bool = True
+    
+   .. attribute:: union_prefers_nearest_type: bool = True
+    
    The location of the error that occurred during conversion can be found 
    using :meth:`capture`.
 
@@ -64,4 +104,8 @@ below.
           TypeError: int() argument must be a string, a bytes-like object or a number, not 'NoneType'
           >>> error.location
           ('b', 2)
+
+    .. method:: traverse(key)
+
+.. class:: Object(value = MISSING, *, ctx: Context = None)
 
