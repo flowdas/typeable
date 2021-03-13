@@ -8,7 +8,7 @@ In addition, we plan to provide various features and extensions based on this.
 For example, input validation, data conversion, serialization, schematic 
 assertion and structural transformation can all be viewed as type casting.
 
-The code is currently at the proof-of-concept stage. Although ``typeable.cast`` 
+The code is currently at the alpha stage. Although ``typeable.cast`` 
 understands and casts generic types, it is still lacking in consistency and 
 completeness.
 
