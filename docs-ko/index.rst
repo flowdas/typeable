@@ -50,5 +50,6 @@ API 레퍼런스
 .. toctree::
    :maxdepth: 2
 
-   api/index
+   api/types
+   api/typeable
 

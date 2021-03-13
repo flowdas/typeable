@@ -465,9 +465,6 @@ def _cast_tuple_object(cls: Type[tuple], val, ctx, *Ts):
 
 # TODO: caching
 
-os.path.commonpath
-
-
 def _type_distance(tp1, tp2):
     m1 = tp1.__mro__
     m2 = tp2.__mro__
