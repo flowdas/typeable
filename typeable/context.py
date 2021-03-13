@@ -14,7 +14,10 @@ except ImportError:  # pragma: no cover
 
         def __exit__(self, *excinfo):
             pass
-from .typing import get_type_hints
+from .typing import (
+    Dict,
+    get_type_hints,
+)
 
 __all__ = [
     'Context',
@@ -30,15 +33,25 @@ class Error:
 
 class Context:
     # default policies
-    type_is_default_factory: bool = False
-    null_is_missing: bool = False
-    missing_is_null: bool = False
-    null_is_empty: bool = False
-    empty_is_null: bool = False
-    default_encoding: str = 'utf-8'
-    bool_is_int: bool = True
     accept_nan: bool = True
-    js_safe_integer: bool = False
+    bool_is_int: bool = True
+    bool_strings: Dict[str, bool] = {
+        '0': False, '1': True, 'f': False, 'false': False,
+        'n': False, 'no': False, 'off': False, 'on': True,
+        't': True, 'true': True, 'y': True, 'yes': True,
+    }
+    bytes_encoding: str = 'utf-8'
+    date_format: str = 'iso'
+    datetime_format: str = 'iso'
+    encoding_errors: str = 'strict'
+    lossy_conversion: bool = True
+    naive_timestamp: bool = False
+    strict_str: bool = True
+    time_format: str = 'iso'
+    union_prefers_same_type: bool = True
+    union_prefers_base_type: bool = True
+    union_prefers_super_type: bool = True
+    union_prefers_nearest_type: bool = True
 
     def __init__(self, **policies):
         self._stack = None

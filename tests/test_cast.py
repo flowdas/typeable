@@ -3,12 +3,14 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
-import sys
 import pytest
 from typeable.typing import (
     Dict,
+    ForwardRef,
+    FrozenSet,
     List,
-    Optional,
+    Set,
+    Tuple,
     Type,
     Union,
     get_args,
@@ -23,6 +25,15 @@ def test_get_origin():
     assert get_origin(List) == list
     assert get_origin(Dict[str, str]) == dict
     assert get_origin(Dict) == dict
+    assert get_origin(Set[int]) == set
+    assert get_origin(Set) == set
+    assert get_origin(FrozenSet[int]) == frozenset
+    assert get_origin(FrozenSet) == frozenset
+    assert get_origin(Tuple[int]) == tuple
+    assert get_origin(Tuple[int, str]) == tuple
+    assert get_origin(Tuple[int, ...]) == tuple
+    assert get_origin(Tuple[()]) == tuple
+    assert get_origin(Tuple) == tuple
     assert get_origin(Union[int, None]) == Union
 
 
@@ -36,7 +47,29 @@ def test_get_args():
     assert get_args(List) == ()
     assert get_args(Dict[str, X]) == (str, X)
     assert get_args(Dict) == ()
+    assert get_args(Set[int]) == (int,)
+    assert get_args(Set) == ()
+    assert get_args(FrozenSet[int]) == (int,)
+    assert get_args(FrozenSet) == ()
+    assert get_args(Tuple[int]) == (int,)
+    assert get_args(Tuple[int, str]) == (int, str)
+    assert get_args(Tuple[int, ...]) == (int, ...)
+    assert get_args(Tuple[()]) == ((),)
+    assert get_args(Tuple) == ()
     assert get_args(Union[int, None]) == (int, type(None))
+
+
+Integer = int
+
+
+def test_declare():
+    with declare('Integer') as Ref:
+        T = List[Ref]
+
+    assert get_args(T) == (ForwardRef('Integer'),)
+
+    assert cast(T, [2]) == [2]
+    assert cast(T, ["2"]) == [2]
 
 
 def test_register():
@@ -81,96 +114,3 @@ def test_double_dispatch():
         @cast.register
         def _(cls, val: X, ctx) -> Object:
             return 1
-
-
-def test_int():
-    assert cast(int, "123") == 123
-
-
-def test_Object():
-    class X(Object):
-        i: int
-
-    data = {'i': 0}
-
-    x = cast(X, data)
-    assert x.i == data['i']
-
-
-def test_list():
-    class X(Object):
-        i: int
-
-    data = [{'i': i} for i in range(10)]
-
-    l = cast(List, data)
-    assert isinstance(l, list)
-    assert l == data
-
-    l = cast(list, data)
-    assert isinstance(l, list)
-    assert l == data
-
-    l = cast(List[X], data)
-
-    assert isinstance(l, list)
-    for i in range(len(data)):
-        assert isinstance(l[i], X)
-        assert l[i].i == i
-
-    if sys.version_info >= (3, 9):
-        l = cast(list[X], data)
-
-        assert isinstance(l, list)
-        for i in range(len(data)):
-            assert isinstance(l[i], X)
-            assert l[i].i == i
-
-
-def test_dict():
-    class X(Object):
-        i: int
-
-    data = {i: {'i': i} for i in range(10)}
-
-    r = cast(Dict, data)
-    assert isinstance(r, dict)
-    assert r == data
-
-    r = cast(dict, data)
-    assert isinstance(r, dict)
-    assert r == data
-
-    r = cast(Dict[str, X], data)
-
-    assert isinstance(r, dict)
-    assert len(r) == len(data)
-    for i, (k, v) in enumerate(r.items()):
-        assert k == str(i)
-        assert isinstance(v, X)
-        assert v.i == i
-
-    if sys.version_info >= (3, 9):
-        r = cast(dict[str, X], data)
-
-        assert isinstance(r, dict)
-        assert len(r) == len(data)
-        for i, (k, v) in enumerate(r.items()):
-            assert k == str(i)
-            assert isinstance(v, X)
-            assert v.i == i
-
-
-def test_Union():
-    data = '123'
-
-    r = cast(Union[str, int], data)
-    assert r == '123'
-
-    r = cast(Union[int, str], data)
-    assert r == 123
-
-
-def test_Optional():
-    assert cast(Optional[int], 1) == 1
-    assert cast(Optional[int], None) == None
