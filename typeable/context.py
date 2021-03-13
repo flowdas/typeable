@@ -48,6 +48,10 @@ class Context:
     naive_timestamp: bool = False
     strict_str: bool = True
     time_format: str = 'iso'
+    union_prefers_same_type: bool = True
+    union_prefers_base_type: bool = True
+    union_prefers_super_type: bool = True
+    union_prefers_nearest_type: bool = True
 
     def __init__(self, **policies):
         self._stack = None

@@ -3,6 +3,7 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
+import os
 import cmath
 from contextlib import contextmanager
 import datetime
@@ -69,6 +70,8 @@ _registry = {}
 _dispatch_cache = {}
 _cache_token = None
 
+_TYPES = '__types__'
+
 
 def _get_type_args(tp):
     args = get_args(tp)
@@ -126,6 +129,7 @@ def _register(func):
         _registry[cls][vcls] = func
     else:
         _registry[cls] = {vcls: func}
+    setattr(func, _TYPES, (cls, vcls))
 
     if _cache_token is None:
         if hasattr(cls, '__abstractmethods__') or hasattr(vcls, '__abstractmethods__'):
@@ -459,23 +463,57 @@ def _cast_tuple_object(cls: Type[tuple], val, ctx, *Ts):
 # Union
 #
 
+# TODO: caching
+
+os.path.commonpath
+
+
+def _type_distance(tp1, tp2):
+    m1 = tp1.__mro__
+    m2 = tp2.__mro__
+    n = 0
+    i = -1
+    try:
+        while m1[i] == m2[i]:
+            i -= 1
+            n += 1
+    except IndexError:
+        pass
+
+    return len(m1) + len(m2) - 2*n
+
 
 @cast.register
 def _cast_Union_object(cls, val, ctx, *Ts) -> Union:
-    bases = []
-    others = []
-    for T in Ts:
+    vcls = val.__class__
+    types = []  # [(kind, distance, index, type)]
+    for i, T in enumerate(Ts):
         origin = get_origin(T) or T
-        match = False
         try:
-            match = isinstance(val, origin)
-        except TypeError:
-            pass
-        if match:
-            bases.append(T)
+            func = _dispatch(origin, vcls)
+        except:
+            continue
+        if ctx.union_prefers_same_type and vcls is origin:
+            k = 0
+            d = 0
+        elif ctx.union_prefers_base_type and isinstance(val, origin):
+            k = 1
+            d = _type_distance(vcls, origin)
+        elif ctx.union_prefers_super_type and issubclass(origin, vcls):
+            k = 2
+            d = _type_distance(vcls, origin)
+        elif ctx.union_prefers_nearest_type:
+            k = 3
+            fcls, fvcls = getattr(func, _TYPES)
+            d = _type_distance(vcls, fcls)
+            if d > 0:
+                d = min(d, _type_distance(vcls, fvcls))
         else:
-            others.append(T)
-    for T in bases + others:
+            k = 3
+            d = 0
+        types.append((k, d, i, T))
+    types.sort()
+    for _, _, _, T in types:
         try:
             return cast(T, val)
         except:
