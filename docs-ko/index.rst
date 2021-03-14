@@ -36,6 +36,14 @@ Release v\ |version|. (:ref:`설치 <install>`)
 **Typeable** 은 파이썬의 :term:`어노테이션 <annotation>` 문법을 사용하여 실행 시간 타입 캐스팅을 구현합니다.
 실용적인 관점으로 접근하고, 단순함을 사랑합니다.
 
+관련 링크
+-------------
+
+* `GitHub <https://github.com/flowdas/typeable>`_
+* 설명서
+   * `한국어 <https://typeable.flowdas.com/>`_
+   * `영어 <https://typeable.readthedocs.io/>`_
+
 사용자 설명서
 -------------------
 
@@ -48,7 +56,7 @@ API 레퍼런스
 ----------------
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 3
 
    api/types
    api/typeable

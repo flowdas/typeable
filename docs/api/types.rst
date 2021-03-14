@@ -7,9 +7,6 @@ Here we describe the types that can be passed as the first argument to :func:`ca
 In principle, all types must accept values of the same type as themselves. Therefore, this is not described repeatedly.
 In the description, ``val`` means the value passed as the second argument to :func:`cast`.
 
-The description of each type only describes the rules for converting other types to the target type, not the rules for converting to other types.
-For example, the ``cast(int, '123')`` conversion is described in ``int``, and the ``cast(str, 123)`` conversion is described in ``str``.
-
 If a type that is not directly supported is passed as the first argument of :func:`cast`, the rules of the nearest base class are applied.
 For example, a user-defined class that does not define a base class follows the rule of ``object``, and a class that inherits from :class:`int` follows the rule of ``int``.
 So when we say we call ``int(val)`` in the description of ``int``, you should interpret ``int`` as being replaced by a user-defined type.
@@ -19,8 +16,8 @@ The same rules apply to ``val``.
 For example, when we say ``enum.IntEnum`` accepts :class:`int` in this description, it means accepts when ``isinstance(val, int)`` is true.
 If the user-defined type instance passed to ``val`` doesn't follow this rule, it can also be specialized with :func:`typeable.cast.register`.
 
-Standard Types
---------------
+Builtin Types
+-------------
 
 :class:`bool`
 
@@ -30,17 +27,11 @@ Standard Types
 
 :class:`complex`
 
-:class:`datetime.date`
-
-:class:`datetime.datetime`
-
-:class:`dict`, :class:`typing.Dict`
+:class:`dict`
 
 :class:`float`
 
-:class:`typing.ForwardRef`
-
-:class:`frozenset`, :class:`typing.FrozenSet`
+:class:`frozenset`
 
 :class:`int`
 
@@ -51,30 +42,66 @@ Standard Types
 
     If :attr:`~typeable.Context.lossy_conversion` is :const:`False`, it does not accept :class:`float` which has non-zero fractional part.
 
-:class:`enum.IntEnum`
-
-    Calls ``enum.IntEnum(val)``. 
-    This means it accepts :class:`int`.
-    However, actually it accepts any value that can be compared to be equal to an enum field. 
-    Therefore, it also accepts the :class:`float` value which has zero fractional part.
-
-:class:`list`, :class:`typing.List`
+:class:`list`
 
 :data:`None`
 
 :class:`object`
-
-:class:`typing.Optional`
-
-:class:`set`, :class:`typing.Set`
+    
+:class:`set`
 
 :class:`str`
+
+:class:`tuple`
+
+
+Standard Types
+--------------
+
+:mod:`datetime`
+~~~~~~~~~~~~~~~
+
+:class:`datetime.date`
+
+:class:`datetime.datetime`
 
 :class:`datetime.time`
 
 :class:`datetime.timedelta`
 
-:class:`tuple`, :class:`typing.Tuple`
+:mod:`enum`
+~~~~~~~~~~~
+
+:class:`enum.Enum`
+
+    Converted to and from :class:`str` using **name**\ of enum member.
+
+    Calls ``enum.Enum(val)`` for all other types, including :class:`enum.Enum`.
+    Because of this, :class:`enum.Enum` that have ``None`` as their value will also accept ``None``.
+    In this case, the reverse direction conversion is not provided.
+
+:class:`enum.IntEnum`
+
+    Converting to and from :class:`str` works like :class:`enum.Enum`.
+
+    In addition to this, converting to and from :class:`int` is supported using **value**\ of enum member.
+
+:mod:`typing`
+~~~~~~~~~~~~~
+
+:class:`typing.Dict`
+
+:class:`typing.ForwardRef`
+
+:class:`typing.FrozenSet`
+
+:class:`typing.List`
+
+:class:`typing.Optional`
+
+:class:`typing.Set`
+
+:class:`typing.Tuple`
 
 :class:`typing.Union`
 

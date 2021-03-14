@@ -5,8 +5,6 @@ Typeable: Type Casting Simplified
 
 Release v\ |version|. (:ref:`Installation <install>`)
 
-* Korean - https://typeable.flowdas.com
-
 **Typeable** is a concise yet expressive Python type casting library.
 
 -------------------
@@ -38,6 +36,14 @@ Release v\ |version|. (:ref:`Installation <install>`)
 **Typeable** implements runtime type casting using Python's :term:`annotation` syntax.
 Approaches from a practical point of view, and loves simplicity.
 
+Quick Links
+-----------
+
+* `GitHub <https://github.com/flowdas/typeable>`_
+* Documentations
+   * `English <https://typeable.readthedocs.io/>`_
+   * `Korean <https://typeable.flowdas.com/>`_
+
 User's Guide
 ------------
 
@@ -50,7 +56,7 @@ API Reference
 -------------
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 3
 
    api/types
    api/typeable

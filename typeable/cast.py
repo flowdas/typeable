@@ -8,6 +8,7 @@ import cmath
 from contextlib import contextmanager
 import datetime
 from email.utils import parsedate_to_datetime
+import enum
 import inspect
 import math
 import re
@@ -796,3 +797,41 @@ def _cast_str_timedelta(cls: Type[str], val: datetime.timedelta, ctx):
         if sec:
             r.append(f'{sec}S')
     return cls(''.join(r))
+
+#
+# enum.Enum
+#
+
+
+@cast.register
+def _cast_Enum_object(cls: Type[enum.Enum], val, ctx):
+    return cls(val)
+
+
+@cast.register
+def _cast_Enum_str(cls: Type[enum.Enum], val: str, ctx):
+    return getattr(cls, val)
+
+
+@cast.register
+def _cast_str_Enum(cls: Type[str], val: enum.Enum, ctx):
+    return val.name
+
+#
+# enum.IntEnum
+#
+
+
+@cast.register
+def _cast_IntEnum_object(cls: Type[enum.IntEnum], val: int, ctx):
+    return cls(val)
+
+
+@cast.register
+def _cast_IntEnum_str(cls: Type[enum.IntEnum], val: str, ctx):
+    return getattr(cls, val)
+
+
+@cast.register
+def _cast_str_IntEnum(cls: Type[str], val: enum.IntEnum, ctx):
+    return val.name
