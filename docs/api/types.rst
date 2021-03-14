@@ -35,12 +35,15 @@ Builtin Types
 
 :class:`int`
 
-    Calls ``int(val)``. 
-    This means that it accepts :class:`int`, :class:`float`, and :class:`str` as well as user-defined types that support the :class:`int` conversion.
+    Converted to and from :class:`int`, :class:`bool`, :class:`float`, and :class:`str`.
+
+    For other types, calls ``int(val)``.
+    This means that it accepts all user-defined types that support the :class:`int` conversion.
+    In this case, the conversion in the opposite direction is up to the implementation of the user-defined type.
 
     If :attr:`~typeable.Context.bool_is_int` is :const:`False` then :class:`bool` is not accepted.
 
-    If :attr:`~typeable.Context.lossy_conversion` is :const:`False`, it does not accept :class:`float` which has non-zero fractional part.
+    If :attr:`~typeable.Context.lossy_conversion` is :const:`False`, it does not accept :class:`float` which has non-zero fractional part, and integers other than 0 and 1 are not converted to :class:`bool`.
 
 :class:`list`
 
@@ -85,6 +88,13 @@ Standard Types
     Converting to and from :class:`str` works like :class:`enum.Enum`.
 
     In addition to this, converting to and from :class:`int` is supported using **value**\ of enum member.
+
+:class:`enum.IntFlag`
+    
+    Converted to and from :class:`int` using **value**\ of enum member.
+
+    Unlike :class:`enum.IntEnum`, conversion to and from :class:`str` is not supported.
+
 
 :mod:`typing`
 ~~~~~~~~~~~~~

@@ -840,3 +840,17 @@ def _cast_IntEnum_str(cls: Type[enum.IntEnum], val: str, ctx):
 @cast.register
 def _cast_str_IntEnum(cls: Type[str], val: enum.IntEnum, ctx):
     return val.name
+
+#
+# enum.IntFlag
+#
+
+
+@cast.register
+def _cast_IntFlag_object(cls: Type[enum.IntFlag], val: int, ctx):
+    return cls(val)
+
+
+@cast.register
+def _cast_str_IntFlag(cls: Type[str], val: enum.IntFlag, ctx):
+    raise TypeError

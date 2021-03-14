@@ -35,12 +35,15 @@
 
 :class:`int`
 
-    ``int(val)`` 를 실행합니다. 
-    이는 :class:`int`, :class:`float`, :class:`str` 뿐만 아니라 :class:`int` 변환을 지원하는 사용자 정의형도 받아들인다는 뜻입니다.
+    :class:`int`, :class:`bool`, :class:`float`, :class:`str` 과 양방향 변환됩니다.
+
+    그 외의 형에 대해서는 ``int(val)`` 를 실행합니다. 
+    이는 :class:`int` 변환을 지원하는 사용자 정의형을 모두 받아들인다는 뜻입니다.
+    이 경우 반대 방향의 변환은 사용자 정의형의 구현에 달렸습니다.
 
     :attr:`~typeable.Context.bool_is_int` 가 :const:`False` 이면 :class:`bool` 을 받아들이지 않습니다.
 
-    :attr:`~typeable.Context.lossy_conversion` 이 :const:`False` 이면 소부수가 있는 :class:`float` 를 받아들이지 않습니다.
+    :attr:`~typeable.Context.lossy_conversion` 이 :const:`False` 이면 소수부가 있는 :class:`float` 를 받아들이지 않고, 0 과 1 이외의 정수가 :class:`bool` 로 변환되지도 않습니다.
 
 :class:`list`
 
@@ -84,7 +87,13 @@
     
     :class:`str` 과의 상호 변환은 :class:`enum.Enum` 처럼 동작합니다.
 
-    여기에 더해, 열거의 멤버의 **값**\ 으로 :class:`int` 와 양방향 변환됩니다.
+    여기에 더해, 열거형 멤버의 **값**\ 으로 :class:`int` 와 양방향 변환됩니다.
+
+:class:`enum.IntFlag`
+    
+    열거형 멤버의 **값**\ 으로 :class:`int` 와 양방향 변환됩니다.
+
+    :class:`enum.IntEnum` 과는 달리 :class:`str` 과의 상호 변환은 지원되지 않습니다.
 
 :mod:`typing`
 ~~~~~~~~~~~~~
