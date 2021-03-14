@@ -84,6 +84,7 @@ def test_bool():
 def test_int():
     # str
     assert cast(int, "123") == 123
+    assert cast(int, "123", ctx=Context(lossy_conversion=False)) == 123
 
     # bool
     assert cast(int, True) == 1

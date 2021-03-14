@@ -19,7 +19,7 @@ This package defines the following functions and decorators:
    exceptions such as :exc:`TypeError` and :exc:`ValueError` can be thrown. 
    If you wish, you can use *ctx* to locate the error position on *val*.
 
-.. decorator:: cast.register
+.. decorator:: typeable.cast.register
 
 .. function:: declare(name: str)
 
@@ -46,35 +46,70 @@ below.
    values of parameters, or add new parameters. The currently defined 
    parameters are:
 
-   .. attribute:: accept_nan: bool = True
+   .. attribute:: accept_nan 
+      :type: bool 
+      :value: True
 
-   .. attribute:: bool_is_int: bool = True
+   .. attribute:: bool_is_int
+      :type: bool 
+      :value: True
 
-   .. attribute:: bool_strings: dict[str, bool] = {'0': False, '1': True, 'f': False, 'false': False, 'n': False, 'no': False, 'off': False, 'on': True, 't': True, 'true': True, 'y': True, 'yes': True,}
+      If this attribute is :const:`False`, then :class:`bool` is not treated as :class:`int`.  
 
-   .. attribute:: bytes_encoding: str = 'utf-8'
+   .. attribute:: bool_strings
+      :type: dict[str, bool]
+      :value: {'0': False, '1': True, 'f': False, 'false': False, 'n': False, 'no': False, 'off': False, 'on': True, 't': True, 'true': True, 'y': True, 'yes': True}
 
-   .. attribute:: date_format: str = 'iso'
+   .. attribute:: bytes_encoding
+      :type: str 
+      :value: 'utf-8'
 
-   .. attribute:: datetime_format: str = 'iso'
+   .. attribute:: date_format
+      :type: str 
+      :value: 'iso'
 
-   .. attribute:: encoding_errors: str = 'strict'
+   .. attribute:: datetime_format
+      :type: str 
+      :value: 'iso'
 
-   .. attribute:: lossy_conversion: bool = True
+   .. attribute:: encoding_errors
+      :type: str 
+      :value: 'strict'
 
-   .. attribute:: naive_timestamp: bool = False
+   .. attribute:: lossy_conversion
+      :type: bool 
+      :value: True
 
-   .. attribute:: strict_str: bool = True
+      If this attribute is :const:`False`, no conversion with information loss is performed.
+      For example, ``cast(int, 1.2)`` is not allowed.
 
-   .. attribute:: time_format: str = 'iso'
+   .. attribute:: naive_timestamp
+      :type: bool 
+      :value: False
 
-   .. attribute:: union_prefers_same_type: bool = True
+   .. attribute:: strict_str
+      :type: bool 
+      :value: True
 
-   .. attribute:: union_prefers_base_type: bool = True
+   .. attribute:: time_format
+      :type: str
+      :value: 'iso'
 
-   .. attribute:: union_prefers_super_type: bool = True
-    
-   .. attribute:: union_prefers_nearest_type: bool = True
+   .. attribute:: union_prefers_same_type
+      :type: bool 
+      :value: True
+
+   .. attribute:: union_prefers_base_type
+      :type: bool 
+      :value: True
+
+   .. attribute:: union_prefers_super_type
+      :type: bool 
+      :value: True
+
+   .. attribute:: union_prefers_nearest_type
+      :type: bool 
+      :value: True
     
    The location of the error that occurred during conversion can be found 
    using :meth:`capture`.

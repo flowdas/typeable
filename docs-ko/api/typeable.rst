@@ -19,7 +19,7 @@
    예외가 발생할 수 있습니다. 원한다면, *ctx* 를 사용하여 에러가 발생한 *val* 에서의 위치를 얻을 수 
    있습니다. 
 
-.. decorator:: cast.register
+.. decorator:: typeable.cast.register
 
 .. function:: declare(name: str)
 
@@ -43,35 +43,70 @@
    :class:`Context` 인스턴스의 어트리뷰트로 제공됩니다. :class:`Context` 를 서브클래싱해서
    파라미터의 기본값을 변경하거나, 새 파라미터를 추가할 수 있습니다. 현제 정의된 파라미터는 다음과 같습니다:
 
-   .. attribute:: accept_nan: bool = True
+   .. attribute:: accept_nan 
+      :type: bool 
+      :value: True
 
-   .. attribute:: bool_is_int: bool = True
+   .. attribute:: bool_is_int
+      :type: bool 
+      :value: True
 
-   .. attribute:: bool_strings: dict[str, bool] = {'0': False, '1': True, 'f': False, 'false': False, 'n': False, 'no': False, 'off': False, 'on': True, 't': True, 'true': True, 'y': True, 'yes': True,}
+      이 어트리뷰트가 :const:`False` 면, :class:`bool` 을 :class:`int` 로 취급하지 않습니다.  
 
-   .. attribute:: bytes_encoding: str = 'utf-8'
+   .. attribute:: bool_strings
+      :type: dict[str, bool]
+      :value: {'0': False, '1': True, 'f': False, 'false': False, 'n': False, 'no': False, 'off': False, 'on': True, 't': True, 'true': True, 'y': True, 'yes': True}
 
-   .. attribute:: date_format: str = 'iso'
+   .. attribute:: bytes_encoding
+      :type: str 
+      :value: 'utf-8'
 
-   .. attribute:: datetime_format: str = 'iso'
+   .. attribute:: date_format
+      :type: str 
+      :value: 'iso'
 
-   .. attribute:: encoding_errors: str = 'strict'
+   .. attribute:: datetime_format
+      :type: str 
+      :value: 'iso'
 
-   .. attribute:: lossy_conversion: bool = True
+   .. attribute:: encoding_errors
+      :type: str 
+      :value: 'strict'
 
-   .. attribute:: naive_timestamp: bool = False
+   .. attribute:: lossy_conversion
+      :type: bool 
+      :value: True
 
-   .. attribute:: strict_str: bool = True
+      이 어트리뷰트가 :const:`False` 면, 정보 손실을 수반하는 변환을 수행하지 않습니다. 
+      예를 들어, ``cast(int, 1.2)`` 를 허락하지 않습니다.
 
-   .. attribute:: time_format: str = 'iso'
+   .. attribute:: naive_timestamp
+      :type: bool 
+      :value: False
 
-   .. attribute:: union_prefers_same_type: bool = True
+   .. attribute:: strict_str
+      :type: bool 
+      :value: True
 
-   .. attribute:: union_prefers_base_type: bool = True
+   .. attribute:: time_format
+      :type: str
+      :value: 'iso'
 
-   .. attribute:: union_prefers_super_type: bool = True
+   .. attribute:: union_prefers_same_type
+      :type: bool 
+      :value: True
 
-   .. attribute:: union_prefers_nearest_type: bool = True
+   .. attribute:: union_prefers_base_type
+      :type: bool 
+      :value: True
+
+   .. attribute:: union_prefers_super_type
+      :type: bool 
+      :value: True
+
+   .. attribute:: union_prefers_nearest_type
+      :type: bool 
+      :value: True
 
    변환 중에 발생한 에러의 위치는 :meth:`capture` 로 찾을 수 있습니다.
 
