@@ -313,6 +313,11 @@ def _cast_str_object(cls: Type[str], val, ctx):
 
 
 @cast.register
+def _cast_str_str(cls: Type[str], val: str, ctx):
+    return cls(val)
+
+
+@cast.register
 def _cast_str_bytes(cls: Type[str], val: bytes, ctx):
     return cls(val, encoding=ctx.bytes_encoding, errors=ctx.encoding_errors)
 
