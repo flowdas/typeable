@@ -119,9 +119,20 @@ Standard Types
 :mod:`typing`
 ~~~~~~~~~~~~~
 
+:class:`typing.Any`
+
+    Pass ``val`` as it is without conversion or checking.
+
 :class:`typing.Dict`
 
 :class:`typing.ForwardRef`
+
+    :class:`typing.ForwardRef` that appears in the type parameter of a generic type is automatically evaluated by Typeable.
+
+    :class:`typing.ForwardRef` does not express a type by itself, it is just an intermediary passing a string forward reference to delay evaluation of a type.
+    Usually (though not impossible) you don't create an instance of :class:`typing.ForwardRef` yourself, it is created automatically when you pass a string to the type parameter when using a generic type. The support provided by the :mod:`typing` module is limited to the :term:`annotation` area.
+
+    Typeable provides a :func:`declare` context manager so that forward references can be used outside of the :term:`annotation`.
 
 :class:`typing.FrozenSet`
 

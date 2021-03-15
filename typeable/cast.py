@@ -182,6 +182,14 @@ def cast(cls: Type[_T], val, *, ctx: Context = None) -> _T:
 cast.register = _register
 cast.dispatch = _dispatch
 
+#
+# Any
+#
+
+
+@cast.register
+def _cast_Any_object(cls: Type[Any], val, ctx):
+    return val
 
 #
 # object (fallback)

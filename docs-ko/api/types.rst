@@ -118,9 +118,21 @@
 :mod:`typing`
 ~~~~~~~~~~~~~
 
+:class:`typing.Any`
+
+    ``val`` 을 변환 없이 그대로 통과시킨다.
+    아무런 검사도 이루어지지 않는다.
+
 :class:`typing.Dict`
 
 :class:`typing.ForwardRef`
+
+    제네릭 형의 형 매개 변수에 등장하는 :class:`typing.ForwardRef` 는 Typeable 이 자동 평가합니다.
+
+    :class:`typing.ForwardRef` 는 그 스스로 어떤 형을 표현하는 것이 아니라, 어떤 형에 대한 평가를 지연시키기 위한 문자열 전방 참조를 전달하는 매개체일 뿐입니다.
+    (불가능하지는 않지만) 보통 사용자가 직접 :class:`typing.ForwardRef` 의 인스턴스를 만들지는 않고, 제네릭 형을 사용할 때 형 매개 변수에 문자열을 전달하면 자동으로 만들어집니다. :mod:`typing` 모듈에서 제공되는 지원은 :term:`어노테이션 <annotation>` 영역으로 제한됩니다. 
+
+    Typeable 은 :term:`어노테이션 <annotation>` 이외의 영역에서 전방 참조를 사용할 수 있도록 :func:`declare` 컨택스트 관리자를 제공합니다.
 
 :class:`typing.FrozenSet`
 

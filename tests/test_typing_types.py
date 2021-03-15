@@ -6,6 +6,7 @@
 import pytest
 
 from typeable.typing import (
+    Any,
     Dict,
     List,
     Optional,
@@ -15,6 +16,14 @@ from typeable.typing import (
 )
 from typeable import *
 from datetime import datetime, date
+
+
+def test_Any():
+    assert cast(Any, None) is None
+    o = object()
+    assert cast(Any, o) is o
+
+    assert cast(List[Any], [None, o]) == [None, o]
 
 
 def test_Union():

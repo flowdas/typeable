@@ -5,6 +5,7 @@
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 import pytest
 from typeable.typing import (
+    Any,
     Dict,
     ForwardRef,
     FrozenSet,
@@ -35,6 +36,7 @@ def test_get_origin():
     assert get_origin(Tuple[()]) == tuple
     assert get_origin(Tuple) == tuple
     assert get_origin(Union[int, None]) == Union
+    assert get_origin(Any) is None
 
 
 def test_get_args():
@@ -57,6 +59,7 @@ def test_get_args():
     assert get_args(Tuple[()]) == ((),)
     assert get_args(Tuple) == ()
     assert get_args(Union[int, None]) == (int, type(None))
+    assert get_args(Any) == ()
 
 
 Integer = int
