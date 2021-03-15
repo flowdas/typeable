@@ -1,4 +1,4 @@
-from enum import IntEnum, Enum, IntFlag
+from enum import IntEnum, Enum, IntFlag, Flag
 
 from typeable import *
 
@@ -102,6 +102,63 @@ def test_str_from_IntEnum():
 
     assert cast(str, Shape.CIRCLE, ctx=ctx) == 'CIRCLE'
     assert cast(str, Shape.SQUARE, ctx=ctx) == 'SQUARE'
+
+#
+# Flag
+#
+
+
+def test_Flag():
+    class Perm(Flag):
+        R = 4
+        W = 2
+        X = 1
+
+    assert cast(Perm, 1) is Perm.X
+    assert cast(Perm, 2) is Perm.W
+    assert cast(Perm, 4) is Perm.R
+    assert cast(Perm, 7) == Perm.R | Perm.W | Perm.X
+    with pytest.raises(ValueError):
+        cast(Perm, 8)
+
+    # str
+    with pytest.raises(TypeError):
+        cast(Perm, 'R')
+
+    # float
+    with pytest.raises(TypeError):
+        cast(Perm, 1.0)
+
+    # None
+    with pytest.raises(TypeError):
+        cast(Perm, None)
+
+    # IntFlag
+    assert cast(Perm, Perm.R) is Perm.R
+    assert cast(Perm, Perm.W) is Perm.W
+    assert cast(Perm, Perm.X) is Perm.X
+
+
+def test_int_from_Flag():
+    class Perm(Flag):
+        R = 4
+        W = 2
+        X = 1
+
+    assert cast(int, Perm.R) == 4
+    assert cast(int, Perm.W) == 2
+    assert cast(int, Perm.X) == 1
+    assert cast(int, Perm.R | Perm.W | Perm.X) == 7
+
+
+def test_str_from_Flag():
+    class Perm(Flag):
+        R = 4
+        W = 2
+        X = 1
+
+    with pytest.raises(TypeError):
+        cast(str, Perm.R)
 
 #
 # IntFlag

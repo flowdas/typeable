@@ -51,11 +51,15 @@
       :type: bool 
       :value: True
 
-      이 어트리뷰트가 :const:`False` 면, :class:`bool` 을 :class:`int` 로 취급하지 않습니다.  
+      이 어트리뷰트가 :const:`False` 면, :class:`bool` 을 :class:`int` 로 취급하지 않습니다. 
 
    .. attribute:: bool_strings
       :type: dict[str, bool]
       :value: {'0': False, '1': True, 'f': False, 'false': False, 'n': False, 'no': False, 'off': False, 'on': True, 't': True, 'true': True, 'y': True, 'yes': True}
+
+      :class:`bool` 로 변환될 수 있는 문자열들과 해당 :class:`bool` 값을 정의합니다.
+      키는 모두 소문자여야 합니다. 
+      딕셔너리를 조회할 때는 소문자로 변환한 값을 키로 사용합니다.
 
    .. attribute:: bytes_encoding
       :type: str 

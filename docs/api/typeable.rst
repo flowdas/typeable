@@ -60,6 +60,10 @@ below.
       :type: dict[str, bool]
       :value: {'0': False, '1': True, 'f': False, 'false': False, 'n': False, 'no': False, 'off': False, 'on': True, 't': True, 'true': True, 'y': True, 'yes': True}
 
+      Defines strings that can be converted to :class:`bool` and the corresponding :class:`bool` value.
+      All keys should be lowercase.
+      When looking up a dictionary, the value converted to lowercase is used as a key.
+
    .. attribute:: bytes_encoding
       :type: str 
       :value: 'utf-8'
@@ -67,7 +71,7 @@ below.
    .. attribute:: date_format
       :type: str 
       :value: 'iso'
-
+      
    .. attribute:: datetime_format
       :type: str 
       :value: 'iso'

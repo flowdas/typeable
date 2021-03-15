@@ -21,6 +21,20 @@
 
 :class:`bool`
 
+    :class:`int`, :class:`str` 과 양방향 변환됩니다.
+
+    :class:`bool` 이 :class:`str` 로 변환될 때는 ``"True"`` 나 ``"False"`` 로 변환됩니다.
+    :class:`str` 을 :class:`bool` 로 변환할 때는 먼저 소문자로 변환한 후 :attr:`~typeable.Context.bool_strings` 딕셔너리에서 찾습니다. 
+    이 딕셔너리가 비어있으면 :exc:`TypeError` 를, 비어있지 않지만 해당 문자열의 키가 없다면 :exc:`ValueError` 를 발생시킵니다.
+
+    :attr:`~typeable.Context.bool_is_int` 가 :const:`False` 이면, :class:`int` 와의 변환이 금지됩니다.
+
+    :attr:`~typeable.Context.lossy_conversion` 이 :const:`False` 이면, 0 과 1 이외의 :class:`int` 가 :class:`bool` 로 변환되지 않습니다.
+
+    :class:`bool` 에서 :class:`float` 로의 단방향 변환이 지원됩니다. 
+    :attr:`~typeable.Context.lossy_conversion` 이 :const:`False` 이면, 0 과 1 이외의 값은 변환되지 않습니다.
+    이마저도 :attr:`~typeable.Context.bool_is_int` 가 :const:`False` 이면 금지됩니다.
+
 :class:`bytearray`
 
 :class:`bytes`
@@ -82,6 +96,12 @@
     :class:`enum.Enum` 을 포함한 그 외의 모든 형에 대해서는 ``enum.Enum(val)`` 을 실행합니다.
     이 때문에 ``None`` 을 값으로 갖는 :class:`enum.Enum` 은 ``None`` 도 받아들이게 됩니다.
     이 경우는 반대 방향의 변환이 제공되지 않습니다.
+
+:class:`enum.Flag`
+    
+    열거형 멤버의 **값**\ 으로 :class:`int` 와 양방향 변환됩니다.
+
+    :class:`enum.Enum` 과는 달리 :class:`str` 과의 상호 변환은 지원되지 않습니다.
 
 :class:`enum.IntEnum`
     

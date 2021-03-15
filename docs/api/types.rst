@@ -21,6 +21,20 @@ Builtin Types
 
 :class:`bool`
 
+    Converted to and from :class:`int` and :class:`str`.
+
+    When :class:`bool` is converted to :class:`str`, it is converted to ``"True"`` or ``"False"``.
+    When converting :class:`str` to :class:`bool`, convert it to lowercase first and then look up the :attr:`~typeable.Context.bool_strings` dictionary.
+    It raises :exc:`TypeError` if this dictionary is empty, and :exc:`ValueError` if it is not empty but there is no key for that string.
+
+    If :attr:`~typeable.Context.bool_is_int` is :const:`False`, conversion to and from :class:`int` is not allowed.
+
+    If :attr:`~typeable.Context.lossy_conversion` is :const:`False`, :class:`int` other than 0 and 1 is not converted to :class:`bool`.
+
+    One-way conversion from :class:`bool` to :class:`float` is allowed.
+    If :attr:`~typeable.Context.lossy_conversion` is :const:`False`, values other than 0 and 1 are not converted.
+    Even this is forbidden if :attr:`~typeable.Context.bool_is_int` is :const:`False`.
+
 :class:`bytearray`
 
 :class:`bytes`
@@ -77,21 +91,27 @@ Standard Types
 
 :class:`enum.Enum`
 
-    Converted to and from :class:`str` using **name**\ of enum member.
+    Converted to and from :class:`str` using **name** of enum member.
 
     Calls ``enum.Enum(val)`` for all other types, including :class:`enum.Enum`.
     Because of this, :class:`enum.Enum` that have ``None`` as their value will also accept ``None``.
     In this case, the reverse direction conversion is not provided.
 
+:class:`enum.Flag`
+    
+    Converted to and from :class:`int` using **value** of enum member.
+
+    Unlike :class:`enum.Enum`, conversion to and from :class:`str` is not supported.
+
 :class:`enum.IntEnum`
 
     Converting to and from :class:`str` works like :class:`enum.Enum`.
 
-    In addition to this, converting to and from :class:`int` is supported using **value**\ of enum member.
+    In addition to this, converting to and from :class:`int` is supported using **value** of enum member.
 
 :class:`enum.IntFlag`
     
-    Converted to and from :class:`int` using **value**\ of enum member.
+    Converted to and from :class:`int` using **value** of enum member.
 
     Unlike :class:`enum.IntEnum`, conversion to and from :class:`str` is not supported.
 
