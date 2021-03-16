@@ -10,11 +10,11 @@ In the description, ``val`` means the value passed as the second argument to :fu
 If a type that is not directly supported is passed as the first argument of :func:`cast`, the rules of the nearest base class are applied.
 For example, a user-defined class that does not define a base class follows the rule of ``object``, and a class that inherits from :class:`int` follows the rule of ``int``.
 So when we say we call ``int(val)`` in the description of ``int``, you should interpret ``int`` as being replaced by a user-defined type.
-If the user-defined type does not follow the rules of the base class, it should be specialized with :func:`typeable.cast.register`.
+If the user-defined type does not follow the rules of the base class, it should be specialized with :func:`cast.register`.
 
 The same rules apply to ``val``.
 For example, when we say ``enum.IntEnum`` accepts :class:`int` in this description, it means accepts when ``isinstance(val, int)`` is true.
-If the user-defined type instance passed to ``val`` doesn't follow this rule, it can also be specialized with :func:`typeable.cast.register`.
+If the user-defined type instance passed to ``val`` doesn't follow this rule, it can also be specialized with :func:`cast.register`.
 
 Builtin Types
 -------------

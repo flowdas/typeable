@@ -19,7 +19,34 @@
    예외가 발생할 수 있습니다. 원한다면, *ctx* 를 사용하여 에러가 발생한 *val* 에서의 위치를 얻을 수 
    있습니다. 
 
-.. decorator:: typeable.cast.register
+   .. decorator:: cast.function(user_function)
+                  cast.function(*, ctx_name: str = 'ctx', cast_return: bool = False)
+
+      함수의 인자를 타입 캐스팅하는 데코레이터.
+
+      데코레이트된 함수를 호출하면 :term:`어노테이션 <annotation>` 이 있는 인자들을 타입 캐스팅해서 원래 함수를 호출합니다.
+      :term:`어노테이션 <annotation>` 이 없는 인자들은 그대로 전달합니다.
+
+      반환값의 :term:`어노테이션 <annotation>` 이 있어도 반환값은 타입 캐스팅하지 않는 것이 기본 동작입니다.
+      *cast_return* 이 참이고 반환값의 :term:`어노테이션 <annotation>` 이 있으면 반환값도 타입 캐스팅합니다.
+      
+      :func:`Context.capture` 로 에러 위치를 추적할 때 ``location`` 어트리뷰트에는 인자의 이름이 제공됩니다.
+      반환값에서 에러가 발생했으면 ``"return"`` 이 사용됩니다.
+      ``*args`` 나 ``**kwargs`` 와 같은 형태의 인자에 :term:`어노테이션 <annotation>` 이 제공되면, 먼저 인자의 이름이 제공된 후 인덱스나 키워드 이름이 추가됩니다.
+
+      데코레이트된 함수는 :class:`Context` 인스턴스를 받는 *ctx* 인자를 추가로 얻습니다.
+      원래 함수에 이미 *ctx* 라는 이름의 인자가 있으면 :exc:`TypeError` 를 발생시킵니다.
+      이 이름을 변경하려면 *ctx_name* 인자로 이름을 지정합니다.
+      원래 함수가 *ctx* 인자를 직접 받고자 한다면 :class:`Context` 형으로 :term:`어노테이션 <annotation>` 을 제공해야 합니다.
+      이 경우 *ctx* 에 :const:`None` 이 전달되면 새 인스턴스를 만들어 전달합니다.
+
+      메서드에도 사용될 수 있습니다.
+      :func:`cast.function` 이 다른 메서드 디스크립터와 함께 적용될 때, 가장 안쪽의 데코레이터로 적용되어야 합니다.
+
+      :term:`코루틴 함수 <coroutine function>` 에도 사용될 수 있습니다.
+      이 경우 데코레이트된 함수도 :term:`코루틴 함수 <coroutine function>` 입니다.
+
+   .. decorator:: cast.register(impl)
 
 .. function:: declare(name: str)
 
@@ -31,6 +58,9 @@
 
 .. data:: MISSING
 
+   :data:`MISSING` 값은 매개변수가 제공되는지를 탐지하는데 사용되는 표지 객체입니다. 
+   :const:`None` 이 유효한 값일 때 이 표지가 사용됩니다. 
+   어떤 코드도 :data:`MISSING` 값을 직접 사용해서는 안 됩니다.
 
 이 패키지는 몇 가지 클래스를 정의합니다. 아래에 나오는 절에서 자세히 설명합니다.
 

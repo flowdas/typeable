@@ -19,7 +19,34 @@ This package defines the following functions and decorators:
    exceptions such as :exc:`TypeError` and :exc:`ValueError` can be thrown. 
    If you wish, you can use *ctx* to locate the error position on *val*.
 
-.. decorator:: typeable.cast.register
+   .. decorator:: cast.function(user_function)
+                  cast.function(*, ctx_name: str = 'ctx', cast_return: bool = False)
+
+      A decorator that types-casts the arguments of a function.
+
+      When a decorated function is called, the original function is called by type-casted values for the :term:`annotated <annotation>` arguments.
+      Arguments without the :term:`annotation` are passed as it is.
+
+      The default behavior is to not type-cast the return value even if there is a :term:`annotation` of the return value.
+      If *cast_return* is true and there is a :term:`annotation` of the return value, the return value is also type casted.
+
+      When tracking the error location with :func:`Context.capture`, the ``location`` attribute is given the name of the argument.
+      If an error occurred in the return value, ``"return"`` is used.
+      If :term:`annotation` is supplied to an argument of the form ``*args`` or ``**kwargs``, the name of the argument is supplied first, followed by the index or keyword name.
+
+      The decorated function has an additional *ctx* argument that takes a :class:`Context` instance.
+      It raises :exc:`TypeError`, if the original function already has an argument named *ctx*.
+      To change this name, specify name with the *ctx_name* argument.
+      If the original function wants to receive *ctx* arguments directly, it must provide :class:`Context` type :term:`annotation`.
+      In this case, when :const:`None` is passed to *ctx*, a new instance is created and passed.
+
+      This decorator can also be used for methods.
+      When :func:`cast.function` is applied in combination with other method descriptors, it should be applied as the innermost decorator.
+
+      This decorator can also be used with :term:`coroutine function`.
+      In this case, the decorated function is also :term:`coroutine function`.
+
+   .. decorator:: typeable.cast.register(impl)
 
 .. function:: declare(name: str)
 
@@ -30,6 +57,10 @@ This package defines the following functions and decorators:
 This module defines the following constant:
 
 .. data:: MISSING
+
+   the :data:`MISSING` value is a sentinel object used to detect if parameters are provided. 
+   This sentinel is used because :const:`None` is a valid value for that parameters. 
+   No code should directly use the :data:`MISSING` value.
 
 This package defines a couple of classes, which are detailed in the sections
 below.

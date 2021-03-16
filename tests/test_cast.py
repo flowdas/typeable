@@ -3,6 +3,9 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
+import asyncio
+import inspect
+
 import pytest
 from typeable.typing import (
     Any,
@@ -117,3 +120,153 @@ def test_double_dispatch():
         @cast.register
         def _(cls, val: X, ctx) -> Object:
             return 1
+
+
+def test_function():
+    @cast.function
+    def test(a: int):
+        assert isinstance(a, int)
+        return a
+
+    assert test(123) == 123
+    assert test("123") == 123
+    with pytest.raises(TypeError):
+        test(None)
+
+
+def test_function_with_ctx():
+    @cast.function
+    def test(a: int, *, ctx: Context = None):
+        assert isinstance(a, int)
+        assert ctx is not None
+        return a
+
+    assert test(123) == 123
+    assert test("123") == 123
+    with pytest.raises(TypeError):
+        test(None)
+
+
+def test_function_ctx_conflict():
+
+    with pytest.raises(TypeError):
+        @cast.function
+        def test(ctx: int):
+            pass
+
+    with pytest.raises(TypeError):
+        @cast.function
+        def test(ctx):
+            pass
+
+
+def test_function_args():
+    @cast.function
+    def test(*args: int):
+        for a in args:
+            assert isinstance(a, int)
+        return args
+    assert test(1, "2", 3.14) == (1, 2, 3)
+
+
+def test_function_kwargs():
+    @cast.function
+    def test(**kwargs: int):
+        for k, v in kwargs.items():
+            assert isinstance(v, int)
+        return kwargs
+    assert test(a=1, b="2", c=3.14) == {'a': 1, 'b': 2, 'c': 3}
+
+
+def test_function_cast_return():
+    @cast.function
+    def test(a: int) -> str:
+        assert isinstance(a, int)
+        return a
+
+    assert test(123) == 123
+    assert test("123") == 123
+
+    @cast.function(cast_return=True)
+    def test(a: int):
+        assert isinstance(a, int)
+        return a
+
+    assert test(123) == 123
+    assert test("123") == 123
+
+    @cast.function(cast_return=True)
+    def test(a: int) -> str:
+        assert isinstance(a, int)
+        return a
+
+    assert test(123) == '123'
+    assert test("123") == '123'
+
+
+def test_function_capture():
+    @cast.function(cast_return=True)
+    def test(a: int) -> str:
+        return None
+
+    ctx = Context()
+    with pytest.raises(TypeError):
+        with ctx.capture() as error:
+            test(None, ctx=ctx)
+    assert error.location == ('a',)
+
+    with pytest.raises(TypeError):
+        with ctx.capture() as error:
+            test("123", ctx=ctx)
+    assert error.location == ('return',)
+
+
+def test_function_method():
+    class X:
+        @cast.function
+        def test1(self, a: int):
+            assert isinstance(self, X)
+            assert isinstance(a, int)
+            return a
+
+        @classmethod
+        @cast.function
+        def test2(cls, a: int):
+            assert cls is X
+            assert isinstance(a, int)
+            return a
+
+        @staticmethod
+        @cast.function
+        def test3(a: int):
+            assert isinstance(a, int)
+            return a
+
+    x = X()
+
+    assert x.test1(123) == 123
+    assert x.test1("123") == 123
+
+    assert x.test2(123) == 123
+    assert x.test2("123") == 123
+
+    assert X.test2(123) == 123
+    assert X.test2("123") == 123
+
+    assert x.test3(123) == 123
+    assert x.test3("123") == 123
+
+    assert X.test3(123) == 123
+    assert X.test3("123") == 123
+
+
+def test_function_async():
+    @cast.function
+    async def test(a: int):
+        assert isinstance(a, int)
+        return a
+
+    assert inspect.iscoroutinefunction(test)
+    loop = asyncio.get_event_loop()
+    assert loop.run_until_complete(test(123)) == 123
+    assert loop.run_until_complete(test("123")) == 123

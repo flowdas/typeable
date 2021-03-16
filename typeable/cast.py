@@ -3,12 +3,14 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
+import asyncio
 import os
 import cmath
 from contextlib import contextmanager
 import datetime
 from email.utils import parsedate_to_datetime
 import enum
+import functools
 import inspect
 import math
 import re
@@ -25,9 +27,12 @@ from inspect import (
 )
 from .typing import (
     Any,
+    Dict,
     ForwardRef,
+    Tuple,
     Type,
     TypeVar,
+    Optional,
     Union,
     get_args,
     get_origin,
@@ -171,6 +176,72 @@ def _dispatch(cls, vcls):
     return func
 
 
+def _function(_=None, *, ctx_name: str = 'ctx', cast_return: bool = False):
+    def deco(func):
+        nonlocal cast_return
+
+        sig = inspect.signature(func)
+        annons = get_type_hints(func)
+        if 'return' not in annons:
+            cast_return = False
+        use_ctx = False
+        if ctx_name in sig.parameters:
+            ctx_type = annons.get(ctx_name)
+            if (ctx_type == Optional[Context] or ctx_type == Context) \
+                    and (sig.parameters[ctx_name].kind not in (inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD)):
+                use_ctx = True
+            else:
+                raise TypeError(f"'{ctx_name}' argument conflict")
+
+        def prolog(args, kwargs):
+            if use_ctx:
+                ctx = kwargs.get(ctx_name)
+                if ctx is None:
+                    ctx = kwargs[ctx_name] = Context()
+            else:
+                ctx = kwargs.pop(ctx_name, None)
+                if ctx is None:
+                    ctx = Context()
+            ba = sig.bind(*args, **kwargs)
+            for key, val in ba.arguments.items():
+                if key == ctx_name:
+                    continue
+                if key in annons:
+                    with ctx.traverse(key):
+                        tp = annons[key]
+                        if sig.parameters[key].kind == inspect.Parameter.VAR_POSITIONAL:
+                            tp = Tuple[tp, ...]
+                        elif sig.parameters[key].kind == inspect.Parameter.VAR_KEYWORD:
+                            tp = Dict[Any, tp]
+                        ba.arguments[key] = cast(tp, val, ctx=ctx)
+            return ctx, ba
+
+        def epilog(ctx, r):
+            if cast_return:
+                with ctx.traverse('return'):
+                    r = cast(annons['return'], r, ctx=ctx)
+            return r
+
+        if asyncio.iscoroutinefunction(func):
+            @functools.wraps(func)
+            async def wrapper(*args, **kwargs):
+                ctx, ba = prolog(args, kwargs)
+                r = await func(*ba.args, **ba.kwargs)
+                return epilog(ctx, r)
+        else:
+            @functools.wraps(func)
+            def wrapper(*args, **kwargs):
+                ctx, ba = prolog(args, kwargs)
+                r = func(*ba.args, **ba.kwargs)
+                return epilog(ctx, r)
+
+        wrapper._ctx = ctx_name
+
+        return wrapper
+
+    return deco if _ is None else deco(_)
+
+
 def cast(cls: Type[_T], val, *, ctx: Context = None) -> _T:
     origin = get_origin(cls) or cls
     func = _dispatch(origin, val.__class__)
@@ -181,6 +252,7 @@ def cast(cls: Type[_T], val, *, ctx: Context = None) -> _T:
 
 cast.register = _register
 cast.dispatch = _dispatch
+cast.function = _function
 
 #
 # Any
