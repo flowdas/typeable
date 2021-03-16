@@ -16,6 +16,12 @@ Release v\ |version|. (:ref:`설치 <install>`)
    >>> typeable.cast(DataType, data)
    {'a': [False, True, 2, 3.14], 'b': [0, 1, 2, 3]}
 
+   >>> @typeable.cast.function
+   ... def my_function(d: DataType):
+   ...     return d
+   >>> my_function(data)
+   {'a': [False, True, 2, 3.14], 'b': [0, 1, 2, 3]}
+   
    >>> with typeable.declare('Json') as _J:
    ...     Json = typing.Union[float, bool, int, str, None, dict[str, _J], list[_J]]
    >>> json.dumps(typeable.cast(Json, data))
