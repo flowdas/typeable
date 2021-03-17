@@ -13,6 +13,7 @@ from typeable.typing import (
     ForwardRef,
     FrozenSet,
     List,
+    Literal,
     Set,
     Tuple,
     Type,
@@ -40,6 +41,7 @@ def test_get_origin():
     assert get_origin(Tuple) == tuple
     assert get_origin(Union[int, None]) == Union
     assert get_origin(Any) is None
+    assert get_origin(Literal) is None
 
 
 def test_get_args():
@@ -63,6 +65,8 @@ def test_get_args():
     assert get_args(Tuple) == ()
     assert get_args(Union[int, None]) == (int, type(None))
     assert get_args(Any) == ()
+    assert get_args(Literal) == ()
+    assert get_args(Literal['2.0']) == ('2.0',)
 
 
 Integer = int

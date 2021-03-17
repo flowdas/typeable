@@ -31,6 +31,8 @@ if sys.version_info < (3, 8):  # pragma: no cover
             return res or ()
         return ()
 
+    from typing_extensions import Literal
+
 if sys.version_info < (3, 9):
     _RECURSIVE_GUARD = False
 else:

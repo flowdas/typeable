@@ -138,7 +138,15 @@ Standard Types
 
 :class:`typing.List`
 
+:class:`typing.Literal`
+
+    If there is a literal that matches ``val``, it returns the literal, otherwise :exc:`ValueError` is raised.
+
+    Since :class:`typing.Literal` was added in Python 3.8, the :mod:`typeable.typing` module provides backport.
+
 :class:`typing.Optional`
+
+    :class:`typing.Optional` is automatically converted to :class:`typing.Union`.
 
 :class:`typing.Set`
 

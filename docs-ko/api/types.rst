@@ -137,7 +137,15 @@
 
 :class:`typing.List`
 
+:class:`typing.Literal`
+
+    ``val`` 과 일치하는 리터럴이 있으면 리터럴을 반환하고, 그렇지 않으면 :exc:`ValueError` 를 발생시킵니다.
+
+    :class:`typing.Literal` 은 파이썬 3.8에 추가되었기 때문에, :mod:`typeable.typing` 모듈에서 역이식을 제공합니다.
+
 :class:`typing.Optional`
+
+    :class:`typing.Optional` 은 :class:`typing.Union` 으로 자동 변환됩니다.
 
 :class:`typing.Set`
 

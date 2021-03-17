@@ -29,10 +29,11 @@ from .typing import (
     Any,
     Dict,
     ForwardRef,
+    Literal,
+    Optional,
     Tuple,
     Type,
     TypeVar,
-    Optional,
     Union,
     get_args,
     get_origin,
@@ -958,3 +959,16 @@ def _cast_IntFlag_int(cls: Type[enum.IntFlag], val: int, ctx):
 @cast.register
 def _cast_str_IntFlag(cls: Type[str], val: enum.IntFlag, ctx):
     raise TypeError
+
+#
+# typing.Literal
+#
+
+
+@cast.register
+def _cast_Literal_object(cls, val, ctx, *literals) -> Literal:
+    for literal in literals:
+        if literal == val:
+            return literal
+    else:
+        raise ValueError
