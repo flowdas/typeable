@@ -119,7 +119,7 @@ Standard Types
 :mod:`typing`
 ~~~~~~~~~~~~~
 
-:class:`typing.Any`
+:data:`typing.Any`
 
     Pass ``val`` as it is without conversion or checking.
 
@@ -138,25 +138,28 @@ Standard Types
 
 :class:`typing.List`
 
-:class:`typing.Literal`
+:data:`typing.Literal`
 
     If there is a literal that matches ``val``, it returns the literal, otherwise :exc:`ValueError` is raised.
 
-    Since :class:`typing.Literal` was added in Python 3.8, the :mod:`typeable.typing` module provides backport.
+    Since :data:`typing.Literal` was added in Python 3.8, the :mod:`typeable.typing` module provides backport.
 
-:class:`typing.Optional`
+:data:`typing.Optional`
 
-    :class:`typing.Optional` is automatically converted to :class:`typing.Union`.
+    :data:`typing.Optional` is automatically converted to :data:`typing.Union`.
 
 :class:`typing.Set`
 
-:class:`typing.Tuple`
+:data:`typing.Tuple`
 
-:class:`typing.Union`
+:data:`typing.Union`
 
 
 Typeable Types
 --------------
 
-:class:`Object`
+:class:`JsonValue`
 
+    The :data:`~typing.Union` of :class:`float`, :class:`bool`, :class:`int`, :class:`str`, :const:`None`, ``dict[str, JsonValue]`` and ``list[JsonValue]``.
+
+:class:`Object`

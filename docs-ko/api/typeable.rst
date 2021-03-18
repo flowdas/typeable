@@ -50,6 +50,25 @@
 
 .. function:: declare(name: str)
 
+   전방 참조를 사용하여 재귀적 :term:`형 애일리어스 <type alias>` 를 정의할 수 있도록 지원하는 :term:`컨택스트 관리자 <context manager>`.
+
+   *name* 인자로 제공된 이름의 :class:`typing.ForwardRef` 인스턴스를 :keyword:`with` 문의 :keyword:`as` 대상으로 제공합니다.
+   이 값을 제네릭 형의 형 매개 변수에 사용하면 :keyword:`with` 문을 빠져나갈 때 전방 참조가 자동 평가됩니다.
+   
+   전역 애일리어스뿐만 아니라 지역 애일리어스에도 사용할 수 있습니다.
+
+.. function:: dump(obj: JsonValue, fp, *, ensure_ascii=False, separators=(',', ':'), **kw)
+
+   표준 라이브러리 :func:`json.dump` 함수의 *obj* 인자를 :data:`JsonValue` 로 자동 변환하는 버전.
+   
+   *ensure_ascii* 와 *separators* 의 기본값을 변경했습니다.
+
+.. function:: dumps(obj: JsonValue, *, ensure_ascii=False, separators=(',', ':'), **kw)
+
+   표준 라이브러리 :func:`json.dumps` 함수의 *obj* 인자를 :data:`JsonValue` 로 자동 변환하는 버전.
+   
+   *ensure_ascii* 와 *separators* 의 기본값을 변경했습니다.
+
 .. function:: field(*, key=None, default=MISSING, default_factory=None, nullable=None, required=False)
 
 .. function:: fields(class_or_instance)
@@ -61,6 +80,15 @@
    :data:`MISSING` 값은 매개변수가 제공되는지를 탐지하는데 사용되는 표지 객체입니다. 
    :const:`None` 이 유효한 값일 때 이 표지가 사용됩니다. 
    어떤 코드도 :data:`MISSING` 값을 직접 사용해서는 안 됩니다.
+
+이 패키지는 다음과 같은 형을 정의합니다.
+
+.. data:: JsonValue
+
+   JSON 값을 표현하는 형입니다.
+
+   이 형으로 변환된 값은 표준 라이브러리의 :func:`json.dumps` 로 직접 전달할 수 있습니다. 
+   이 형은 :class:`float`, :class:`bool`, :class:`int`, :class:`str`, :const:`None`, ``dict[str, JsonValue]``, ``list[JsonValue]`` 의 재귀적 :data:`~typing.Union` 으로 정의됩니다.
 
 이 패키지는 몇 가지 클래스를 정의합니다. 아래에 나오는 절에서 자세히 설명합니다.
 

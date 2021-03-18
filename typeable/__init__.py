@@ -6,4 +6,5 @@
 from .cast import *
 from .context import *
 from .object import *
+from .json import *
 del context, object

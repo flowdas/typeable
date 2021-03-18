@@ -50,17 +50,45 @@ This package defines the following functions and decorators:
 
 .. function:: declare(name: str)
 
+   A :term:`context manager` that allows you to define recursive :term:`type aliases <type alias>` using forward references.
+
+   Provides an instance of :class:`typing.ForwardRef` with the name provided as the *name* argument as the target of :keyword:`as` of the :keyword:`with` statement.
+   If you use this value for a type parameter of a generic type, forward references are automatically evaluated when exiting the :keyword:`with` statement.
+   
+   It can be used for local aliases as well as global aliases.
+
+.. function:: dump(obj: JsonValue, fp, *, ensure_ascii=False, separators=(',', ':'), **kw)
+
+   A function that wraps the standard library :func:`json.dump` function so that *obj* arguments are automatically converted to :data:`JsonValue`.
+   
+   This function has changed the default values for the *ensure_ascii* and *separators* arguments.
+
+.. function:: dumps(obj: JsonValue, *, ensure_ascii=False, separators=(',', ':'), **kw)
+
+   A function that wraps the standard library :func:`json.dumps` function so that *obj* arguments are automatically converted to :data:`JsonValue`.
+   
+   This function has changed the default values for the *ensure_ascii* and *separators* arguments.
+
 .. function:: field(*, key=None, default=MISSING, default_factory=None, nullable=None, required=False)
 
 .. function:: fields(class_or_instance)   
-   
-This module defines the following constant:
+
+This package defines the following constant:
 
 .. data:: MISSING
 
    the :data:`MISSING` value is a sentinel object used to detect if parameters are provided. 
    This sentinel is used because :const:`None` is a valid value for that parameters. 
    No code should directly use the :data:`MISSING` value.
+
+This package defines the following type:
+
+.. data:: JsonValue
+
+   This is a type that represents a JSON value.
+   
+   Values converted to this type can be passed directly to :func:`json.dumps` in the standard library. 
+   This type is defined as recursive :data:`~typing.Union` of :class:`float`, :class:`bool`, :class:`int`, :class:`str`, :const:`None`, ``dict[str, JsonValue]`` and ``list[JsonValue]``.
 
 This package defines a couple of classes, which are detailed in the sections
 below.
