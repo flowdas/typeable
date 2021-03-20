@@ -1,13 +1,12 @@
+# Copyright (C) 2021 Flowdas Inc. & Dong-gweon Oh <prospero@flowdas.com>
+#
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at https://mozilla.org/MPL/2.0/.
 import json
 
-from .cast import cast, declare
+from ._cast import cast, declare
 from .typing import Union, Dict, List
-
-__all__ = [
-    'JsonValue',
-    'dump',
-    'dumps',
-]
 
 with declare('JsonValue') as _:
     JsonValue = Union[float, bool, int, str, None, Dict[str, _], List[_]]
