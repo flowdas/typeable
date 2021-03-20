@@ -20,7 +20,7 @@
    있습니다. 
 
    .. decorator:: cast.function(user_function)
-                  cast.function(*, ctx_name: str = 'ctx', cast_return: bool = False)
+                  cast.function(*, ctx_name: str = 'ctx', cast_return: bool = False, keep_async: bool = True)
 
       함수의 인자를 타입 캐스팅하는 데코레이터.
 
@@ -45,6 +45,8 @@
 
       :term:`코루틴 함수 <coroutine function>` 에도 사용될 수 있습니다.
       이 경우 데코레이트된 함수도 :term:`코루틴 함수 <coroutine function>` 입니다.
+      하지만 *keep_async* 매개 변수가 :const:`False` 이면, 데코레이트된 함수는 원래 함수를 즉시 호출하여 :term:`어웨이터블 <awaitable>` 을 반환하는 동기 함수가 됩니다.
+      타입 캐스팅으로 인한 에러를 일찍 발생시키려는 목적으로 사용합니다.
 
    .. decorator:: cast.register(impl)
 

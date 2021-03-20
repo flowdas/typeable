@@ -20,7 +20,7 @@ This package defines the following functions and decorators:
    If you wish, you can use *ctx* to locate the error position on *val*.
 
    .. decorator:: cast.function(user_function)
-                  cast.function(*, ctx_name: str = 'ctx', cast_return: bool = False)
+                  cast.function(*, ctx_name: str = 'ctx', cast_return: bool = False, keep_async: bool = True)
 
       A decorator that types-casts the arguments of a function.
 
@@ -45,6 +45,8 @@ This package defines the following functions and decorators:
 
       This decorator can also be used with :term:`coroutine function`.
       In this case, the decorated function is also :term:`coroutine function`.
+      However, if the *keep_async* parameter is :const:`False`, the decorated function becomes a synchronous function that immediately calls the original function and returns :term:`awaitable`.
+      It is used for the purpose of generating an error due to type casting early.
 
    .. decorator:: typeable.cast.register(impl)
 

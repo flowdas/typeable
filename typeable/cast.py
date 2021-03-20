@@ -177,7 +177,7 @@ def _dispatch(cls, vcls):
     return func
 
 
-def _function(_=None, *, ctx_name: str = 'ctx', cast_return: bool = False):
+def _function(_=None, *, ctx_name: str = 'ctx', cast_return: bool = False, keep_async: bool = True):
     def deco(func):
         nonlocal cast_return
 
@@ -223,7 +223,7 @@ def _function(_=None, *, ctx_name: str = 'ctx', cast_return: bool = False):
                     r = cast(annons['return'], r, ctx=ctx)
             return r
 
-        if asyncio.iscoroutinefunction(func):
+        if asyncio.iscoroutinefunction(func) and keep_async:
             @functools.wraps(func)
             async def wrapper(*args, **kwargs):
                 ctx, ba = prolog(args, kwargs)
