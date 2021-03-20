@@ -69,17 +69,9 @@ This package defines the following functions and decorators:
    
    This function has changed the default values for the *ensure_ascii* and *separators* arguments.
 
-.. function:: field(*, key=None, default=MISSING, default_factory=None, nullable=None, required=False)
+.. function:: field(*, key=None, default=dataclasses.MISSING, default_factory=None, nullable=None, required=False)
 
 .. function:: fields(class_or_instance)   
-
-This package defines the following constant:
-
-.. data:: MISSING
-
-   the :data:`MISSING` value is a sentinel object used to detect if parameters are provided. 
-   This sentinel is used because :const:`None` is a valid value for that parameters. 
-   No code should directly use the :data:`MISSING` value.
 
 This package defines the following type:
 
@@ -205,5 +197,19 @@ below.
 
     .. method:: traverse(key)
 
-.. class:: Object(value = MISSING, *, ctx: Context = None)
+.. class:: Object(value = dataclasses.MISSING, *, ctx: Context = None)
+
+   Represents an object model with typed fields.
+
+   When a value is passed as *value*, ``Object(value, ctx=ctx)`` is equivalent to ``cast(Object, value, ctx=ctx)``.
+   
+   If no value is passed as *value*, no type checking is performed, and only fields with *default_factory* are created as instance attributes.
+
+   By design, it mimics :func:`dataclasses.dataclass`.
+   However, there are several differences:
+   
+   - Unlike :func:`dataclasses.dataclass`, it must inherit :class:`Object`.
+   - The signature of the constructor is different.
+   - Unlike :func:`dataclasses.dataclass`, there is a concept of missing fields. So you may get :exc:`AttributeError` when trying to read an instance attribute.
+   - :func:`field` supports different feature sets.
 

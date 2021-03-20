@@ -163,3 +163,13 @@ Typeable Types
     The :data:`~typing.Union` of :class:`float`, :class:`bool`, :class:`int`, :class:`str`, :const:`None`, ``dict[str, JsonValue]`` and ``list[JsonValue]``.
 
 :class:`Object`
+
+    Converted to and from :class:`dict`.
+
+    When :class:`dict` is converted to :class:`Object`, undefined keys are ignored.
+    It raises :exc:`TypeError` if a field with *required* specified as :const:`True` is missing.
+    If the field specifying *default_factory* is missing, it creates a value and assigns it to the instance attribute.
+
+    When :class:`Object` is converted to :class:`dict`, only :class:`Object` instance attributes are provided.
+    Fields not assigned to instance attributes are not included.
+    Although *default* is defined so the attribute can be read, it will not be included if it has not been assigned as an instance attribute.

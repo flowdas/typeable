@@ -137,6 +137,9 @@ def test_default_factory():
 
     assert 'l' in x.__dict__
 
+    z = X()
+    assert z.l == []
+
 
 def test_default_collison():
     with pytest.raises(ValueError):
@@ -233,18 +236,23 @@ def test_required():
         cast(X, data)
 
 
-def test_class_validate():
-    def positive(self):
-        if self.i <= 0:
-            raise ValueError
-
-    class X(Object, validate=positive):
+def test_dict():
+    class X(Object):
         i: int
 
-    data = {'i': 1}
+    data = {'i': 0}
+
     x = cast(X, data)
-    assert x.i == 1
+    assert cast(dict, x) == data
+
+
+def test_JsonValue():
+    class X(Object):
+        i: int
 
     data = {'i': 0}
-    with pytest.raises(ValueError):
-        x = cast(X, data)
+
+    x = cast(X, data)
+    assert cast(JsonValue, x) == data
+
+    assert cast(JsonValue, {'result': X()}) == {'result': {}}

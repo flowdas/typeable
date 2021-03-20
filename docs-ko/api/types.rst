@@ -163,3 +163,12 @@ Typeable 형
 
 :class:`Object`
 
+    :class:`dict` 와 양방향 변환됩니다.
+
+    :class:`dict` 가 :class:`Object` 로 변환될 때 정의되지 않은 키는 무시됩니다. 
+    *required* 가 :const:`True` 로 지정된 필드가 빠졌으면, :exc:`TypeError` 를 발생시킵니다.
+    *default_factory* 를 지정하는 필드가 빠졌으면, 값을 만들어 인스턴스 어트리뷰트에 대입합니다. 
+
+    :class:`Object` 가 :class:`dict` 로 변환될 때 :class:`Object` 인스턴스 어트리뷰트만 제공됩니다. 
+    인스턴스 어트리뷰트로 대입되지 않은 필드들은 포함되지 않습니다.
+    *default* 가 정의되어서 어트리뷰트을 읽을 수 있어도, 인스턴스 어트리뷰트로 대입되지 않았다면 포함되지 않습니다.

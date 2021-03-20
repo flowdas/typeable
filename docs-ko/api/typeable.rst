@@ -69,17 +69,9 @@
    
    *ensure_ascii* 와 *separators* 의 기본값을 변경했습니다.
 
-.. function:: field(*, key=None, default=MISSING, default_factory=None, nullable=None, required=False)
+.. function:: field(*, key=None, default=dataclasses.MISSING, default_factory=None, nullable=None, required=False)
 
 .. function:: fields(class_or_instance)
-
-이 패키지는 다음과 같은 상수를 정의합니다.
-
-.. data:: MISSING
-
-   :data:`MISSING` 값은 매개변수가 제공되는지를 탐지하는데 사용되는 표지 객체입니다. 
-   :const:`None` 이 유효한 값일 때 이 표지가 사용됩니다. 
-   어떤 코드도 :data:`MISSING` 값을 직접 사용해서는 안 됩니다.
 
 이 패키지는 다음과 같은 형을 정의합니다.
 
@@ -197,5 +189,21 @@
 
    .. method:: traverse(key)
 
-.. class:: Object(value = MISSING, *, ctx: Context = None)
+.. class:: Object(value = dataclasses.MISSING, *, ctx: Context = None)
 
+   형이 지정된 필드를 갖는 객체 모델을 표현합니다.
+
+   *value* 로 값이 전달되면, ``Object(value, ctx=ctx)`` 는 ``cast(Object, value, ctx=ctx)`` 와 동등합니다.
+   
+   *value* 로 값이 전달되지 않으면 형 검사를 수행하지 않고, *default_factory* 가 지정된 필드만 인스턴스 어트리뷰트로 만들어집니다.
+
+   의도적으로 :func:`dataclasses.dataclass` 를 모방합니다.
+   하지만 여러가지 차이점이 있습니다:
+   
+   - :func:`dataclasses.dataclass` 와는 달리 :class:`Object` 를 계승해야 합니다.
+   - 생성자의 서명이 다릅니다.
+   - :func:`dataclasses.dataclass` 와는 달리 빠진 필드라는 개념이 있습니다. 따라서 인스턴스 어트리뷰트를 읽으려고 할 때 :exc:`AttributeError` 가 발생할 수 있습니다.
+   - :func:`field` 가 지원하는 기능 집합이 다릅니다.
+
+
+   
