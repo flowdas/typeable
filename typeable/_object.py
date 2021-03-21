@@ -31,8 +31,9 @@ class Object:
                 if field.key in value:
                     val = value[field.key]
                 elif field.required:
-                    raise TypeError(
-                        f"Missing key '{field.key}' for '{self.__class__.__qualname__}' object")
+                    with ctx.traverse(field.key):
+                        raise TypeError(
+                            f"Missing key '{field.key}' for '{self.__class__.__qualname__}' object")
                 elif field.default_factory is not None:
                     val = field.default_factory()
                 else:

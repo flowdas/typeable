@@ -6,10 +6,11 @@
 from ._cast import cast, declare
 from ._context import Context
 from ._object import Object, field, fields
-from ._json import JsonValue, dump, dumps
+from ._json import JsonSchema, JsonValue, dump, dumps
 
 __all__ = [
     'Context',
+    'JsonSchema',
     'JsonValue',
     'Object',
     'cast',

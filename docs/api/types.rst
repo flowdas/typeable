@@ -160,7 +160,7 @@ Typeable Types
 
 :class:`JsonValue`
 
-    The :data:`~typing.Union` of :class:`float`, :class:`bool`, :class:`int`, :class:`str`, :const:`None`, ``dict[str, JsonValue]`` and ``list[JsonValue]``.
+    The :data:`~typing.Union` of :class:`float`, :class:`bool`, :class:`int`, :class:`str`, :const:`None`, ``dict[str, JsonValue]``, ``list[JsonValue]`` and ``tuple[JsonValue, ...]``.
 
 :class:`Object`
 

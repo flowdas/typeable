@@ -37,3 +37,13 @@ if sys.version_info < (3, 9):
     _RECURSIVE_GUARD = False
 else:
     _RECURSIVE_GUARD = True
+
+_GenericBases = []
+for _name in (
+    'GenericAlias',
+    '_GenericAlias',
+    '_SpecialForm',
+):
+    if hasattr(typing, _name):
+        _GenericBases.append(getattr(typing, _name))
+_GenericBases = tuple(_GenericBases)
