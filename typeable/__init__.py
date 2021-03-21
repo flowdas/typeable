@@ -3,8 +3,20 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
-from .cast import *
-from .context import *
-from .object import *
-from .json import *
-del context, object
+from ._cast import cast, declare
+from ._context import Context
+from ._object import Object, field, fields
+from ._json import JsonSchema, JsonValue, dump, dumps
+
+__all__ = [
+    'Context',
+    'JsonSchema',
+    'JsonValue',
+    'Object',
+    'cast',
+    'declare',
+    'dump',
+    'dumps',
+    'field',
+    'fields',
+]

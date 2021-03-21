@@ -11,16 +11,10 @@ from .typing import (
     get_origin,
     get_args,
 )
-from .cast import cast
-from .context import Context
+from ._cast import cast
+from ._context import Context
 
 from dataclasses import MISSING
-
-__all__ = [
-    'Object',
-    'field',
-    'fields',
-]
 
 # avoid name mangling
 _FIELDS = '__fields'
@@ -37,8 +31,9 @@ class Object:
                 if field.key in value:
                     val = value[field.key]
                 elif field.required:
-                    raise TypeError(
-                        f"Missing key '{field.key}' for '{self.__class__.__qualname__}' object")
+                    with ctx.traverse(field.key):
+                        raise TypeError(
+                            f"Missing key '{field.key}' for '{self.__class__.__qualname__}' object")
                 elif field.default_factory is not None:
                     val = field.default_factory()
                 else:

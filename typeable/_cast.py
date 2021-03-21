@@ -41,12 +41,7 @@ from .typing import (
     _RECURSIVE_GUARD,
 )
 
-from .context import Context
-
-__all__ = [
-    'cast',
-    'declare',
-]
+from ._context import Context
 
 #
 # declare

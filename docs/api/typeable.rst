@@ -82,7 +82,7 @@ This package defines the following type:
    This is a type that represents a JSON value.
    
    Values converted to this type can be passed directly to :func:`json.dumps` in the standard library. 
-   This type is defined as recursive :data:`~typing.Union` of :class:`float`, :class:`bool`, :class:`int`, :class:`str`, :const:`None`, ``dict[str, JsonValue]`` and ``list[JsonValue]``.
+   This type is defined as recursive :data:`~typing.Union` of :class:`float`, :class:`bool`, :class:`int`, :class:`str`, :const:`None`, ``dict[str, JsonValue]``, ``list[JsonValue]`` and ``tuple[JsonValue, ...]``.
 
 This package defines a couple of classes, which are detailed in the sections
 below.

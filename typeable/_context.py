@@ -19,10 +19,6 @@ from .typing import (
     get_type_hints,
 )
 
-__all__ = [
-    'Context',
-]
-
 _nulltraverse = nullcontext()
 
 
@@ -56,7 +52,7 @@ class Context:
     def __init__(self, **policies):
         self._stack = None
         if policies:
-            from .cast import cast  # avoid partial import
+            from ._cast import cast  # avoid partial import
             hints = get_type_hints(self.__class__)
             ctx = Context()
             for key, val in policies.items():

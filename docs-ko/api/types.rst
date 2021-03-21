@@ -159,7 +159,7 @@ Typeable 형
 
 :class:`JsonValue`
 
-    :class:`float`, :class:`bool`, :class:`int`, :class:`str`, :const:`None`, ``dict[str, JsonValue]``, ``list[JsonValue]`` 의 :data:`~typing.Union` 입니다.
+    :class:`float`, :class:`bool`, :class:`int`, :class:`str`, :const:`None`, ``dict[str, JsonValue]``, ``list[JsonValue]``, ``tuple[JsonValue, ...]`` 의 :data:`~typing.Union` 입니다.
 
 :class:`Object`
 

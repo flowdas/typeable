@@ -82,7 +82,7 @@
    JSON 값을 표현하는 형입니다.
 
    이 형으로 변환된 값은 표준 라이브러리의 :func:`json.dumps` 로 직접 전달할 수 있습니다. 
-   이 형은 :class:`float`, :class:`bool`, :class:`int`, :class:`str`, :const:`None`, ``dict[str, JsonValue]``, ``list[JsonValue]`` 의 재귀적 :data:`~typing.Union` 으로 정의됩니다.
+   이 형은 :class:`float`, :class:`bool`, :class:`int`, :class:`str`, :const:`None`, ``dict[str, JsonValue]``, ``list[JsonValue]``, ``tuple[JsonValue, ...]`` 의 재귀적 :data:`~typing.Union` 으로 정의됩니다.
 
 이 패키지는 몇 가지 클래스를 정의합니다. 아래에 나오는 절에서 자세히 설명합니다.
 
