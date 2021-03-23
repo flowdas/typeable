@@ -61,28 +61,19 @@
 
 .. function:: dump(obj: JsonValue, fp, *, ensure_ascii=False, separators=(',', ':'), **kw)
 
-   표준 라이브러리 :func:`json.dump` 함수의 *obj* 인자를 :data:`JsonValue` 로 자동 변환하는 버전.
+   표준 라이브러리 :func:`json.dump` 함수의 *obj* 인자를 :class:`JsonValue` 로 자동 변환하는 버전.
    
    *ensure_ascii* 와 *separators* 의 기본값을 변경했습니다.
 
 .. function:: dumps(obj: JsonValue, *, ensure_ascii=False, separators=(',', ':'), **kw)
 
-   표준 라이브러리 :func:`json.dumps` 함수의 *obj* 인자를 :data:`JsonValue` 로 자동 변환하는 버전.
+   표준 라이브러리 :func:`json.dumps` 함수의 *obj* 인자를 :class:`JsonValue` 로 자동 변환하는 버전.
    
    *ensure_ascii* 와 *separators* 의 기본값을 변경했습니다.
 
 .. function:: field(*, key=None, default=dataclasses.MISSING, default_factory=None, nullable=None, required=False)
 
 .. function:: fields(class_or_instance)
-
-이 패키지는 다음과 같은 형을 정의합니다.
-
-.. data:: JsonValue
-
-   JSON 값을 표현하는 형입니다.
-
-   이 형으로 변환된 값은 표준 라이브러리의 :func:`json.dumps` 로 직접 전달할 수 있습니다. 
-   이 형은 :class:`float`, :class:`bool`, :class:`int`, :class:`str`, :const:`None`, ``dict[str, JsonValue]``, ``list[JsonValue]``, ``tuple[JsonValue, ...]`` 의 재귀적 :data:`~typing.Union` 으로 정의됩니다.
 
 이 패키지는 몇 가지 클래스를 정의합니다. 아래에 나오는 절에서 자세히 설명합니다.
 
@@ -98,6 +89,8 @@
    .. attribute:: accept_nan 
       :type: bool 
       :value: True
+
+      이 어트리뷰트가 :const:`False` 면, :class:`float`, :class:`complex` 로 NaN(not a number) 이나 무한대를 받아들이지 않습니다.
 
    .. attribute:: bool_is_int
       :type: bool 
@@ -190,6 +183,23 @@
           ('b', 2)
 
    .. method:: traverse(key)
+
+.. class:: JsonSchema(value_or_type = dataclasses.MISSING, *, ctx: Context = None)
+
+   `JSON Schema <https://json-schema.org/>`_ 를 표현하는 :class:`Object` 의 서브 클래스.
+
+   생성자는 *value_or_type* 매개 변수로 JSON Schema 표현이나 형을 취합니다. 
+   형을 전달하면 해당 형의 JSON Schema 표현을 얻게됩니다.
+
+   .. classmethod:: register(type)
+
+.. class:: JsonValue
+
+   JSON 값을 재귀적으로 표현하는 형입니다.
+
+   인스턴스를 만들 수는 없고 :func:`cast` 로 타입 캐스팅할 수만 있습니다.
+
+   이 형으로 변환된 값은 표준 라이브러리의 :func:`json.dumps` 와 :func:`json.dump` 로 직접 전달할 수 있습니다. 
 
 .. class:: Object(value = dataclasses.MISSING, *, ctx: Context = None)
 

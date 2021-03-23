@@ -358,8 +358,14 @@ def _cast_float_bool(cls: Type[float], val: bool, ctx):
 @cast.register
 def _cast_complex_object(cls: Type[complex], val, ctx):
     if ctx.accept_nan:
-        return cls(val)
-    r = cls(val)
+        if isinstance(val, (tuple, list)):
+            return cls(*val)
+        else:
+            return cls(val)
+    if isinstance(val, (tuple, list)):
+        r = cls(*val)
+    else:
+        r = cls(val)
     if not cmath.isfinite(r):
         raise ValueError(f'ctx.accept_nan={ctx.accept_nan}')
     return r
@@ -513,6 +519,8 @@ def _cast_set_object(cls: Type[frozenset], val, ctx, T=None):
 def _cast_tuple_object(cls: Type[tuple], val, ctx, *Ts):
     if isinstance(val, Mapping):
         val = val.items()
+    elif isinstance(val, complex):
+        val = val.real, val.imag
     if not Ts:
         return cls(val)
     elif Ts[-1] == ...:

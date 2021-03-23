@@ -41,6 +41,12 @@
 
 :class:`complex`
 
+    ``tuple[float,float]``, :class:`str` 과 양방향 변환됩니다.
+
+    :class:`int`, :class:`float` 에서 :class:`complex` 로의 단방향 변환이 지원됩니다.
+
+    :attr:`~typeable.Context.accept_nan` 이 :const:`False` 이면 :func:`cmath.isfinite` 가 참을 반환하는 값만 받아들입니다.
+
 :class:`dict`
 
 :class:`float`
@@ -157,9 +163,15 @@
 Typeable 형
 ------------
 
+:class:`JsonSchema`
+
+    `JSON Schema <https://json-schema.org/>`_ 를 표현하는 :class:`Object` 의 서브 클래스.
+
 :class:`JsonValue`
 
-    :class:`float`, :class:`bool`, :class:`int`, :class:`str`, :const:`None`, ``dict[str, JsonValue]``, ``list[JsonValue]``, ``tuple[JsonValue, ...]`` 의 :data:`~typing.Union` 입니다.
+    JSON 값을 재귀적으로 표현하는 형입니다.
+
+    값을 :class:`float`, :class:`bool`, :class:`int`, :class:`str`, :const:`None`, ``dict[str, JsonValue]``, ``list[JsonValue]``, ``tuple[JsonValue, ...]`` 중 하나로 변환합니다.
 
 :class:`Object`
 

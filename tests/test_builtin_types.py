@@ -157,6 +157,10 @@ def test_complex():
     # float
     assert cast(complex, 123.456) == 123.456+0j
 
+    # tuple
+    assert cast(complex, [123, 456]) == complex(123, 456)
+    assert cast(complex, (123, 456)) == complex(123, 456)
+
     # complex
     with pytest.raises(TypeError):
         cast(float, complex())
@@ -485,3 +489,7 @@ def test_tuple():
 
     with pytest.raises(TypeError):
         cast(Tuple[int], ())
+
+    # complex
+    cast(tuple, complex(1, 2)) == (1, 2)
+    cast(Tuple[float, float], complex(1, 2)) == (1, 2)

@@ -61,13 +61,13 @@ This package defines the following functions and decorators:
 
 .. function:: dump(obj: JsonValue, fp, *, ensure_ascii=False, separators=(',', ':'), **kw)
 
-   A function that wraps the standard library :func:`json.dump` function so that *obj* arguments are automatically converted to :data:`JsonValue`.
+   A function that wraps the standard library :func:`json.dump` function so that *obj* arguments are automatically converted to :class:`JsonValue`.
    
    This function has changed the default values for the *ensure_ascii* and *separators* arguments.
 
 .. function:: dumps(obj: JsonValue, *, ensure_ascii=False, separators=(',', ':'), **kw)
 
-   A function that wraps the standard library :func:`json.dumps` function so that *obj* arguments are automatically converted to :data:`JsonValue`.
+   A function that wraps the standard library :func:`json.dumps` function so that *obj* arguments are automatically converted to :class:`JsonValue`.
    
    This function has changed the default values for the *ensure_ascii* and *separators* arguments.
 
@@ -75,17 +75,7 @@ This package defines the following functions and decorators:
 
 .. function:: fields(class_or_instance)   
 
-This package defines the following type:
-
-.. data:: JsonValue
-
-   This is a type that represents a JSON value.
-   
-   Values converted to this type can be passed directly to :func:`json.dumps` in the standard library. 
-   This type is defined as recursive :data:`~typing.Union` of :class:`float`, :class:`bool`, :class:`int`, :class:`str`, :const:`None`, ``dict[str, JsonValue]``, ``list[JsonValue]`` and ``tuple[JsonValue, ...]``.
-
-This package defines a couple of classes, which are detailed in the sections
-below.
+This package defines a number of classes, which are detailed in the sections below.
 
 .. class:: Context(**policies)
 
@@ -102,6 +92,8 @@ below.
    .. attribute:: accept_nan 
       :type: bool 
       :value: True
+
+      If this attribute is :const:`False`, then :class:`float` and :class:`complex` does not accept NaN(not a number) or infinity.
 
    .. attribute:: bool_is_int
       :type: bool 
@@ -198,6 +190,23 @@ below.
           ('b', 2)
 
     .. method:: traverse(key)
+
+.. class:: JsonSchema(value_or_type = dataclasses.MISSING, *, ctx: Context = None)
+
+   A subclass of :class:`Object` representing `JSON Schema <https://json-schema.org/>`_.
+
+   The constructor takes a JSON Schema representation or type as the *value_or_type* parameter.
+   Passing a type gives you a JSON Schema representation of that type.
+
+   .. classmethod:: register(type)
+
+.. class:: JsonValue
+
+   This is a type that represents a JSON value recursively.
+
+   You cannot create an instance, you can only type cast with :func:`cast`.
+
+   Values converted to this type can be passed directly to :func:`json.dumps` and :func:`json.dump` in the standard library. 
 
 .. class:: Object(value = dataclasses.MISSING, *, ctx: Context = None)
 

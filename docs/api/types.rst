@@ -41,6 +41,12 @@ Builtin Types
 
 :class:`complex`
 
+    Converted to and from ``tuple[float,float]`` and :class:`str`.
+
+    One-way conversion from :class:`int` or :class:`float` to :class:`complex` is allowed.
+
+    If :attr:`~typeable.Context.accept_nan` is :const:`False`, only values for which :func:`cmath.isfinite` returns true are accepted.
+
 :class:`dict`
 
 :class:`float`
@@ -158,9 +164,15 @@ Standard Types
 Typeable Types
 --------------
 
+:class:`JsonSchema`
+
+    A subclass of :class:`Object` representing `JSON Schema <https://json-schema.org/>`_.
+
 :class:`JsonValue`
 
-    The :data:`~typing.Union` of :class:`float`, :class:`bool`, :class:`int`, :class:`str`, :const:`None`, ``dict[str, JsonValue]``, ``list[JsonValue]`` and ``tuple[JsonValue, ...]``.
+    This is a type that represents a JSON value recursively.
+
+    It converts the value to one of types :class:`float`, :class:`bool`, :class:`int`, :class:`str`, :const:`None`, ``dict[str, JsonValue]``, ``list[JsonValue]`` and ``tuple[JsonValue, ...]``.
 
 :class:`Object`
 
