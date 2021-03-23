@@ -11,26 +11,13 @@ from .typing import (
     get_origin,
     get_args,
 )
-from .cast import cast
-from .context import Context
+from ._cast import cast
+from ._context import Context
 
-try:
-    from dataclasses import MISSING
-except ImportError:  # pragma: no cover
-    class _MISSING_TYPE:
-        pass
-    MISSING = _MISSING_TYPE()
-
-__all__ = [
-    'MISSING',
-    'Object',
-    'field',
-    'fields',
-]
+from dataclasses import MISSING
 
 # avoid name mangling
 _FIELDS = '__fields'
-_VALIDATE = '__validate'
 
 
 class Object:
@@ -44,8 +31,9 @@ class Object:
                 if field.key in value:
                     val = value[field.key]
                 elif field.required:
-                    raise TypeError(
-                        f"Missing key '{field.key}' for '{self.__class__.__qualname__}' object")
+                    with ctx.traverse(field.key):
+                        raise TypeError(
+                            f"Missing key '{field.key}' for '{self.__class__.__qualname__}' object")
                 elif field.default_factory is not None:
                     val = field.default_factory()
                 else:
@@ -60,17 +48,18 @@ class Object:
                     with ctx.traverse(field.key):
                         val = cast(field.type, val, ctx=ctx)
                 self.__dict__[field.name] = val
-            validate = getattr(self.__class__, _VALIDATE)
-            if validate:
-                validate(self)
-        elif value is not MISSING:
+        elif value is MISSING:
+            flds = fields(self)
+            for field in flds:
+                if field.default_factory is not None:
+                    self.__dict__[field.name] = field.default_factory()
+        else:
             raise TypeError(
                 f"'{value.__class__.__qualname__}' object is not mapping")
 
-    def __init_subclass__(cls, *, validate=None, **kwargs):
+    def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
         setattr(cls, _FIELDS, None)
-        setattr(cls, _VALIDATE, validate)
 
 
 class _Field:
@@ -138,5 +127,20 @@ def field(*, key=None, default=MISSING, default_factory=None, nullable=None, req
 
 
 @cast.register
-def _(cls: Type[Object], val, ctx) -> Object:
+def _cast_Object_object(cls: Type[Object], val, ctx):
     return cls(val, ctx=ctx)
+
+
+@cast.register
+def _cast_dict_Object(cls: Type[dict], val: Object, ctx, K=None, V=None):
+    flds = fields(val)
+    d = val.__dict__
+    r = cls()
+    for f in fields(val):
+        if f.name in d:
+            if K is None:
+                r[f.key] = d[f.name]
+            else:
+                with ctx.traverse(f.key):
+                    r[cast(K, f.key, ctx=ctx)] = cast(V, d[f.name], ctx=ctx)
+    return r

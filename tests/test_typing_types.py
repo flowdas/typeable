@@ -6,8 +6,10 @@
 import pytest
 
 from typeable.typing import (
+    Any,
     Dict,
     List,
+    Literal,
     Optional,
     Set,
     Tuple,
@@ -15,6 +17,14 @@ from typeable.typing import (
 )
 from typeable import *
 from datetime import datetime, date
+
+
+def test_Any():
+    assert cast(Any, None) is None
+    o = object()
+    assert cast(Any, o) is o
+
+    assert cast(List[Any], [None, o]) == [None, o]
 
 
 def test_Union():
@@ -96,3 +106,11 @@ def test_distance_based_Union():
 def test_Optional():
     assert cast(Optional[int], 1) == 1
     assert cast(Optional[int], None) == None
+
+
+def test_Literal():
+    assert cast(Literal['2.0', '1.0', 3.0], '2.0') == '2.0'
+    assert cast(Literal['2.0', '1.0', 3.0], '1.0') == '1.0'
+    assert cast(Literal['2.0', '1.0', 3.0], 3.0) == 3.0
+    with pytest.raises(ValueError):
+        cast(Literal['2.0', '1.0', 3.0], 4)

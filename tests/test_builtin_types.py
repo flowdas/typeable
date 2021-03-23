@@ -84,6 +84,7 @@ def test_bool():
 def test_int():
     # str
     assert cast(int, "123") == 123
+    assert cast(int, "123", ctx=Context(lossy_conversion=False)) == 123
 
     # bool
     assert cast(int, True) == 1
@@ -155,6 +156,10 @@ def test_complex():
 
     # float
     assert cast(complex, 123.456) == 123.456+0j
+
+    # tuple
+    assert cast(complex, [123, 456]) == complex(123, 456)
+    assert cast(complex, (123, 456)) == complex(123, 456)
 
     # complex
     with pytest.raises(TypeError):
@@ -484,3 +489,7 @@ def test_tuple():
 
     with pytest.raises(TypeError):
         cast(Tuple[int], ())
+
+    # complex
+    cast(tuple, complex(1, 2)) == (1, 2)
+    cast(Tuple[float, float], complex(1, 2)) == (1, 2)

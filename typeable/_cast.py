@@ -3,11 +3,14 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
+import asyncio
 import os
 import cmath
 from contextlib import contextmanager
 import datetime
 from email.utils import parsedate_to_datetime
+import enum
+import functools
 import inspect
 import math
 import re
@@ -24,7 +27,11 @@ from inspect import (
 )
 from .typing import (
     Any,
+    Dict,
     ForwardRef,
+    Literal,
+    Optional,
+    Tuple,
     Type,
     TypeVar,
     Union,
@@ -34,12 +41,7 @@ from .typing import (
     _RECURSIVE_GUARD,
 )
 
-from .context import Context
-
-__all__ = [
-    'cast',
-    'declare',
-]
+from ._context import Context
 
 #
 # declare
@@ -170,6 +172,72 @@ def _dispatch(cls, vcls):
     return func
 
 
+def _function(_=None, *, ctx_name: str = 'ctx', cast_return: bool = False, keep_async: bool = True):
+    def deco(func):
+        nonlocal cast_return
+
+        sig = inspect.signature(func)
+        annons = get_type_hints(func)
+        if 'return' not in annons:
+            cast_return = False
+        use_ctx = False
+        if ctx_name in sig.parameters:
+            ctx_type = annons.get(ctx_name)
+            if (ctx_type == Optional[Context] or ctx_type == Context) \
+                    and (sig.parameters[ctx_name].kind not in (inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD)):
+                use_ctx = True
+            else:
+                raise TypeError(f"'{ctx_name}' argument conflict")
+
+        def prolog(args, kwargs):
+            if use_ctx:
+                ctx = kwargs.get(ctx_name)
+                if ctx is None:
+                    ctx = kwargs[ctx_name] = Context()
+            else:
+                ctx = kwargs.pop(ctx_name, None)
+                if ctx is None:
+                    ctx = Context()
+            ba = sig.bind(*args, **kwargs)
+            for key, val in ba.arguments.items():
+                if key == ctx_name:
+                    continue
+                if key in annons:
+                    with ctx.traverse(key):
+                        tp = annons[key]
+                        if sig.parameters[key].kind == inspect.Parameter.VAR_POSITIONAL:
+                            tp = Tuple[tp, ...]
+                        elif sig.parameters[key].kind == inspect.Parameter.VAR_KEYWORD:
+                            tp = Dict[Any, tp]
+                        ba.arguments[key] = cast(tp, val, ctx=ctx)
+            return ctx, ba
+
+        def epilog(ctx, r):
+            if cast_return:
+                with ctx.traverse('return'):
+                    r = cast(annons['return'], r, ctx=ctx)
+            return r
+
+        if asyncio.iscoroutinefunction(func) and keep_async:
+            @functools.wraps(func)
+            async def wrapper(*args, **kwargs):
+                ctx, ba = prolog(args, kwargs)
+                r = await func(*ba.args, **ba.kwargs)
+                return epilog(ctx, r)
+        else:
+            @functools.wraps(func)
+            def wrapper(*args, **kwargs):
+                ctx, ba = prolog(args, kwargs)
+                r = func(*ba.args, **ba.kwargs)
+                return epilog(ctx, r)
+
+        wrapper._ctx = ctx_name
+
+        return wrapper
+
+    return deco if _ is None else deco(_)
+
+
 def cast(cls: Type[_T], val, *, ctx: Context = None) -> _T:
     origin = get_origin(cls) or cls
     func = _dispatch(origin, val.__class__)
@@ -180,7 +248,16 @@ def cast(cls: Type[_T], val, *, ctx: Context = None) -> _T:
 
 cast.register = _register
 cast.dispatch = _dispatch
+cast.function = _function
 
+#
+# Any
+#
+
+
+@cast.register
+def _cast_Any_object(cls: Type[Any], val, ctx):
+    return val
 
 #
 # object (fallback)
@@ -281,8 +358,14 @@ def _cast_float_bool(cls: Type[float], val: bool, ctx):
 @cast.register
 def _cast_complex_object(cls: Type[complex], val, ctx):
     if ctx.accept_nan:
-        return cls(val)
-    r = cls(val)
+        if isinstance(val, (tuple, list)):
+            return cls(*val)
+        else:
+            return cls(val)
+    if isinstance(val, (tuple, list)):
+        r = cls(*val)
+    else:
+        r = cls(val)
     if not cmath.isfinite(r):
         raise ValueError(f'ctx.accept_nan={ctx.accept_nan}')
     return r
@@ -308,6 +391,11 @@ def _cast_str_object(cls: Type[str], val, ctx):
         if val is None:
             raise TypeError(
                 f"{cls.__qualname__} is required, but {val!r} is given")
+    return cls(val)
+
+
+@cast.register
+def _cast_str_str(cls: Type[str], val: str, ctx):
     return cls(val)
 
 
@@ -431,6 +519,8 @@ def _cast_set_object(cls: Type[frozenset], val, ctx, T=None):
 def _cast_tuple_object(cls: Type[tuple], val, ctx, *Ts):
     if isinstance(val, Mapping):
         val = val.items()
+    elif isinstance(val, complex):
+        val = val.real, val.imag
     if not Ts:
         return cls(val)
     elif Ts[-1] == ...:
@@ -464,9 +554,6 @@ def _cast_tuple_object(cls: Type[tuple], val, ctx, *Ts):
 #
 
 # TODO: caching
-
-os.path.commonpath
-
 
 def _type_distance(tp1, tp2):
     m1 = tp1.__mro__
@@ -799,3 +886,92 @@ def _cast_str_timedelta(cls: Type[str], val: datetime.timedelta, ctx):
         if sec:
             r.append(f'{sec}S')
     return cls(''.join(r))
+
+#
+# enum.Enum
+#
+
+
+@cast.register
+def _cast_Enum_object(cls: Type[enum.Enum], val, ctx):
+    return cls(val)
+
+
+@cast.register
+def _cast_Enum_str(cls: Type[enum.Enum], val: str, ctx):
+    return getattr(cls, val)
+
+
+@cast.register
+def _cast_str_Enum(cls: Type[str], val: enum.Enum, ctx):
+    return val.name
+
+#
+# enum.IntEnum
+#
+
+
+@cast.register
+def _cast_IntEnum_object(cls: Type[enum.IntEnum], val: int, ctx):
+    return cls(val)
+
+
+@cast.register
+def _cast_IntEnum_str(cls: Type[enum.IntEnum], val: str, ctx):
+    return getattr(cls, val)
+
+
+@cast.register
+def _cast_str_IntEnum(cls: Type[str], val: enum.IntEnum, ctx):
+    return val.name
+
+#
+# enum.Flag
+#
+
+
+@cast.register
+def _cast_Flag_Flag(cls: Type[enum.Flag], val: enum.Flag, ctx):
+    return cls(val)
+
+
+@cast.register
+def _cast_Flag_int(cls: Type[enum.Flag], val: int, ctx):
+    return cls(val)
+
+
+@cast.register
+def _cast_int_Flag(cls: Type[int], val: enum.Flag, ctx):
+    return cls(val.value)
+
+
+@cast.register
+def _cast_str_Flag(cls: Type[str], val: enum.Flag, ctx):
+    raise TypeError
+
+#
+# enum.IntFlag
+#
+
+
+@cast.register
+def _cast_IntFlag_int(cls: Type[enum.IntFlag], val: int, ctx):
+    return cls(val)
+
+
+@cast.register
+def _cast_str_IntFlag(cls: Type[str], val: enum.IntFlag, ctx):
+    raise TypeError
+
+#
+# typing.Literal
+#
+
+
+@cast.register
+def _cast_Literal_object(cls, val, ctx, *literals) -> Literal:
+    for literal in literals:
+        if literal == val:
+            return literal
+    else:
+        raise ValueError

@@ -5,8 +5,6 @@ Typeable: Type Casting Simplified
 
 Release v\ |version|. (:ref:`Installation <install>`)
 
-* Korean - https://typeable.flowdas.com
-
 **Typeable** is a concise yet expressive Python type casting library.
 
 -------------------
@@ -18,6 +16,12 @@ Release v\ |version|. (:ref:`Installation <install>`)
    >>> typeable.cast(DataType, data)
    {'a': [False, True, 2, 3.14], 'b': [0, 1, 2, 3]}
 
+   >>> @typeable.cast.function
+   ... def my_function(d: DataType):
+   ...     return d
+   >>> my_function(data)
+   {'a': [False, True, 2, 3.14], 'b': [0, 1, 2, 3]}
+   
    >>> with typeable.declare('Json') as _J:
    ...     Json = typing.Union[float, bool, int, str, None, dict[str, _J], list[_J]]
    >>> json.dumps(typeable.cast(Json, data))
@@ -38,6 +42,14 @@ Release v\ |version|. (:ref:`Installation <install>`)
 **Typeable** implements runtime type casting using Python's :term:`annotation` syntax.
 Approaches from a practical point of view, and loves simplicity.
 
+Quick Links
+-----------
+
+* `GitHub <https://github.com/flowdas/typeable>`_
+* Documentations
+   * `English <https://typeable.readthedocs.io/>`_
+   * `Korean <https://typeable.flowdas.com/>`_
+
 User's Guide
 ------------
 
@@ -50,7 +62,8 @@ API Reference
 -------------
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 3
 
-   api/index
+   api/types
+   api/typeable
 

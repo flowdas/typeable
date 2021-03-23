@@ -9,6 +9,7 @@ setup_requires = [
 ]
 
 install_requires = [
+    'typing-extensions;python_version<"3.8"',
 ]
 
 tests_require = [
@@ -41,6 +42,7 @@ setup(
     entry_points={},
     zip_safe=True,
     keywords=('validation', 'modeling', 'schema', 'typing', 'serialization', 'type casting'),
+    python_requires=">=3.7",
     classifiers=[
         'Development Status :: 5 - Production/Stable',
         'Intended Audience :: Developers',
