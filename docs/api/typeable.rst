@@ -71,7 +71,7 @@ This package defines the following functions and decorators:
    
    This function has changed the default values for the *ensure_ascii* and *separators* arguments.
 
-.. function:: field(*, key=None, default=dataclasses.MISSING, default_factory=None, nullable=None, required=False)
+.. function:: field(*, key=None, default=dataclasses.MISSING, default_factory=None, nullable=None, required=False, kind=False)
 
 .. function:: fields(class_or_instance)   
 

@@ -71,7 +71,7 @@
    
    *ensure_ascii* 와 *separators* 의 기본값을 변경했습니다.
 
-.. function:: field(*, key=None, default=dataclasses.MISSING, default_factory=None, nullable=None, required=False)
+.. function:: field(*, key=None, default=dataclasses.MISSING, default_factory=None, nullable=None, required=False, kind=False)
 
 .. function:: fields(class_or_instance)
 

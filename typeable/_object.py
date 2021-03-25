@@ -18,6 +18,7 @@ from dataclasses import MISSING
 
 # avoid name mangling
 _FIELDS = '__fields'
+_VTABLE = '__vtable'
 
 
 class Object:
@@ -57,9 +58,54 @@ class Object:
             raise TypeError(
                 f"'{value.__class__.__qualname__}' object is not mapping")
 
-    def __init_subclass__(cls, **kwargs):
-        super().__init_subclass__(**kwargs)
+    def __new__(cls, value=MISSING, **kwargs):
+        vtable = getattr(cls, _VTABLE, None)
+        if vtable and isinstance(value, Mapping):
+            fields(cls)  # resolve _Field.key
+            kind = value.get(vtable.field.key)
+            if kind in vtable.classes:
+                klass = vtable.classes[kind]
+                if issubclass(klass, cls):
+                    cls = klass
+                else:
+                    raise TypeError(f"{klass.__qualname__} is not subclass of {cls.__qualname__}")
+            else:
+                raise TypeError(f"Unknown '{vtable.field.name}' field value: {kind}")
+
+        return super().__new__(cls)
+
+    def __init_subclass__(cls, *, kind=None):
+        super().__init_subclass__()
         setattr(cls, _FIELDS, None)
+
+        vtable = getattr(cls, _VTABLE, None)
+        created = False
+        for name, val in cls.__dict__.items():
+            if isinstance(val, _Field) and val.kind:
+                if vtable:
+                    raise TypeError(f"Duplicated kind field '{name}'")
+                vtable = _VTable(val)
+                created = True
+        if created:
+            setattr(cls, _VTABLE, vtable)
+        if kind is not None:
+            if not vtable:
+                raise TypeError(f"No kind field")
+            if kind in vtable.classes:
+                raise TypeError(f"Kind '{kind}' is already defined by class {vtable.classes[kind].__qualname__}")
+            else:
+                vtable.classes[kind] = cls
+
+
+class _VTable:
+    __slots__ = (
+        'field',
+        'classes',
+    )
+
+    def __init__(self, field):
+        self.field = field
+        self.classes = {}
 
 
 class _Field:
@@ -71,9 +117,10 @@ class _Field:
         'default_factory',
         'nullable',
         'required',
+        'kind',
     )
 
-    def __init__(self, key, default, default_factory, nullable, required):
+    def __init__(self, key, default, default_factory, nullable, required, kind):
         self.name = None
         self.type = MISSING
         self.key = key
@@ -81,6 +128,10 @@ class _Field:
         self.default_factory = default_factory
         self.nullable = nullable
         self.required = required
+        self.kind = kind
+
+    def __repr__(self):
+        return f"_Field({self.key!r}, {self.default!r}, {self.default_factory!r}, {self.nullable!r}, {self.required!r}, {self.kind!r})"
 
 
 def fields(class_or_instance):
@@ -120,10 +171,12 @@ def fields(class_or_instance):
     return fields
 
 
-def field(*, key=None, default=MISSING, default_factory=None, nullable=None, required=False):
+def field(*, key=None, default=MISSING, default_factory=None, nullable=None, required=False, kind=False):
     if default is not MISSING and default_factory is not None:
         raise ValueError('cannot specify both default and default_factory')
-    return _Field(key, default, default_factory, nullable, required)
+    if nullable and kind:
+        raise ValueError('kind cannot be nullable')
+    return _Field(key, default, default_factory, nullable, required or kind, kind)
 
 
 @cast.register
@@ -133,7 +186,6 @@ def _cast_Object_object(cls: Type[Object], val, ctx):
 
 @cast.register
 def _cast_dict_Object(cls: Type[dict], val: Object, ctx, K=None, V=None):
-    flds = fields(val)
     d = val.__dict__
     r = cls()
     for f in fields(val):

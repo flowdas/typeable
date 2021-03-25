@@ -191,8 +191,8 @@ def test_inheritance():
 
 def test_nullable():
     class X(Object):
-        a: int          # not allowed
-        b: int = None   # allowed
+        a: int  # not allowed
+        b: int = None  # allowed
         c: int = field(nullable=True)  # allowed
         # not allowed, but default is None
         d: int = field(default=None, nullable=False)
@@ -256,3 +256,43 @@ def test_JsonValue():
     assert cast(JsonValue, x) == data
 
     assert cast(JsonValue, {'result': X()}) == {'result': {}}
+
+
+def test_kind():
+    class Authenticator(Object):  # abstract
+        type: str = field(kind=True)
+
+    class ApiKeyAuthenticator(Authenticator, kind='apiKey'):  # concrete
+        name: str = 'X-API-Key'
+
+    class HttpAuthenticator(Authenticator):  # abstract
+        pass
+
+    class HttpBearerAuthenticator(HttpAuthenticator, kind='http.bearer'):  # concrete
+        format: str = 'jwt'
+
+    data = dict(
+        type='apiKey',
+        name='x-api-key',
+    )
+    x = cast(Authenticator, data)
+    assert isinstance(x, ApiKeyAuthenticator)
+    assert cast(JsonValue, x) == data
+
+    with pytest.raises(TypeError):
+        cast(HttpAuthenticator, dict(
+            type='apiKey',
+            name='x-api-key',
+        ))
+
+    data = dict(
+        type='http.bearer',
+        format='JWT',
+    )
+    x = cast(Authenticator, data)
+    assert isinstance(x, HttpBearerAuthenticator)
+    assert cast(JsonValue, x) == data
+
+    x = cast(HttpAuthenticator, data)
+    assert isinstance(x, HttpBearerAuthenticator)
+    assert cast(JsonValue, x) == data
