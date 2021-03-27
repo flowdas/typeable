@@ -201,7 +201,7 @@
 
    이 형으로 변환된 값은 표준 라이브러리의 :func:`json.dumps` 와 :func:`json.dump` 로 직접 전달할 수 있습니다. 
 
-.. class:: Object(value = dataclasses.MISSING, *, ctx: Context = None)
+.. class:: Object(value = dataclasses.MISSING, /, *, ctx: Context = None, **kwargs)
 
    형이 지정된 필드를 갖는 객체 모델을 표현합니다.
 

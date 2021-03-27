@@ -279,7 +279,10 @@ def test_kind():
     assert isinstance(x, ApiKeyAuthenticator)
     assert cast(JsonValue, x) == data
 
-    with pytest.raises(TypeError):
+    with pytest.raises(TypeError):  # no kind field
+        cast(Authenticator, {'name': 'x-api-key'})
+
+    with pytest.raises(TypeError):  # incompatible kind field
         cast(HttpAuthenticator, dict(
             type='apiKey',
             name='x-api-key',
@@ -296,3 +299,64 @@ def test_kind():
     x = cast(HttpAuthenticator, data)
     assert isinstance(x, HttpBearerAuthenticator)
     assert cast(JsonValue, x) == data
+
+    # For concrete classes, the kind field behaves as if default_factory was specified.
+    x = cast(HttpBearerAuthenticator, dict(format=data['format']))
+    assert isinstance(x, HttpBearerAuthenticator)
+    assert cast(JsonValue, x) == data
+
+
+def test_kind_fields():
+    class Authenticator(Object):  # abstract
+        type: str = field(kind=True)
+
+    class ApiKeyAuthenticator(Authenticator, kind='apiKey'):  # concrete
+        name: str = 'X-API-Key'
+
+    class HttpAuthenticator(Authenticator):  # abstract
+        pass
+
+    class HttpBearerAuthenticator(HttpAuthenticator, kind='http.bearer'):  # concrete
+        format: str = 'jwt'
+
+    flds = fields(Authenticator)
+    assert len(flds) == 1
+    assert flds[0].kind
+    type_field = flds[0]
+
+    flds = fields(ApiKeyAuthenticator)
+    assert len(flds) == 2
+    assert flds[0] is type_field
+    assert flds[0].name == 'type'
+    assert flds[0].kind
+
+    flds = fields(HttpAuthenticator)
+    assert len(flds) == 1
+    assert flds[0] is type_field
+    assert flds[0].name == 'type'
+    assert flds[0].kind
+
+    flds = fields(HttpBearerAuthenticator)
+    assert len(flds) == 2
+    assert flds[0] is type_field
+    assert flds[0].name == 'type'
+    assert flds[0].kind
+
+def test_kind_ctor():
+    class Authenticator(Object):  # abstract
+        type: str = field(kind=True)
+
+    class ApiKeyAuthenticator(Authenticator, kind='apiKey'):  # concrete
+        name: str = 'X-API-Key'
+
+    with pytest.raises(TypeError):  # cannot instantiate abstract class
+        Authenticator()
+
+    x = ApiKeyAuthenticator()
+    assert x.__class__ is ApiKeyAuthenticator
+    assert x.type == 'apiKey'
+
+    x = ApiKeyAuthenticator(name='x-api-key')
+    assert x.type == 'apiKey'
+    assert x.name == 'x-api-key'
+    assert x.__class__ is ApiKeyAuthenticator

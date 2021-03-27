@@ -208,7 +208,7 @@ This package defines a number of classes, which are detailed in the sections bel
 
    Values converted to this type can be passed directly to :func:`json.dumps` and :func:`json.dump` in the standard library. 
 
-.. class:: Object(value = dataclasses.MISSING, *, ctx: Context = None)
+.. class:: Object(value = dataclasses.MISSING, /, *, ctx: Context = None, **kwargs)
 
    Represents an object model with typed fields.
 
