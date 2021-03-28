@@ -77,7 +77,23 @@
 
 :class:`tuple`
 
-    
+:class:`type`
+
+    :class:`str` 과 양방향 변환됩니다.
+
+    형 객체를 :class:`str` 로 변환할 때 :term:`완전히 정규화된 이름 <qualified name>` 으로 변환됩니다.
+    내장형은 :mod:`builtins` 모듈이 모듈 이름으로 사용됩니다.
+
+    :class:`str` 에서 형 객체로 변환할 때 :term:`완전히 정규화된 이름 <qualified name>` 을 받아들입니다.
+    다만 내장형은 :mod:`builtins` 를 생략할 수 있습니다.
+
+    *val* 이 형이면 형 검사만 수행한 후 *val* 을 그대로 반환합니다.
+
+    제네릭 형 매개 변수가 주어지면 공변적(covariant)으로 해석합니다.
+    즉 형 매개 변수의 서브 클래스를 모두 받아들입니다.
+
+    :exc:`TypeError` 뿐만 아니라, :exc:`ImportError` 나 :exc:`AttributeError` 도 발생할 수 있습니다.
+
 표준 라이브러리 형
 --------------------------
 
@@ -156,6 +172,10 @@
 :class:`typing.Set`
 
 :data:`typing.Tuple`
+
+:class:`typing.Type`
+
+    :class:`type` 의 변환 규칙과 같습니다.
 
 :data:`typing.Union`
 

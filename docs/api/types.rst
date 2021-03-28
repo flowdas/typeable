@@ -77,6 +77,22 @@ Builtin Types
 
 :class:`tuple`
 
+:class:`type`
+
+    Converted to and from :class:`str`.
+
+    When converting a type object to :class:`str`, it is converted to :term:`fully qualified name <qualified name>`.
+    For builtin types, the :mod:`builtins` module is used as the module name.
+
+    When converting from :class:`str` to a type object, it accepts :term:`fully qualified name <qualified name>`.
+    However, for builtin types, you can omit :mod:`builtins`.
+
+    If *val* is a type, only type checking is performed and *val* is returned as it is.
+
+    Given a generic type parameter, it is interpreted as covariant.
+    In other words, it accepts all subclasses of the type parameter.
+
+    In addition to :exc:`TypeError`, :exc:`ImportError` or :exc:`AttributeError` can also be raised.
 
 Standard Types
 --------------
@@ -157,6 +173,10 @@ Standard Types
 :class:`typing.Set`
 
 :data:`typing.Tuple`
+
+:class:`typing.Type`
+
+    Same as the conversion rule for :class:`type`.
 
 :data:`typing.Union`
 

@@ -26,6 +26,7 @@ from typeable import *
 
 def test_get_origin():
     assert get_origin(Type[int]) == type
+    assert get_origin(Type) == type
     assert get_origin(List[int]) == list
     assert get_origin(List) == list
     assert get_origin(Dict[str, str]) == dict
@@ -49,6 +50,7 @@ def test_get_args():
         i: int
 
     assert get_args(Type[int]) == (int,)
+    assert get_args(Type) == ()
     assert get_args(List[int]) == (int,)
     assert get_args(List[X]) == (X,)
     assert get_args(List) == ()
@@ -152,7 +154,6 @@ def test_function_with_ctx():
 
 
 def test_function_ctx_conflict():
-
     with pytest.raises(TypeError):
         @cast.function
         def test(ctx: int):
@@ -170,6 +171,7 @@ def test_function_args():
         for a in args:
             assert isinstance(a, int)
         return args
+
     assert test(1, "2", 3.14) == (1, 2, 3)
 
 
@@ -179,6 +181,7 @@ def test_function_kwargs():
         for k, v in kwargs.items():
             assert isinstance(v, int)
         return kwargs
+
     assert test(a=1, b="2", c=3.14) == {'a': 1, 'b': 2, 'c': 3}
 
 

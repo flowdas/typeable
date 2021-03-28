@@ -10,13 +10,16 @@ import sys
 import pytest
 
 from typeable.typing import (
+    Any,
     Dict,
     FrozenSet,
     List,
     Set,
     Tuple,
+    Type,
 )
 from typeable import *
+
 
 #
 # object
@@ -30,6 +33,7 @@ def test_object():
     # object
     assert cast(object, object()).__class__ is object
 
+
 #
 # None
 #
@@ -39,6 +43,7 @@ def test_None():
     assert cast(type(None), None) is None
     with pytest.raises(TypeError):
         cast(type(None), object())
+
 
 #
 # bool
@@ -76,6 +81,7 @@ def test_bool():
     with pytest.raises(TypeError):
         cast(bool, 1.0)
 
+
 #
 # int
 #
@@ -102,6 +108,7 @@ def test_int():
 
     # int
     assert cast(int, 123) == 123
+
 
 #
 # float
@@ -132,6 +139,7 @@ def test_float():
     # float
     assert cast(float, 123.456) == 123.456
 
+
 #
 # complex
 #
@@ -147,15 +155,15 @@ def test_complex():
         cast(complex, "inf", ctx=Context(accept_nan=False))
 
     # bool
-    assert cast(complex, True) == 1.0+0j
+    assert cast(complex, True) == 1.0 + 0j
     with pytest.raises(TypeError):
         cast(complex, True, ctx=Context(bool_is_int=False))
 
     # int
-    assert cast(complex, 123) == 123+0j
+    assert cast(complex, 123) == 123 + 0j
 
     # float
-    assert cast(complex, 123.456) == 123.456+0j
+    assert cast(complex, 123.456) == 123.456 + 0j
 
     # tuple
     assert cast(complex, [123, 456]) == complex(123, 456)
@@ -168,12 +176,15 @@ def test_complex():
     # complex
     assert cast(complex, complex(123, 456)) == complex(123, 456)
 
+
 #
 # str
 #
 
 
 def test_str():
+    from datetime import datetime
+
     # bool
     assert cast(str, True) == 'True'
 
@@ -195,8 +206,13 @@ def test_str():
     # object
     with pytest.raises(TypeError):
         cast(str, object())
-    print(object)
     cast(str, object(), ctx=Context(strict_str=False))
+
+    # type
+    assert cast(str, int) == 'builtins.int'
+    assert cast(str, datetime) == 'datetime.datetime'
+    assert cast(str, OuterClass) == 'tests.test_builtin_types.OuterClass'
+    assert cast(str, OuterClass.InnerClass) == 'tests.test_builtin_types.OuterClass.InnerClass'
 
     # None
     with pytest.raises(TypeError):
@@ -206,6 +222,7 @@ def test_str():
 
     # str
     assert cast(str, 'hello') == 'hello'
+
 
 #
 # bytes
@@ -233,6 +250,7 @@ def test_bytes():
     # bytes
     assert cast(bytes, b'hello') == b'hello'
 
+
 #
 # bytearray
 #
@@ -259,6 +277,7 @@ def test_bytearray():
 
     # bytearray
     assert cast(bytearray, bytearray(b'hello')) == bytearray(b'hello')
+
 
 #
 # list
@@ -302,6 +321,7 @@ def test_list():
         for i in range(len(data)):
             assert isinstance(l[i], X)
             assert l[i].i == i
+
 
 #
 # dict
@@ -358,6 +378,7 @@ def test_dict():
             assert isinstance(v, X)
             assert v.i == i
 
+
 #
 # set, frozenset
 #
@@ -395,6 +416,7 @@ def test_set(T, GT):
 
         assert isinstance(l, T)
         assert l == expected
+
 
 #
 # tuple
@@ -493,3 +515,55 @@ def test_tuple():
     # complex
     cast(tuple, complex(1, 2)) == (1, 2)
     cast(Tuple[float, float], complex(1, 2)) == (1, 2)
+
+
+#
+# type
+#
+
+class OuterClass:
+    class InnerClass:
+        pass
+
+def test_type():
+    from datetime import datetime
+    from collections.abc import Iterable
+
+    # str
+    assert cast(type, 'int') == int
+    assert cast(Type, 'int') == int
+    assert cast(Type[Any], 'int') == int
+    assert cast(Type[object], 'int') == int
+    assert cast(type, 'datetime.datetime') == datetime
+    assert cast(type, 'collections.abc.Iterable') == Iterable
+    assert cast(Type[int], 'int') == int
+    assert cast(Type[int], 'bool') == bool
+    assert cast(type, 'tests.test_builtin_types.OuterClass') is OuterClass
+    assert cast(type, 'tests.test_builtin_types.OuterClass.InnerClass') is OuterClass.InnerClass
+
+    with pytest.raises(AttributeError):
+        cast(type, 'collections.abc.UNKNOWN_TYPE_NAME')
+    with pytest.raises(AttributeError):
+        cast(type, 'collections.UNKNOWN_MODULE.Iterable')
+    with pytest.raises(TypeError):
+        cast(type, 'collections.abc')
+    with pytest.raises(TypeError):
+        cast(type, 'dataclasses.MISSING')
+    with pytest.raises(TypeError):
+        cast(Type[int], 'str')
+
+    # None
+    with pytest.raises(TypeError):
+        cast(type, None)
+    with pytest.raises(TypeError):
+        cast(Type, None)
+    with pytest.raises(TypeError):
+        cast(Type[Any], None)
+    with pytest.raises(TypeError):
+        cast(Type[object], None)
+
+    # type
+    assert cast(type, int) == int
+    assert cast(Type, int) == int
+    assert cast(Type[Any], int) == int
+    assert cast(Type[object], int) == int

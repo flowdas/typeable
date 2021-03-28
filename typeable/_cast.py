@@ -11,6 +11,7 @@ import datetime
 from email.utils import parsedate_to_datetime
 import enum
 import functools
+import importlib
 import inspect
 import math
 import re
@@ -43,6 +44,7 @@ from .typing import (
 
 from ._context import Context
 
+
 #
 # declare
 #
@@ -60,6 +62,7 @@ def declare(name):
             ref._evaluate(frame.f_globals, frame.f_locals)
     finally:
         del frame
+
 
 #
 # cast
@@ -184,7 +187,8 @@ def _function(_=None, *, ctx_name: str = 'ctx', cast_return: bool = False, keep_
         if ctx_name in sig.parameters:
             ctx_type = annons.get(ctx_name)
             if (ctx_type == Optional[Context] or ctx_type == Context) \
-                    and (sig.parameters[ctx_name].kind not in (inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD)):
+                    and (sig.parameters[ctx_name].kind not in (
+                    inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD)):
                 use_ctx = True
             else:
                 raise TypeError(f"'{ctx_name}' argument conflict")
@@ -250,6 +254,7 @@ cast.register = _register
 cast.dispatch = _dispatch
 cast.function = _function
 
+
 #
 # Any
 #
@@ -258,6 +263,7 @@ cast.function = _function
 @cast.register
 def _cast_Any_object(cls: Type[Any], val, ctx):
     return val
+
 
 #
 # object (fallback)
@@ -272,6 +278,7 @@ def _cast_object_object(cls: Type[object], val, ctx, *Ts):
         raise TypeError
     return cls(val)
 
+
 #
 # None
 #
@@ -282,6 +289,7 @@ def _cast_None_object(cls: Type[None], val, ctx):
     if val is None:
         return None
     raise TypeError(f"{val!r} is not None")
+
 
 #
 # bool
@@ -308,6 +316,7 @@ def _cast_bool_str(cls: Type[bool], val: str, ctx):
     except KeyError:
         raise ValueError
 
+
 #
 # int
 #
@@ -329,6 +338,7 @@ def _cast_int_bool(cls: Type[int], val: bool, ctx):
         raise TypeError(f'ctx.bool_is_int={ctx.bool_is_int}')
     return cls(val)
 
+
 #
 # float
 #
@@ -349,6 +359,7 @@ def _cast_float_bool(cls: Type[float], val: bool, ctx):
     if not ctx.bool_is_int:
         raise TypeError(f'ctx.bool_is_int={ctx.bool_is_int}')
     return cls(val)
+
 
 #
 # complex
@@ -376,6 +387,7 @@ def _cast_complex_bool(cls: Type[complex], val: bool, ctx):
     if not ctx.bool_is_int:
         raise TypeError(f'ctx.bool_is_int={ctx.bool_is_int}')
     return cls(val)
+
 
 #
 # str
@@ -407,6 +419,7 @@ def _cast_str_bytes(cls: Type[str], val: bytes, ctx):
 @cast.register
 def _cast_str_bytearray(cls: Type[str], val: bytearray, ctx):
     return cls(val, encoding=ctx.bytes_encoding, errors=ctx.encoding_errors)
+
 
 #
 # bytes
@@ -460,6 +473,7 @@ def _cast_list_object(cls: Type[list], val, ctx, T=None):
                 r.append(cast(T, v, ctx=ctx))
         return r
 
+
 #
 # dict
 #
@@ -478,6 +492,7 @@ def _cast_dict_object(cls: Type[dict], val, ctx, K=None, V=None):
                 r[cast(K, k, ctx=ctx)] = cast(V, v, ctx=ctx)
         return r
 
+
 #
 # set
 #
@@ -494,6 +509,7 @@ def _cast_set_object(cls: Type[set], val, ctx, T=None):
                 r.add(cast(T, v, ctx=ctx))
         return r
 
+
 #
 # frozenset
 #
@@ -509,6 +525,7 @@ def _cast_set_object(cls: Type[frozenset], val, ctx, T=None):
             with ctx.traverse(v):
                 r.add(cast(T, v, ctx=ctx))
         return cls(r)
+
 
 #
 # tuple
@@ -567,7 +584,7 @@ def _type_distance(tp1, tp2):
     except IndexError:
         pass
 
-    return len(m1) + len(m2) - 2*n
+    return len(m1) + len(m2) - 2 * n
 
 
 @cast.register
@@ -607,6 +624,7 @@ def _cast_Union_object(cls, val, ctx, *Ts) -> Union:
             continue
     else:
         raise TypeError("no match")
+
 
 #
 # datetime.datetime
@@ -732,7 +750,7 @@ MON = ('Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
 def _cast_str_datetime(cls: Type[str], val: datetime.datetime, ctx):
     if ctx.datetime_format == 'iso':
         r = val.isoformat()
-        return cls(r[:-6]+'Z') if r.endswith('+00:00') else cls(r)
+        return cls(r[:-6] + 'Z') if r.endswith('+00:00') else cls(r)
     elif ctx.datetime_format == 'timestamp':
         if val.microsecond > 0:
             return cls(val.timestamp())
@@ -752,6 +770,7 @@ def _cast_str_datetime(cls: Type[str], val: datetime.datetime, ctx):
         return cls(val.strftime(format))
     else:
         return cls(val.strftime(ctx.datetime_format))
+
 
 #
 # datetime.date
@@ -789,6 +808,7 @@ def _cast_str_date(cls: Type[str], val: datetime.date, ctx):
     else:
         return cls(val.strftime(ctx.date_format))
 
+
 #
 # datetime.time
 #
@@ -824,6 +844,7 @@ def _cast_str_time(cls: Type[str], val: datetime.time, ctx):
         return cls(val.isoformat())
     else:
         return cls(val.strftime(ctx.time_format))
+
 
 #
 # datetime.timedelta
@@ -887,6 +908,7 @@ def _cast_str_timedelta(cls: Type[str], val: datetime.timedelta, ctx):
             r.append(f'{sec}S')
     return cls(''.join(r))
 
+
 #
 # enum.Enum
 #
@@ -906,6 +928,7 @@ def _cast_Enum_str(cls: Type[enum.Enum], val: str, ctx):
 def _cast_str_Enum(cls: Type[str], val: enum.Enum, ctx):
     return val.name
 
+
 #
 # enum.IntEnum
 #
@@ -924,6 +947,7 @@ def _cast_IntEnum_str(cls: Type[enum.IntEnum], val: str, ctx):
 @cast.register
 def _cast_str_IntEnum(cls: Type[str], val: enum.IntEnum, ctx):
     return val.name
+
 
 #
 # enum.Flag
@@ -949,6 +973,7 @@ def _cast_int_Flag(cls: Type[int], val: enum.Flag, ctx):
 def _cast_str_Flag(cls: Type[str], val: enum.Flag, ctx):
     raise TypeError
 
+
 #
 # enum.IntFlag
 #
@@ -963,6 +988,7 @@ def _cast_IntFlag_int(cls: Type[enum.IntFlag], val: int, ctx):
 def _cast_str_IntFlag(cls: Type[str], val: enum.IntFlag, ctx):
     raise TypeError
 
+
 #
 # typing.Literal
 #
@@ -975,3 +1001,51 @@ def _cast_Literal_object(cls, val, ctx, *literals) -> Literal:
             return literal
     else:
         raise ValueError
+
+
+#
+# type
+#
+
+@cast.register
+def _cast_type_type(cls, val: type, ctx, T=None) -> type:
+    if T and T is not Any and not issubclass(val, T):
+        raise TypeError
+    return val
+
+
+@cast.register
+def _cast_type_str(cls, val: str, ctx, T=None) -> type:
+    spec = val.rsplit('.', maxsplit=1)
+    if len(spec) == 1:
+        modname = 'builtins'
+        parts = spec
+    else:
+        modname = spec[0]
+        parts = [spec[1]]
+    if not (modname and parts[0]):
+        raise TypeError
+    while modname:
+        try:
+            mod = importlib.import_module(modname)
+            break
+        except ModuleNotFoundError:
+            spec = modname.rsplit('.', maxsplit=1)
+            if len(spec) <= 1:
+                raise
+            modname = spec[0]
+            parts.append(spec[1])
+            continue
+    cls = mod
+    for part in reversed(parts):
+        cls = getattr(cls, part)
+    if not isinstance(cls, type):
+        raise TypeError
+    if T and T is not Any and not issubclass(cls, T):
+        raise TypeError
+    return cls
+
+
+@cast.register
+def _cast_str_type(cls: Type[str], val: type, ctx):
+    return f"{val.__module__}.{val.__qualname__}"
