@@ -19,14 +19,14 @@ from dataclasses import MISSING
 # avoid name mangling
 _FIELDS = '__fields'
 _VTABLE = '__vtable'
-_KIND = '__kind'
+_META = '__meta'
 
 
 class Object:
 
     def __init__(self, _=MISSING, *, ctx=None, **kwargs):
         vtable = getattr(self.__class__, _VTABLE, None)
-        kind = getattr(self.__class__, _KIND, None)
+        kind = getattr(self.__class__, _META).kind
         if vtable and kind is None:
             raise TypeError(
                 f"Can't instantiate abstract class {self.__class__.__qualname__} with kind field {vtable.field.name}")
@@ -90,7 +90,7 @@ class Object:
         else:
             value = _
         vtable = getattr(cls, _VTABLE, None)
-        if not vtable or getattr(cls, _KIND, None) is not None:
+        if not vtable or getattr(cls, _META).kind is not None:
             return super().__new__(cls)
         if isinstance(value, Mapping):
             fields(cls)  # resolve _Field.key
@@ -106,7 +106,7 @@ class Object:
 
         return super().__new__(cls)
 
-    def __init_subclass__(cls, *, kind=None):
+    def __init_subclass__(cls, *, kind=None, jsonschema=None):
         super().__init_subclass__()
         setattr(cls, _FIELDS, None)
 
@@ -127,7 +127,7 @@ class Object:
                 raise TypeError(f"Kind '{kind}' is already defined by class {vtable.classes[kind].__qualname__}")
             else:
                 vtable.classes[kind] = cls
-        setattr(cls, _KIND, kind)
+        setattr(cls, _META, _Meta(kind, jsonschema))
 
 
 setattr(Object, _FIELDS, None)
@@ -142,6 +142,20 @@ class _VTable:
     def __init__(self, field):
         self.field = field
         self.classes = {}
+
+
+class _Meta:
+    __slots__ = (
+        'kind',
+        'jsonschema',
+    )
+
+    def __init__(self, kind, jsonschema):
+        self.kind = kind
+        self.jsonschema = jsonschema
+
+
+setattr(Object, _META, _Meta(None, None))
 
 
 class _Field:

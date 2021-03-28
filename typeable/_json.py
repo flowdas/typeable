@@ -13,7 +13,7 @@ import json
 import inspect
 
 from ._cast import cast, declare, _get_type_args
-from ._object import Object, fields
+from ._object import Object, fields, field, _META
 from .typing import Union, Dict, List, Tuple, _GenericBases, get_origin, get_type_hints, Type, Any, Literal
 
 with declare('_JsonValue') as _:
@@ -53,6 +53,7 @@ class JsonSchema(Object):
     _dispatch_cache = {}
     _cache_token = None
 
+    ref: str = field(key='$ref')
     type: Union[str, List[str]]
     uniqueItems: bool
     format: str
@@ -315,17 +316,21 @@ def _jsonschema_JsonValue(self, cls):
 
 @JsonSchema.register(Object)
 def _jsonschema_Object(self, cls):
-    self.type = 'object'
-    self.additionalProperties = False
+    meta = getattr(cls, _META)
+    if meta.jsonschema:
+        self.ref = meta.jsonschema
+    else:
+        self.type = 'object'
+        self.additionalProperties = False
 
-    flds = fields(cls)
-    if flds:
-        properties = {}
-        required = []
-        for f in flds:
-            properties[f.key] = JsonSchema(f.type)
-            if f.required:
-                required.append(f.key)
-        self.properties = properties
-        if required:
-            self.required = required
+        flds = fields(cls)
+        if flds:
+            properties = {}
+            required = []
+            for f in flds:
+                properties[f.key] = JsonSchema(f.type)
+                if f.required:
+                    required.append(f.key)
+            self.properties = properties
+            if required:
+                self.required = required
