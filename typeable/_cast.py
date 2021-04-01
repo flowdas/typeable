@@ -4,7 +4,6 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 import asyncio
-import os
 import cmath
 from contextlib import contextmanager
 import datetime
@@ -15,8 +14,6 @@ import importlib
 import inspect
 import math
 import re
-import sys
-import weakref
 from abc import get_cache_token
 from collections.abc import (
     Mapping,
@@ -55,13 +52,14 @@ def declare(name):
     ref = ForwardRef(name)
     yield ref
     frame = inspect.currentframe().f_back.f_back
+    args = [frame.f_globals, frame.f_locals]
+    if _RECURSIVE_GUARD:
+        args.append(set())
     try:
-        if _RECURSIVE_GUARD:
-            ref._evaluate(frame.f_globals, frame.f_locals, set())
-        else:
-            ref._evaluate(frame.f_globals, frame.f_locals)
+        ref._evaluate(*args)
     finally:
         del frame
+        del args
 
 
 #
@@ -85,12 +83,12 @@ def _get_type_args(tp):
     for i, arg in enumerate(evaled):
         try:
             if isinstance(arg, ForwardRef):
+                _args = [None, None]
                 if _RECURSIVE_GUARD:
-                    evaled[i] = arg._evaluate(None, None, frozenset())
-                else:
-                    evaled[i] = arg._evaluate(None, None)
+                    _args.append(frozenset())
+                evaled[i] = arg._evaluate(*_args)
                 changed = True
-        except TypeError:
+        except TypeError:  # pragma: no cover; TODO: Is this really necessary?
             continue
     return tuple(evaled) if changed else args
 
@@ -244,10 +242,17 @@ def _function(_=None, *, ctx_name: str = 'ctx', cast_return: bool = False, keep_
 
 def cast(cls: Type[_T], val, *, ctx: Context = None) -> _T:
     origin = get_origin(cls) or cls
-    func = _dispatch(origin, val.__class__)
+    Ts = _get_type_args(cls)
+    tp = val.__class__
+    try:
+        if not Ts and isinstance(val, origin) and tp is not bool:
+            return val
+    except:
+        pass
+    func = _dispatch(origin, tp)
     if ctx is None:
         ctx = Context()
-    return func(origin, val, ctx, *_get_type_args(cls))
+    return func(origin, val, ctx, *Ts)
 
 
 cast.register = _register
@@ -272,10 +277,8 @@ def _cast_Any_object(cls: Type[Any], val, ctx):
 
 @cast.register
 def _cast_object_object(cls: Type[object], val, ctx, *Ts):
-    if cls is object:
-        if isinstance(val, object):
-            return object()
-        raise TypeError
+    if Ts:
+        raise NotImplementedError
     return cls(val)
 
 

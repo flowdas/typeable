@@ -3,15 +3,13 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
 import pytest
 
 from typeable import *
 from typeable.typing import (
     Dict,
     List,
-    Type,
-    get_args,
-    get_origin,
 )
 
 
@@ -64,6 +62,15 @@ def test_capture():
     assert error.location == ()
     exc_type, exc_val, traceback = error.exc_info
     assert exc_type == NotImplementedError
+
+    assert ctx._stack is None
+    try:
+        with ctx.capture() as error:
+            assert ctx._stack is not None
+            cast(T, 1, ctx=ctx)
+    except:
+        pass
+    assert error.location == ()
 
     with pytest.raises(TypeError):
         with ctx.capture() as error:

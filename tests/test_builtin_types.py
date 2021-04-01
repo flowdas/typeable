@@ -3,6 +3,7 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
 import cmath
 import collections
 import math
@@ -28,10 +29,20 @@ from typeable import *
 
 def test_object():
     # None
-    cast(object, None).__class__ is object
+    assert cast(object, None) is None
 
     # object
     assert cast(object, object()).__class__ is object
+
+    # custom class
+    class X:
+        pass
+
+    x = X()
+    assert cast(X, x) is x
+
+    with pytest.raises(TypeError):
+        cast(X, '')
 
 
 #
@@ -333,7 +344,6 @@ def test_dict():
     d = {'a': 1, 'b': 2}
     r = cast(dict, collections.OrderedDict(d))
     assert r == {'a': 1, 'b': 2}
-    assert r.__class__ is dict
 
     # list
     assert cast(dict, [('a', 1), ('b', 2)]) == {'a': 1, 'b': 2}
@@ -524,6 +534,7 @@ def test_tuple():
 class OuterClass:
     class InnerClass:
         pass
+
 
 def test_type():
     from datetime import datetime

@@ -3,10 +3,12 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
 from datetime import datetime, date, time, timedelta, timezone
 
 try:
     from zoneinfo import ZoneInfo
+
     skip_zoneinfo = False
 except ImportError:
     skip_zoneinfo = True
@@ -14,6 +16,7 @@ except ImportError:
 import pytest
 
 from typeable import *
+
 
 #
 # datetime
@@ -148,6 +151,7 @@ def test_str_from_datetime():
     assert cast(str, aware_epoch,
                 ctx=ctx) == '=1970-01-01T00:00:00.000000+0000='
 
+
 #
 # date
 #
@@ -188,20 +192,8 @@ def test_date():
         cast(date, None)
 
     # datetime
-    ctx = Context(lossy_conversion=False)
-
     dt = datetime.utcnow()  # naive
-    if dt.microsecond == 0:
-        dt = dt.replace(microsecond=1)
-    assert cast(date, dt) == dt.date()
-    with pytest.raises(ValueError):
-        cast(date, dt, ctx=ctx)
-    assert cast(date, datetime(1970, 1, 1, 0, 0), ctx=ctx) == date(1970, 1, 1)
-
-    dt = datetime.now(timezone.utc)  # aware
-    assert cast(date, dt) == dt.date()
-    with pytest.raises(ValueError):
-        cast(date, dt, ctx=ctx)
+    assert cast(date, dt) == dt
 
     # time
     with pytest.raises(TypeError):
@@ -228,6 +220,7 @@ def test_str_from_date():
     # strftime
     ctx = Context(date_format=r'=%Y-%m-%d=')
     assert cast(str, d, ctx=ctx) == '=1970-01-01='
+
 
 #
 # time
@@ -312,6 +305,7 @@ def test_str_from_time():
     # strftime
     ctx = Context(time_format=r'=%H:%M:%S.%f%z=')
     assert cast(str, t, ctx=ctx) == '=12:34:56.000789='
+
 
 #
 # timedelta

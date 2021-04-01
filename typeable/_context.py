@@ -3,8 +3,10 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
 import sys
 from contextlib import contextmanager
+
 try:
     from contextlib import nullcontext  # since 3.7
 except ImportError:  # pragma: no cover
@@ -73,7 +75,7 @@ class Context:
             error.exc_info = sys.exc_info()
             error.location = tuple(self._stack)
             raise
-        finally:
+        finally:  # pragma: no cover ; TODO: coverage's bug?
             self._stack = None
 
     @contextmanager
