@@ -289,8 +289,10 @@ def _cast_object_object(cls: Type[object], val, ctx, *Ts):
 
 @cast.register
 def _cast_bool_int(cls: Type[bool], val: int, ctx):
-    if isinstance(val, bool):
-        return cls(val)
+    # special: val can be bool
+    if isinstance(val, cls):
+        return val
+
     if not ctx.bool_is_int:
         raise TypeError(f'ctx.bool_is_int={ctx.bool_is_int}')
     if not ctx.lossy_conversion and not (val == 0 or val == 1):
@@ -327,7 +329,7 @@ def _cast_int_object(cls: Type[int], val, ctx):
 def _cast_int_bool(cls: Type[int], val: bool, ctx):
     if not ctx.bool_is_int:
         raise TypeError(f'ctx.bool_is_int={ctx.bool_is_int}')
-    return cls(val)
+    return val if cls is int else cls(val)
 
 
 #

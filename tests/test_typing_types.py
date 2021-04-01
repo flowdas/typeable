@@ -72,12 +72,12 @@ def test_distance_based_Union():
     # union_prefers_base_type
     x = cast(Union[str, int], True)
     assert x == 1
-    assert type(x) is int
+    assert type(x) is bool
     assert cast(Union[str, int], True, ctx=ctx) == 'True'
     ctx.union_prefers_base_type = True
     x = cast(Union[str, int], True, ctx=ctx)
     assert x == 1
-    assert type(x) is int
+    assert type(x) is bool
     ctx.union_prefers_base_type = False
 
     # union_prefers_super_type
