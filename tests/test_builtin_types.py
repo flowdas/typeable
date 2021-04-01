@@ -15,6 +15,7 @@ from typeable.typing import (
     Dict,
     FrozenSet,
     List,
+    Optional,
     Set,
     Tuple,
     Type,
@@ -52,6 +53,9 @@ def test_object():
 
 def test_None():
     assert cast(type(None), None) is None
+    assert cast(object, None) is None
+    assert cast(Any, None) is None
+    assert cast(Optional[int], None) is None
     with pytest.raises(TypeError):
         cast(type(None), object())
 

@@ -283,18 +283,6 @@ def _cast_object_object(cls: Type[object], val, ctx, *Ts):
 
 
 #
-# None
-#
-
-
-@cast.register
-def _cast_None_object(cls: Type[None], val, ctx):
-    if val is None:
-        return None
-    raise TypeError(f"{val!r} is not None")
-
-
-#
 # bool
 #
 
