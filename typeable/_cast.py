@@ -383,6 +383,7 @@ def _cast_complex_bool(cls: Type[complex], val: bool, ctx):
 
 @cast.register
 def _cast_str_object(cls: Type[str], val, ctx):
+    # assume not isinstance(val, cls)
     if ctx.strict_str:
         if not isinstance(val, (str, Number)):
             raise TypeError(f'ctx.strict_str={ctx.strict_str}')
@@ -390,11 +391,6 @@ def _cast_str_object(cls: Type[str], val, ctx):
         if val is None:
             raise TypeError(
                 f"{cls.__qualname__} is required, but {val!r} is given")
-    return cls(val)
-
-
-@cast.register
-def _cast_str_str(cls: Type[str], val: str, ctx):
     return cls(val)
 
 
