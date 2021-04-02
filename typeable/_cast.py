@@ -429,6 +429,7 @@ def _cast_bytes_str(cls: Type[bytes], val: str, ctx):
 
 @cast.register
 def _cast_bytearray_object(cls: Type[bytearray], val, ctx):
+    # assume not isinstance(val, cls)
     if isinstance(val, int):
         raise TypeError
     return cls(val)
