@@ -1010,7 +1010,7 @@ def _cast_type_str(cls, val: str, ctx, T=None) -> type:
         parts = [spec[1]]
     if not (modname and parts[0]):
         raise TypeError
-    while modname:
+    while True:
         try:
             mod = importlib.import_module(modname)
             break

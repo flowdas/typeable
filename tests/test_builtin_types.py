@@ -556,6 +556,8 @@ def test_type():
     assert cast(type, 'tests.test_builtin_types.OuterClass') is OuterClass
     assert cast(type, 'tests.test_builtin_types.OuterClass.InnerClass') is OuterClass.InnerClass
 
+    with pytest.raises(TypeError):
+        cast(type, '')
     with pytest.raises(AttributeError):
         cast(type, 'collections.abc.UNKNOWN_TYPE_NAME')
     with pytest.raises(AttributeError):
@@ -564,6 +566,8 @@ def test_type():
         cast(type, 'collections.abc')
     with pytest.raises(TypeError):
         cast(type, 'dataclasses.MISSING')
+    with pytest.raises(ModuleNotFoundError):
+        cast(type, 'buintins.str')  # mis-spelling
     with pytest.raises(TypeError):
         cast(Type[int], 'str')
 
@@ -582,3 +586,5 @@ def test_type():
     assert cast(Type, int) == int
     assert cast(Type[Any], int) == int
     assert cast(Type[object], int) == int
+    with pytest.raises(TypeError):
+        cast(Type[None], object)
