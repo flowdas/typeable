@@ -489,19 +489,42 @@ def _cast_list_object(cls: Type[list], val, ctx, T=None):
 # dict
 #
 
+def _copy_dict_object(r, it, ctx, KT, VT):
+    for k, v in it:
+        with ctx.traverse(k):
+            r[cast(KT, k, ctx=ctx)] = cast(VT, v, ctx=ctx)
+    return r
+
 
 @cast.register
 def _cast_dict_object(cls: Type[dict], val, ctx, K=None, V=None):
     if K is None:
         return cls(val)
+
+    if isinstance(val, cls):
+        r = None
+        it = val.items()
+        i = 0
+        for k, v in it:
+            with ctx.traverse(k):
+                ck = cast(K, k, ctx=ctx)
+                cv = cast(V, v, ctx=ctx)
+                if ck is not k or cv is not v:
+                    if i == 0:
+                        r = cls()
+                    else:
+                        r = cls(itertools.islice(val.items(), i))
+                    r[ck] = cv
+                    break
+                i += 1
+        if r is None:
+            return val
+        else:
+            return _copy_dict_object(r, it, ctx, K, V)
     else:
         if isinstance(val, Mapping):
             val = val.items()
-        r = cls()
-        for k, v in val:
-            with ctx.traverse(k):
-                r[cast(K, k, ctx=ctx)] = cast(V, v, ctx=ctx)
-        return r
+        return _copy_dict_object(cls(), val, ctx, K, V)
 
 
 #

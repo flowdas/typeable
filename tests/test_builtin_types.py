@@ -408,6 +408,21 @@ def test_dict():
             assert isinstance(v, X)
             assert v.i == i
 
+    # no copy
+    data = {str(i): i for i in range(10)}
+    assert cast(dict, data) is data
+    assert cast(Dict, data) is data
+    assert cast(Dict[str, int], data) is data
+
+    # copy
+    expected = data.copy()
+    data['9'] = '9'
+
+    assert cast(dict, data) is data
+    assert cast(Dict, data) is data
+    assert cast(Dict[str, int], data) == expected
+    assert cast(Dict[str, int], collections.UserDict(data)) == expected
+
 
 #
 # set

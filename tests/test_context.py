@@ -77,7 +77,13 @@ def test_capture():
             cast(List[int], [0, None], ctx=ctx)
     assert error.location == (1,)
 
-    with pytest.raises(TypeError):
+    with pytest.raises(NotImplementedError):
         with ctx.capture() as error:
             cast(Dict[T, List[int]], {None: [0, None]}, ctx=ctx)
-    assert error.location == (None, 1)
+    assert error.location == (None,)
+
+    t = T()
+    with pytest.raises(TypeError):
+        with ctx.capture() as error:
+            cast(Dict[T, List[int]], {t: [0, None]}, ctx=ctx)
+    assert error.location == (t, 1)
