@@ -19,7 +19,7 @@ from collections.abc import (
     Mapping,
 )
 from functools import _find_impl
-from numbers import Real, Number
+from numbers import Number
 from inspect import (
     signature,
 )
@@ -317,10 +317,9 @@ def _cast_bool_str(cls: Type[bool], val: str, ctx):
 
 @cast.register
 def _cast_int_object(cls: Type[int], val, ctx):
-    if ctx.lossy_conversion or isinstance(val, int) or not isinstance(val, Real):
-        return cls(val)
+    # assume not isinstance(val, cls)
     r = cls(val)
-    if r != val:
+    if not ctx.lossy_conversion and val.__class__(r) != val:
         raise ValueError(f'ctx.lossy_conversion={ctx.lossy_conversion}')
     return r
 
