@@ -483,17 +483,41 @@ def _cast_dict_object(cls: Type[dict], val, ctx, K=None, V=None):
 # set
 #
 
+def _copy_set_object(r, it, ctx, T):
+    for v in it:
+        with ctx.traverse(v):
+            r.add(cast(T, v, ctx=ctx))
+    return r
+
 
 @cast.register
 def _cast_set_object(cls: Type[set], val, ctx, T=None):
+    # assume T is not None or not isinstance(val, cls)
     if T is None:
         return cls(val)
     else:
-        r = cls()
-        for v in val:
-            with ctx.traverse(v):
-                r.add(cast(T, v, ctx=ctx))
-        return r
+        if isinstance(val, cls):
+            r = None
+            it = iter(val)
+            i = 0
+            for v in it:
+                with ctx.traverse(v):
+                    cv = cast(T, v, ctx=ctx)
+                    if cv is not v:
+                        if i == 0:
+                            r = cls()
+                        else:
+                            # assume repeatable order
+                            r = cls(itertools.islice(val, i))
+                        r.add(cv)
+                        break
+                    i += 1
+            if r is None:
+                return val
+            else:
+                return _copy_set_object(r, it, ctx, T)
+        else:
+            return _copy_set_object(cls(), iter(val), ctx, T)
 
 
 #

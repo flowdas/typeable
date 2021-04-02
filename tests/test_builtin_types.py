@@ -394,42 +394,57 @@ def test_dict():
 
 
 #
-# set, frozenset
+# set
 #
 
 
-@pytest.mark.parametrize('T,GT', [(set, Set), (frozenset, FrozenSet)])
-def test_set(T, GT):
+def test_set():
     # dict
-    assert cast(T, {'a': 1, 'b': 2}) == {'a', 'b'}
+    assert cast(set, {'a': 1, 'b': 2}) == {'a', 'b'}
 
     # None
     with pytest.raises(TypeError):
-        cast(T, None)
+        cast(set, None)
 
     # set
-    expected = {i for i in range(10)}
-    data = {str(v) for v in expected}
+    expected = set(range(10))
+    data = set(str(v) for v in expected)
 
-    l = cast(GT, data)
-    assert isinstance(l, T)
+    l = cast(Set, data)
+    assert isinstance(l, set)
     assert l == data
 
-    l = cast(T, data)
-    assert isinstance(l, T)
+    l = cast(set, data)
+    assert isinstance(l, set)
     assert l == data
 
     # generic set
-    l = cast(GT[int], data)
+    l = cast(Set[int], data)
 
-    assert isinstance(l, T)
+    assert isinstance(l, set)
     assert l == expected
 
     if sys.version_info >= (3, 9):
-        l = cast(T[int], data)
+        l = cast(set[int], data)
 
-        assert isinstance(l, T)
+        assert isinstance(l, set)
         assert l == expected
+
+    # no copy
+    data = set(range(10))
+    assert cast(set, data) is data
+    assert cast(Set, data) is data
+    assert cast(Set[int], data) is data
+
+    # copy
+    data = set(range(9))
+    data.add('9')
+    expected = set(range(10))
+
+    assert cast(set, data) is data
+    assert cast(Set, data) is data
+    assert cast(Set[int], data) == expected
+    assert cast(Set[int], frozenset(data)) == expected
 
 
 def test_frozenset():
@@ -479,6 +494,7 @@ def test_frozenset():
     assert cast(frozenset, data) is data
     assert cast(FrozenSet, data) is data
     assert cast(FrozenSet[int], data) == expected
+    assert cast(FrozenSet[int], set(data)) == expected
 
 
 #
