@@ -337,6 +337,22 @@ def test_list():
             assert isinstance(l[i], X)
             assert l[i].i == i
 
+    # no copy
+    data = list(range(10))
+    assert cast(list, data) is data
+    assert cast(List, data) is data
+    assert cast(List[int], data) is data
+
+    # copy
+    data = list(range(9))
+    data.append('9')
+    expected = list(range(10))
+
+    assert cast(list, data) is data
+    assert cast(List, data) is data
+    assert cast(List[int], data) == expected
+    assert cast(List[int], tuple(data)) == expected
+
 
 #
 # dict

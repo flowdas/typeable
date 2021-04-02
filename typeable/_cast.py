@@ -445,19 +445,44 @@ def _cast_bytearray_str(cls: Type[bytearray], val: str, ctx):
 # list
 #
 
+def _copy_list_object(r, it, ctx, T, i):
+    for v in it:
+        with ctx.traverse(i):
+            r.append(cast(T, v, ctx=ctx))
+        i += 1
+    return r
+
 
 @cast.register
 def _cast_list_object(cls: Type[list], val, ctx, T=None):
+    # assume T is not None or not isinstance(val, cls)
     if isinstance(val, Mapping):
         val = val.items()
+
     if T is None:
         return cls(val)
-    else:
-        r = cls()
-        for i, v in enumerate(val):
+
+    if isinstance(val, cls):
+        r = None
+        it = iter(val)
+        i = 0
+        for v in it:
             with ctx.traverse(i):
-                r.append(cast(T, v, ctx=ctx))
-        return r
+                cv = cast(T, v, ctx=ctx)
+                if cv is not v:
+                    if i == 0:
+                        r = cls()
+                    else:
+                        r = cls(itertools.islice(val, i))
+                    r.append(cv)
+                    break
+                i += 1
+        if r is None:
+            return val
+        else:
+            return _copy_list_object(r, it, ctx, T, i + 1)
+    else:
+        return _copy_list_object(cls(), iter(val), ctx, T, 0)
 
 
 #
@@ -495,29 +520,29 @@ def _cast_set_object(cls: Type[set], val, ctx, T=None):
     # assume T is not None or not isinstance(val, cls)
     if T is None:
         return cls(val)
-    else:
-        if isinstance(val, cls):
-            r = None
-            it = iter(val)
-            i = 0
-            for v in it:
-                with ctx.traverse(v):
-                    cv = cast(T, v, ctx=ctx)
-                    if cv is not v:
-                        if i == 0:
-                            r = cls()
-                        else:
-                            # assume repeatable order
-                            r = cls(itertools.islice(val, i))
-                        r.add(cv)
-                        break
-                    i += 1
-            if r is None:
-                return val
-            else:
-                return _copy_set_object(r, it, ctx, T)
+
+    if isinstance(val, cls):
+        r = None
+        it = iter(val)
+        i = 0
+        for v in it:
+            with ctx.traverse(v):
+                cv = cast(T, v, ctx=ctx)
+                if cv is not v:
+                    if i == 0:
+                        r = cls()
+                    else:
+                        # assume repeatable order
+                        r = cls(itertools.islice(val, i))
+                    r.add(cv)
+                    break
+                i += 1
+        if r is None:
+            return val
         else:
-            return _copy_set_object(cls(), iter(val), ctx, T)
+            return _copy_set_object(r, it, ctx, T)
+    else:
+        return _copy_set_object(cls(), iter(val), ctx, T)
 
 
 #
@@ -536,29 +561,29 @@ def _cast_frozenset_object(cls: Type[frozenset], val, ctx, T=None):
     # assume T is not None or not isinstance(val, cls)
     if T is None:
         return cls(val)
-    else:
-        if isinstance(val, cls):
-            r = None
-            it = iter(val)
-            i = 0
-            for v in it:
-                with ctx.traverse(v):
-                    cv = cast(T, v, ctx=ctx)
-                    if cv is not v:
-                        if i == 0:
-                            r = {cv}
-                        else:
-                            # assume repeatable order
-                            r = set(itertools.islice(val, i))
-                            r.add(cv)
-                        break
-                    i += 1
-            if r is None:
-                return val
-            else:
-                return _copy_frozenset_object(r, cls, it, ctx, T)
+
+    if isinstance(val, cls):
+        r = None
+        it = iter(val)
+        i = 0
+        for v in it:
+            with ctx.traverse(v):
+                cv = cast(T, v, ctx=ctx)
+                if cv is not v:
+                    if i == 0:
+                        r = {cv}
+                    else:
+                        # assume repeatable order
+                        r = set(itertools.islice(val, i))
+                        r.add(cv)
+                    break
+                i += 1
+        if r is None:
+            return val
         else:
-            return _copy_frozenset_object(set(), cls, iter(val), ctx, T)
+            return _copy_frozenset_object(r, cls, it, ctx, T)
+    else:
+        return _copy_frozenset_object(set(), cls, iter(val), ctx, T)
 
 
 #
@@ -588,6 +613,7 @@ def _cast_tuple_object(cls: Type[tuple], val, ctx, *Ts):
         val = val.items()
     elif isinstance(val, complex):
         val = val.real, val.imag
+
     if not Ts:
         return cls(val)
     elif Ts[-1] == ...:
