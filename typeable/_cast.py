@@ -338,10 +338,8 @@ def _cast_int_bool(cls: Type[int], val: bool, ctx):
 
 @cast.register
 def _cast_float_object(cls: Type[float], val, ctx):
-    if ctx.accept_nan:
-        return cls(val)
     r = cls(val)
-    if not math.isfinite(r):
+    if not ctx.accept_nan and not math.isfinite(r):
         raise ValueError(f'ctx.accept_nan={ctx.accept_nan}')
     return r
 
