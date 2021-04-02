@@ -518,6 +518,20 @@ def test_tuple():
         assert isinstance(l, tuple)
         assert l == expected
 
+    # homogeneous no copy
+    data = tuple(range(10))
+    assert cast(tuple, data) is data
+    assert cast(Tuple, data) is data
+    assert cast(Tuple[int, ...], data) is data
+
+    # homogeneous copy
+    data = tuple(range(9)) + ('9',)
+    expected = tuple(range(10))
+    assert cast(tuple, data) is data
+    assert cast(Tuple, data) is data
+    assert cast(Tuple[int, ...], data) == expected
+    assert cast(Tuple[int, ...], list(range(9)) + ['9']) == expected
+
     # heterogeneous tuple
     data = (1, "2", "3")
     expected = ("1", 2, "3")
@@ -535,6 +549,14 @@ def test_tuple():
 
     assert isinstance(l, tuple)
     assert l == expected
+
+    l = cast(Tuple[str, int, str], list(data))
+
+    assert isinstance(l, tuple)
+    assert l == expected
+
+    assert cast(Tuple[int, int, int], data) == (1, 2, 3)
+    assert cast(Tuple[int, int, int], list(data)) == (1, 2, 3)
 
     if sys.version_info >= (3, 9):
         l = cast(tuple[str, int, str], data)
@@ -573,11 +595,17 @@ def test_tuple():
         cast(Tuple[int], (1, 2))
 
     with pytest.raises(TypeError):
+        cast(Tuple[int], [1, 2])
+
+    with pytest.raises(TypeError):
         cast(Tuple[int], ())
 
+    with pytest.raises(TypeError):
+        cast(Tuple[int], [])
+
     # complex
-    cast(tuple, complex(1, 2)) == (1, 2)
-    cast(Tuple[float, float], complex(1, 2)) == (1, 2)
+    assert cast(tuple, complex(1, 2)) == (1, 2)
+    assert cast(Tuple[float, float], complex(1, 2)) == (1, 2)
 
 
 #

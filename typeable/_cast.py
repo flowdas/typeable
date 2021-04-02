@@ -541,9 +541,25 @@ def _cast_frozenset_object(cls: Type[frozenset], val, ctx, T=None):
 # tuple
 #
 
+def _copy_homo_tuple_object(r, cls, it, ctx, T, i):
+    for v in it:
+        with ctx.traverse(i):
+            r.append(cast(T, v, ctx=ctx))
+        i += 1
+    return cls(r)
+
+
+def _copy_hetero_tuple_object(r, cls, it, ctx, i):
+    for v, T in it:
+        with ctx.traverse(i):
+            r.append(cast(T, v, ctx=ctx))
+        i += 1
+    return cls(r)
+
 
 @cast.register
 def _cast_tuple_object(cls: Type[tuple], val, ctx, *Ts):
+    # assume Ts or not isinstance(val, cls)
     if isinstance(val, Mapping):
         val = val.items()
     elif isinstance(val, complex):
@@ -551,28 +567,64 @@ def _cast_tuple_object(cls: Type[tuple], val, ctx, *Ts):
     if not Ts:
         return cls(val)
     elif Ts[-1] == ...:
-        r = []
-        for i, v in enumerate(val):
-            with ctx.traverse(i):
-                r.append(cast(Ts[0], v, ctx=ctx))
-        return cls(r)
+        T = Ts[0]
+        if isinstance(val, cls):
+            r = None
+            it = iter(val)
+            i = 0
+            for v in it:
+                with ctx.traverse(i):
+                    cv = cast(T, v, ctx=ctx)
+                    if cv is not v:
+                        if i == 0:
+                            r = [cv]
+                        else:
+                            r = list(itertools.islice(val, i))
+                            r.append(cv)
+                        break
+                    i += 1
+            if r is None:
+                return val
+            else:
+                return _copy_homo_tuple_object(r, cls, it, ctx, T, i + 1)
+        else:
+            return _copy_homo_tuple_object([], cls, iter(val), ctx, T, 0)
     else:
         if Ts[0] == ():
             Ts = ()
-        r = []
-        it = iter(val)
-        for i, T in enumerate(Ts):
-            with ctx.traverse(i):
-                try:
-                    v = next(it)
-                except StopIteration:
-                    raise TypeError('length mismatch')
-                r.append(cast(T, v, ctx=ctx))
-        try:
-            with ctx.traverse(len(Ts)):
-                next(it)
+        if isinstance(val, cls):
+            if len(val) != len(Ts):
                 raise TypeError('length mismatch')
-        except StopIteration:
+            r = None
+            it = zip(val, Ts)
+            i = 0
+            for v, T in it:
+                with ctx.traverse(i):
+                    cv = cast(T, v, ctx=ctx)
+                    if cv is not v:
+                        if i == 0:
+                            r = [cv]
+                        else:
+                            r = list(itertools.islice(val, i))
+                            r.append(cv)
+                        break
+                    i += 1
+            if r is None:
+                return val
+            else:
+                return _copy_hetero_tuple_object(r, cls, it, ctx, i + 1)
+        else:
+            r = []
+            it = iter(val)
+            for i, T in enumerate(Ts):
+                with ctx.traverse(i):
+                    try:
+                        v = next(it)
+                    except StopIteration:
+                        raise TypeError('length mismatch')
+                    r.append(cast(T, v, ctx=ctx))
+            for _ in it:
+                raise TypeError('length mismatch')
             return cls(r)
 
 
