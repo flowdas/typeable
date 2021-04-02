@@ -432,6 +432,55 @@ def test_set(T, GT):
         assert l == expected
 
 
+def test_frozenset():
+    # dict
+    assert cast(frozenset, {'a': 1, 'b': 2}) == frozenset({'a', 'b'})
+
+    # None
+    with pytest.raises(TypeError):
+        cast(frozenset, None)
+
+    # frozenset
+    expected = frozenset(range(10))
+    data = frozenset(str(v) for v in expected)
+
+    l = cast(FrozenSet, data)
+    assert isinstance(l, frozenset)
+    assert l == data
+
+    l = cast(frozenset, data)
+    assert isinstance(l, frozenset)
+    assert l == data
+
+    # generic set
+    l = cast(FrozenSet[int], data)
+
+    assert isinstance(l, frozenset)
+    assert l == expected
+
+    if sys.version_info >= (3, 9):
+        l = cast(frozenset[int], data)
+
+        assert isinstance(l, frozenset)
+        assert l == expected
+
+    # no copy
+    data = frozenset(range(10))
+    assert cast(frozenset, data) is data
+    assert cast(FrozenSet, data) is data
+    assert cast(FrozenSet[int], data) is data
+
+    # copy
+    data = set(range(9))
+    data.add('9')
+    data = frozenset(data)
+    expected = frozenset(range(10))
+
+    assert cast(frozenset, data) is data
+    assert cast(FrozenSet, data) is data
+    assert cast(FrozenSet[int], data) == expected
+
+
 #
 # tuple
 #

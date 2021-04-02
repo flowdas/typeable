@@ -12,6 +12,7 @@ import enum
 import functools
 import importlib
 import inspect
+import itertools
 import math
 import re
 from abc import get_cache_token
@@ -499,17 +500,41 @@ def _cast_set_object(cls: Type[set], val, ctx, T=None):
 # frozenset
 #
 
+def _copy_frozenset_object(r, cls, it, ctx, T):
+    for v in it:
+        with ctx.traverse(v):
+            r.add(cast(T, v, ctx=ctx))
+    return cls(r)
+
 
 @cast.register
-def _cast_set_object(cls: Type[frozenset], val, ctx, T=None):
+def _cast_frozenset_object(cls: Type[frozenset], val, ctx, T=None):
+    # assume T is not None or not isinstance(val, cls)
     if T is None:
         return cls(val)
     else:
-        r = set()
-        for v in val:
-            with ctx.traverse(v):
-                r.add(cast(T, v, ctx=ctx))
-        return cls(r)
+        if isinstance(val, cls):
+            r = None
+            it = iter(val)
+            i = 0
+            for v in it:
+                with ctx.traverse(v):
+                    cv = cast(T, v, ctx=ctx)
+                    if cv is not v:
+                        if i == 0:
+                            r = {cv}
+                        else:
+                            # assume repeatable order
+                            r = set(itertools.islice(val, i))
+                            r.add(cv)
+                        break
+                    i += 1
+            if r is None:
+                return val
+            else:
+                return _copy_frozenset_object(r, cls, it, ctx, T)
+        else:
+            return _copy_frozenset_object(set(), cls, iter(val), ctx, T)
 
 
 #
