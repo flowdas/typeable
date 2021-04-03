@@ -100,6 +100,21 @@ def test_datetime():
     dt = datetime.now(timezone.utc)  # aware
     assert cast(datetime, dt) == dt
 
+    # custom datetime
+    class DT1(datetime):
+        pass
+
+    class DT2(datetime):
+        pass
+
+    assert cast(DT1, DT2.today()).__class__ is DT1
+
+    ctx = Context(datetime_format='http')
+    expected = DT1(2016, 3, 7, 0, 4, 24,
+                   tzinfo=timezone(timedelta(hours=9)))
+    assert cast(DT1, 'Mon, 07 Mar 2016 00:04:24 +0900',
+                ctx=ctx) == expected
+
 
 def test_float_from_datetime():
     naive_epoch = datetime(1970, 1, 1, 0, 0)
@@ -115,6 +130,11 @@ def test_int_from_datetime():
 
     assert cast(int, naive_epoch) == naive_epoch.timestamp()
     assert cast(int, aware_epoch) == 0
+
+    ctx = Context(lossy_conversion=False)
+    assert cast(int, naive_epoch, ctx=ctx) == naive_epoch.timestamp()
+    with pytest.raises(ValueError):
+        cast(int, datetime(1970, 1, 1, 0, 0, 0, 1), ctx=ctx)
 
 
 def test_bool_from_datetime():
@@ -136,6 +156,7 @@ def test_str_from_datetime():
     dt = datetime(2016, 3, 7, 0, 4, 24, tzinfo=timezone(timedelta(hours=9)))
     ctx = Context(datetime_format='http')
     assert cast(str, dt, ctx=ctx) == 'Sun, 06 Mar 2016 15:04:24 GMT'
+    assert cast(str, datetime(2016, 3, 7, 0, 4, 24), ctx=ctx) == 'Mon, 07 Mar 2016 00:04:24 GMT'
 
     # email
     ctx = Context(datetime_format='email')
@@ -145,6 +166,8 @@ def test_str_from_datetime():
     ctx = Context(datetime_format='timestamp')
     assert cast(str, naive_epoch, ctx=ctx) == str(int(naive_epoch.timestamp()))
     assert cast(str, aware_epoch, ctx=ctx) == '0'
+    oneus = naive_epoch.replace(microsecond=1)
+    assert cast(str, oneus, ctx=ctx) == str(oneus.timestamp())
 
     # strftime
     ctx = Context(datetime_format=r'=%Y-%m-%dT%H:%M:%S.%f%z=')
@@ -202,6 +225,23 @@ def test_date():
     # date
     d = date(1970, 1, 1)
     assert cast(date, d) == d
+
+    # custom date
+    class Date(date):
+        pass
+
+    dt = datetime.utcnow()
+    assert cast(Date, dt) == dt
+
+    ctx = Context(lossy_conversion=False)
+    with pytest.raises(ValueError):
+        cast(Date, dt.replace(tzinfo=timezone.utc), ctx=ctx)
+
+    class Date2(date):
+        pass
+
+    dt = Date2.today()
+    assert cast(Date, dt) == dt
 
 
 def test_bool_from_date():
@@ -288,6 +328,16 @@ def test_time():
     t = time(12, 34, 56, 789)
     assert cast(time, t) == t
 
+    # custom time
+    class Time(time):
+        pass
+
+    t = datetime.utcnow().time()
+    assert cast(Time, t) == t
+
+    dt = datetime.utcnow()  # naive
+    assert cast(Time, dt) == dt.time()
+
 
 def test_bool_from_time():
     t = time(12, 34, 56, 789)
@@ -352,6 +402,9 @@ def test_timedelta():
 
     assert cast(timedelta, '') == timedelta()
 
+    with pytest.raises(ValueError):
+        cast(timedelta, 'x')
+
     # None
     with pytest.raises(TypeError):
         cast(timedelta, None)
@@ -359,6 +412,13 @@ def test_timedelta():
     # timedelta
     td = timedelta()
     assert cast(timedelta, td) == td
+
+    # custom timedelta
+    class TimeDelta(timedelta):
+        pass
+
+    td = timedelta()
+    assert cast(TimeDelta, td) == td
 
 
 def test_float_from_timedelta():
@@ -371,6 +431,12 @@ def test_int_from_timedelta():
     td = timedelta(days=12, hours=9, minutes=36, seconds=7)
 
     assert cast(int, td) == int(td.total_seconds())
+
+    ctx = Context(lossy_conversion=False)
+    assert cast(int, td, ctx=ctx) == int(td.total_seconds())
+    td = timedelta(days=12, hours=9, minutes=36, seconds=7, microseconds=1)
+    with pytest.raises(ValueError):
+        cast(int, td, ctx=ctx)
 
 
 def test_bool_from_timedelta():
@@ -393,3 +459,11 @@ def test_str_from_timedelta():
     td = timedelta(days=12)
     assert cast(str, td) == 'P12D'
     assert cast(str, -td) == '-P12D'
+
+    td = timedelta(days=12, seconds=7, microseconds=1)
+    assert cast(str, td) == 'P12DT7.000001S'
+    assert cast(str, -td) == '-P12DT7.000001S'
+
+    td = timedelta(days=12, seconds=60)
+    assert cast(str, td) == 'P12DT1M'
+    assert cast(str, -td) == '-P12DT1M'

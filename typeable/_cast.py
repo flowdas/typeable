@@ -768,6 +768,7 @@ def _cast_Union_object(cls, val, ctx, *Ts) -> Union:
 
 @cast.register
 def _cast_datetime_object(cls: Type[datetime.datetime], val, ctx):
+    # assume not isinstance(val, cls)
     if isinstance(val, (int, float)):
         if ctx.naive_timestamp:
             return cls.utcfromtimestamp(val)
@@ -865,13 +866,9 @@ def _cast_float_datetime(cls: Type[float], val: datetime.datetime, ctx):
 
 @cast.register
 def _cast_int_datetime(cls: Type[int], val: datetime.datetime, ctx):
-    if issubclass(cls, bool):
-        raise TypeError
     ts = val.timestamp()
     r = cls(ts)
-    if ctx.lossy_conversion:
-        return r
-    if r != ts:
+    if not ctx.lossy_conversion and r != ts:
         raise ValueError(f'ctx.lossy_conversion={ctx.lossy_conversion}')
     return r
 
@@ -914,6 +911,7 @@ def _cast_str_datetime(cls: Type[str], val: datetime.datetime, ctx):
 
 @cast.register
 def _cast_date_object(cls: Type[datetime.date], val, ctx):
+    # assume not isinstance(val, cls)
     if isinstance(val, datetime.datetime):  # datetime is subclass of date
         if not ctx.lossy_conversion and (val.tzinfo or val.time() != datetime.time()):
             raise ValueError(f'ctx.lossy_conversion={ctx.lossy_conversion}')
@@ -951,11 +949,15 @@ def _cast_str_date(cls: Type[str], val: datetime.date, ctx):
 
 @cast.register
 def _cast_time_object(cls: Type[datetime.time], val, ctx):
+    # assume not isinstance(val, cls)
     if isinstance(val, datetime.time):
         return cls(val.hour, val.minute, val.second, val.microsecond, tzinfo=val.tzinfo)
     elif isinstance(val, datetime.datetime):
         if not ctx.lossy_conversion:
             raise ValueError(f'ctx.lossy_conversion={ctx.lossy_conversion}')
+        t = val.timetz()
+        if t.__class__ is cls:
+            return t
         return cls(val.hour, val.minute, val.second, val.microsecond, tzinfo=val.tzinfo)
     else:
         return cls(*val)
@@ -988,6 +990,7 @@ def _cast_str_time(cls: Type[str], val: datetime.time, ctx):
 
 @cast.register
 def _cast_timedelta_object(cls: Type[datetime.timedelta], val, ctx):
+    # assume not isinstance(val, cls)
     if isinstance(val, datetime.timedelta):
         return cls(days=val.days, seconds=val.seconds, microseconds=val.microseconds)
     elif isinstance(val, (int, float)):
@@ -1008,13 +1011,9 @@ def _cast_float_timedelta(cls: Type[float], val: datetime.timedelta, ctx):
 
 @cast.register
 def _cast_int_timedelta(cls: Type[int], val: datetime.timedelta, ctx):
-    if issubclass(cls, bool):
-        raise TypeError
     td = val.total_seconds()
     r = cls(td)
-    if ctx.lossy_conversion:
-        return r
-    if r != td:
+    if not ctx.lossy_conversion and r != td:
         raise ValueError(f'ctx.lossy_conversion={ctx.lossy_conversion}')
     return r
 
