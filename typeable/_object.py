@@ -6,10 +6,7 @@
 from collections.abc import Mapping
 from .typing import (
     Type,
-    Union,
     get_type_hints,
-    get_origin,
-    get_args,
 )
 from ._cast import cast
 from ._context import Context

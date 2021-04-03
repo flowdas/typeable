@@ -29,6 +29,10 @@ def test_JsonValue():
     assert cast(JsonValue, {}) == {}
     assert cast(JsonValue, ()) == ()
 
+    # JsonValue is abstract
+    with pytest.raises(TypeError):
+        JsonValue()
+
 
 def test_dump():
     data = {'a': ["0", True, 2, 3.14], 'b': range(4)}
@@ -49,6 +53,7 @@ def test_dumps():
 def test_JsonSchema_instance():
     assert cast(dict, JsonSchema()) == {}
     assert cast(dict, JsonSchema({})) == {}
+
 
 #
 # builtins
@@ -122,6 +127,7 @@ def test_JsonSchema_from_str():
 def test_JsonSchema_from_tuple():
     assert cast(dict, JsonSchema(tuple)) == {'type': 'array'}
 
+
 #
 # datetime
 #
@@ -145,6 +151,7 @@ def test_JsonSchema_from_time():
 def test_JsonSchema_from_timedelta():
     assert cast(dict, JsonSchema(datetime.timedelta)) == {
         'type': 'string', 'format': 'duration'}
+
 
 #
 # enum
@@ -194,6 +201,7 @@ def test_JsonSchema_from_IntFlag():
     assert cast(dict, JsonSchema(Perm)) == {
         'type': 'integer',
     }
+
 
 #
 # typing
@@ -294,6 +302,7 @@ def test_JsonSchema_from_Union():
     assert cast(JsonValue, JsonSchema(Union[str, int, bool])) == {
         'type': ['string', 'integer', 'boolean'],
     }
+
 
 #
 # typeable types

@@ -4,21 +4,18 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 from abc import get_cache_token
-from collections.abc import Mapping
 from dataclasses import MISSING
 import datetime
 import enum
 from functools import _find_impl
 import json
-import inspect
 
 from ._cast import cast, declare, _get_type_args
 from ._object import Object, fields, field, _META
-from .typing import Union, Dict, List, Tuple, _GenericBases, get_origin, get_type_hints, Type, Any, Literal
+from .typing import Union, Dict, List, Tuple, _GenericBases, get_origin, Type, Any, Literal
 
 with declare('_JsonValue') as _:
-    _JsonValue = Union[float, bool, int, str,
-                       None, Dict[str, _], List[_], Tuple[_, ...]]
+    _JsonValue = Union[float, bool, int, str, None, Dict[str, _], List[_], Tuple[_, ...]]
 
 
 class JsonValue:
@@ -110,6 +107,7 @@ class JsonSchema(Object):
                     cls._dispatch_cache[tp] = func
 
         return func
+
 
 #
 # builtins
@@ -208,6 +206,7 @@ def _jsonschema_tuple(self, cls: Type[tuple], *Ts):
 
     self.items = [JsonSchema(T) for T in Ts]
 
+
 #
 # datetime
 #
@@ -235,6 +234,7 @@ def _jsonschema_time(self, cls: Type[datetime.time]):
 def _jsonschema_timedelta(self, cls: Type[datetime.timedelta]):
     self.type = 'string'
     self.format = 'duration'
+
 
 #
 # enum
@@ -303,6 +303,7 @@ def _jsonschema_Union(self, cls, *Ts):
         self.type = list(types.keys())
     else:
         self.anyOf = schemas
+
 
 #
 # typeable
