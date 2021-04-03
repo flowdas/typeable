@@ -102,6 +102,10 @@ def test_distance_based_Union():
     assert cast(Union[str, bool], 1, ctx=ctx) == '1'
     assert cast(Union[bool, str], 1, ctx=ctx) is True
 
+    # no match
+    with pytest.raises(TypeError):
+        cast(Union[int, float], None)
+
 
 def test_Optional():
     assert cast(Optional[int], 1) == 1

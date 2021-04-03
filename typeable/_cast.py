@@ -1136,7 +1136,7 @@ def _cast_Literal_object(cls, val, ctx, *literals) -> Literal:
         if literal == val:
             return literal
     else:
-        raise ValueError
+        raise ValueError(f"One of {literals!r} required, but {val!r} is given")
 
 
 #
