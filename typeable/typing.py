@@ -14,12 +14,14 @@ import typing
 if sys.version_info < (3, 8):  # pragma: no cover
     import collections.abc
 
+
     def get_origin(tp):
         if isinstance(tp, typing._GenericAlias):
             return tp.__origin__
         if tp is Generic:
             return tp
         return None
+
 
     def get_args(tp):
         if isinstance(tp, typing._GenericAlias):
@@ -31,19 +33,20 @@ if sys.version_info < (3, 8):  # pragma: no cover
             return res or ()
         return ()
 
+
     from typing_extensions import Literal
 
 if sys.version_info < (3, 9):
-    _RECURSIVE_GUARD = False
+    _RECURSIVE_GUARD = False  # pragma: no cover
 else:
     _RECURSIVE_GUARD = True
 
 _GenericBases = []
 for _name in (
-    'GenericAlias',
-    '_GenericAlias',
-    '_SpecialForm',
+        'GenericAlias',
+        '_GenericAlias',
+        '_SpecialForm',
 ):
-    if hasattr(typing, _name):
+    if hasattr(typing, _name):  # pragma: no cover
         _GenericBases.append(getattr(typing, _name))
 _GenericBases = tuple(_GenericBases)
