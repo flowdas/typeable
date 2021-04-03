@@ -59,7 +59,7 @@ class Object:
                 elif field.default_factory is not None:
                     val = field.default_factory()
                 else:
-                    continue
+                    continue  # pragma: no cover; TODO: coverage's bug?
                 if val is None and field.nullable is not None:
                     if field.nullable:
                         self.__dict__[field.name] = val
@@ -247,6 +247,7 @@ def field(*, key=None, default=MISSING, default_factory=None, nullable=None, req
 
 @cast.register
 def _cast_Object_object(cls: Type[Object], val, ctx):
+    # assume not isinstance(val, cls)
     return cls(val, ctx=ctx)
 
 

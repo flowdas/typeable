@@ -34,8 +34,32 @@ def test_initializer():
     x = X(data)
     assert x.i == data['i']
 
+    x = X(**data)
+    assert x.i == data['i']
+
+    with pytest.raises(TypeError):
+        X({}, **data)
+
     with pytest.raises(TypeError):
         X(1)
+
+
+def test_missing():
+    class X(Object):
+        i: int
+        j: int
+
+    data = {'i': 0}
+
+    x = X(data)
+    assert x.i == data['i']
+    with pytest.raises(AttributeError):
+        x.j
+
+    x = X(**data)
+    assert x.i == data['i']
+    with pytest.raises(AttributeError):
+        x.j
 
 
 class NestedX(Object):
@@ -305,6 +329,26 @@ def test_kind():
     assert isinstance(x, HttpBearerAuthenticator)
     assert cast(JsonValue, x) == data
 
+    # only one kind field allowed
+    with pytest.raises(TypeError):
+        class XAuthenticator(Authenticator):
+            scheme: str = field(kind=True)
+
+    # kind option requires kind field
+    with pytest.raises(TypeError):
+        class XObject(Object, kind='X'):
+            pass
+
+    # duplicated kind option not allowed
+    with pytest.raises(TypeError):
+        class XAuthenticator(Authenticator, kind='apiKey'):
+            pass
+
+    # kind field cannot be nullable
+    with pytest.raises(ValueError):
+        class XObject(Object):
+            type: str = field(kind=True, nullable=True)
+
 
 def test_kind_fields():
     class Authenticator(Object):  # abstract
@@ -342,6 +386,7 @@ def test_kind_fields():
     assert flds[0].name == 'type'
     assert flds[0].kind
 
+
 def test_kind_ctor():
     class Authenticator(Object):  # abstract
         type: str = field(kind=True)
@@ -360,3 +405,12 @@ def test_kind_ctor():
     assert x.type == 'apiKey'
     assert x.name == 'x-api-key'
     assert x.__class__ is ApiKeyAuthenticator
+
+    x = ApiKeyAuthenticator(type='apiKey', name='x-api-key')
+    assert x.type == 'apiKey'
+    assert x.name == 'x-api-key'
+    assert x.__class__ is ApiKeyAuthenticator
+
+    # cannot instantiate concrete class with invalid kind
+    with pytest.raises(TypeError):
+        ApiKeyAuthenticator(type='x', name='x-api-key')
