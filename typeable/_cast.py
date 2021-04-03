@@ -1050,6 +1050,7 @@ def _cast_str_timedelta(cls: Type[str], val: datetime.timedelta, ctx):
 
 @cast.register
 def _cast_Enum_object(cls: Type[enum.Enum], val, ctx):
+    # assume not isinstance(val, cls)
     return cls(val)
 
 
@@ -1069,7 +1070,7 @@ def _cast_str_Enum(cls: Type[str], val: enum.Enum, ctx):
 
 
 @cast.register
-def _cast_IntEnum_object(cls: Type[enum.IntEnum], val: int, ctx):
+def _cast_IntEnum_int(cls: Type[enum.IntEnum], val: int, ctx):
     return cls(val)
 
 
@@ -1090,6 +1091,7 @@ def _cast_str_IntEnum(cls: Type[str], val: enum.IntEnum, ctx):
 
 @cast.register
 def _cast_Flag_Flag(cls: Type[enum.Flag], val: enum.Flag, ctx):
+    # assume not isinstance(val, cls)
     return cls(val)
 
 

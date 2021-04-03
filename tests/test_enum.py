@@ -103,6 +103,7 @@ def test_str_from_IntEnum():
     assert cast(str, Shape.CIRCLE, ctx=ctx) == 'CIRCLE'
     assert cast(str, Shape.SQUARE, ctx=ctx) == 'SQUARE'
 
+
 #
 # Flag
 #
@@ -133,10 +134,18 @@ def test_Flag():
     with pytest.raises(TypeError):
         cast(Perm, None)
 
-    # IntFlag
+    # Flag
     assert cast(Perm, Perm.R) is Perm.R
     assert cast(Perm, Perm.W) is Perm.W
     assert cast(Perm, Perm.X) is Perm.X
+
+    class Perm2(Flag):
+        R = 4
+        W = 2
+        X = 1
+
+    with pytest.raises(TypeError):
+        cast(Perm, Perm2.R)
 
 
 def test_int_from_Flag():
@@ -159,6 +168,7 @@ def test_str_from_Flag():
 
     with pytest.raises(TypeError):
         cast(str, Perm.R)
+
 
 #
 # IntFlag
