@@ -8,6 +8,7 @@ import inspect
 
 import pytest
 from typeable.typing import (
+    Annotated,
     Any,
     Dict,
     ForwardRef,
@@ -43,6 +44,8 @@ def test_get_origin():
     assert get_origin(Union[int, None]) == Union
     assert get_origin(Any) is None
     assert get_origin(Literal) is None
+    assert get_origin(Annotated) is None
+    assert get_origin(Annotated[int, lambda: True]) is Annotated
 
 
 def test_get_args():
@@ -69,6 +72,8 @@ def test_get_args():
     assert get_args(Any) == ()
     assert get_args(Literal) == ()
     assert get_args(Literal['2.0']) == ('2.0',)
+    assert get_args(Annotated) == ()
+    assert get_args(Annotated[int, True, False]) == (int, True, False)
 
 
 Integer = int

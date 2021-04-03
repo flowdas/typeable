@@ -140,6 +140,10 @@
 :mod:`typing`
 ~~~~~~~~~~~~~
 
+:data:`typing.Annotated`
+
+    :data:`typing.Annotated` 는 파이썬 3.9에 추가되었기 때문에, :mod:`typeable.typing` 모듈에서 역이식을 제공합니다.
+
 :data:`typing.Any`
 
     ``val`` 을 변환이나 검사 없이 그대로 통과시킵니다.

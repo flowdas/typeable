@@ -141,6 +141,10 @@ Standard Types
 :mod:`typing`
 ~~~~~~~~~~~~~
 
+:data:`typing.Annotated`
+
+    Since :data:`typing.Annotated` was added in Python 3.9, the :mod:`typeable.typing` module provides backport.
+
 :data:`typing.Any`
 
     Pass ``val`` as it is without conversion or checking.
