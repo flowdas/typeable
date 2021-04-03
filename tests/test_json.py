@@ -6,7 +6,6 @@ import io
 import pytest
 
 from typeable import cast, JsonSchema, JsonValue, dump, dumps, Object, field
-import typeable
 from typeable.typing import (
     Any,
     Dict,
@@ -16,6 +15,7 @@ from typeable.typing import (
     Optional,
     Set,
     Tuple,
+    Type,
     Union,
 )
 
@@ -32,6 +32,14 @@ def test_JsonValue():
     # JsonValue is abstract
     with pytest.raises(TypeError):
         JsonValue()
+
+
+def test_JsonSchema_register():
+    # conflict
+    with pytest.raises(RuntimeError):
+        @JsonSchema.register(bool)
+        def _(self, cls: Type[bool]):
+            self.type = 'boolean'
 
 
 def test_dump():
@@ -303,6 +311,33 @@ def test_JsonSchema_from_Union():
         'type': ['string', 'integer', 'boolean'],
     }
 
+    assert cast(JsonValue, JsonSchema(Union[str, int, bool, Any])) == {}
+
+    assert cast(JsonValue, JsonSchema(Union[str, List[str]])) == {
+        'anyOf': [
+            {
+                'type': 'string',
+            },
+            {
+                'type': 'array',
+                'items': {
+                    'type': 'string',
+                }
+            }
+        ]
+    }
+
+    class Number:
+        pass
+
+    @JsonSchema.register(Number)
+    def _(self, cls):
+        self.type = ['integer', 'number']
+
+    assert cast(JsonValue, JsonSchema(Union[str, int, Number])) == {
+        'type': ['string', 'integer', 'number'],
+    }
+
 
 #
 # typeable types
@@ -329,5 +364,35 @@ def test_JsonSchema_from_Object():
             }
         },
         'required': ['b'],
+        'additionalProperties': False,
+    }
+
+    uri = 'https://raw.githubusercontent.com/open-rpc/meta-schema/master/schema.json'
+
+    class OpenRpcDoc(Object, jsonschema=uri):
+        pass
+
+    assert cast(JsonValue, JsonSchema(OpenRpcDoc)) == {
+        '$ref': uri
+    }
+
+    class Empty(Object):
+        pass
+
+    assert cast(JsonValue, JsonSchema(Empty)) == {
+        'type': 'object',
+        'additionalProperties': False,
+    }
+
+    class AllOptional(Object):
+        a: int
+
+    assert cast(JsonValue, JsonSchema(AllOptional)) == {
+        'type': 'object',
+        'properties': {
+            'a': {
+                'type': 'integer',
+            },
+        },
         'additionalProperties': False,
     }

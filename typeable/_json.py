@@ -172,11 +172,6 @@ def _jsonschema_None(self, cls: Type[None]):
     self.type = 'null'
 
 
-@JsonSchema.register(object)
-def _jsonschema_object(self, cls: Type[object]):
-    pass
-
-
 @JsonSchema.register(set)
 def _jsonschema_set(self, cls: Type[set], T=None):
     self.type = 'array'
