@@ -75,7 +75,46 @@
 
 .. function:: fields(class_or_instance)
 
-이 패키지는 몇 가지 클래스를 정의합니다. 아래에 나오는 절에서 자세히 설명합니다.
+이 패키지는 여러 클래스를 정의합니다. 아래에 나오는 절에서 자세히 설명합니다.
+
+.. class:: AllOf(arg: Constraint, *args: Constraint)
+
+   인자로 전달된 모든 제약 조건들을 모두 만족해야하는 :class:`Constraint`.
+
+.. class:: AnyOf(arg: Constraint, *args: Constraint)
+
+   인자로 전달된 제약 조건 중 하나 이상을 만족해야하는 :class:`Constraint`.
+
+.. class:: Constraint()
+
+   실행 시간에 검사되는 제약 조건들의 베이스 클래스.
+
+   :data:`typing.Annotated` 에 제공되는 메타 데이터로 사용됩니다.
+
+   이 용도 외에 사용자가 :class:`Constraint` 의 인스턴스를 직접 다룰 일은 없습니다.
+   다음 인터페이스는 :class:`Constraint` 의 서브 클래스를 만들어 새로운 제약 조건을 정의하고자 할 때만 필요합니다.
+
+   .. method:: annotate(schema: JsonSchema)
+
+      제약 조건을 **schema** 인자로 전달된 JSON Schema 에 추가합니다.
+
+   .. method:: compile()
+
+      제약 조건을 평가하는 콜러블을 반환합니다.
+
+      콜러블은 :func:`cast` 가 캐스팅한 후의 값을 인자로 취합니다.
+      콜러블의 반환값이 참으로 평가되면 제약 조건을 만족하는 것으로 해석합니다.
+      거짓을 반환하거나 예외를 발생시키면 제약 조건을 만족하지 않는 것으로 해석합니다.
+
+   .. method:: emit()
+
+      제약 조건을 표현하는 문자열을 반환합니다.
+
+      표현식은 검사하고자 하는 인자가 ``x`` 라는 변수로 제공된다고 가정해야 합니다.
+      예를 들어, ``"(x > 0)"``.
+
+      표현식이 모듈을 참조한다면, :meth:`emit` 는 ``(expr, ns)`` 2-튜플을 반환할 수 있습니다.
+      ``expr`` 은 표현식이고, ``ns`` 는 키가 모듈 이름이고, 값이 모듈 인스턴스인 매핑 입니다.
 
 .. class:: Context(**policies)
 
@@ -200,6 +239,10 @@
    인스턴스를 만들 수는 없고 :func:`cast` 로 타입 캐스팅할 수만 있습니다.
 
    이 형으로 변환된 값은 표준 라이브러리의 :func:`json.dumps` 와 :func:`json.dump` 로 직접 전달할 수 있습니다. 
+
+.. class:: NoneOf(arg: Constraint, *args: Constraint)
+
+   인자로 전달된 제약 조건 중 어느 것도 만족하지 않아야 하는 :class:`Constraint`.
 
 .. class:: Object(value = dataclasses.MISSING, /, *, ctx: Context = None, **kwargs)
 

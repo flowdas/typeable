@@ -142,7 +142,20 @@
 
 :data:`typing.Annotated`
 
+    형 ``T`` 는 형 힌트 ``Annotated[T, x]`` 를 통해 메타 데이터 ``x`` 로 어노테이트될 수 있습니다.
+
+    ``x`` 가 :class:`Constraint` 의 인스턴스면, :func:`cast` 는 형 변환 후의 값이 ``x`` 가 정의하는 제약 조건을 만족하는지 검사합니다.
+    또한, 이 제약 조건은 :class:`JsonSchema` 에도 반영됩니다.
+
+    메타 데이터가 여러개가 제공되면 모든 제약 조건을 만족해야 합니다.
+
+    ``x`` 가 :class:`Constraint` 의 인스턴스가 아니면 무시합니다.
+
     :data:`typing.Annotated` 는 파이썬 3.9에 추가되었기 때문에, :mod:`typeable.typing` 모듈에서 역이식을 제공합니다.
+
+    현재 Typeable 은 다음과 같은 :class:`Constraint` 서브 클래스를 제공합니다:
+
+    :class:`AllOf`, :class:`AnyOf`, :class:`NoneOf`.
 
 :data:`typing.Any`
 

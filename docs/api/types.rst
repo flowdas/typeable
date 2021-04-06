@@ -143,7 +143,20 @@ Standard Types
 
 :data:`typing.Annotated`
 
+    A type ``T`` can be annotated with metadata ``x`` via the typehint ``Annotated[T, x]``.
+
+    If ``x`` is an instance of :class:`Constraint`, then :func:`cast` checks if the value after casting meets the constraint defined by ``x``.
+    Also, this constraint is reflected in :class:`JsonSchema`.
+
+    If multiple metadata is provided, all constraints must be satisfied.
+
+    Ignored if ``x`` is not an instance of :class:`Constraint`.
+
     Since :data:`typing.Annotated` was added in Python 3.9, the :mod:`typeable.typing` module provides backport.
+
+    Currently Typeable provides the following :class:`Constraint` subclasses:
+
+    :class:`AllOf`, :class:`AnyOf` and :class:`NoneOf`.
 
 :data:`typing.Any`
 

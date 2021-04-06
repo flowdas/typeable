@@ -4,15 +4,19 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 from ._cast import cast, declare
-from . import _constraint
+from ._constraint import Constraint, AllOf, AnyOf, NoneOf
 from ._context import Context
 from ._object import Object, field, fields
 from ._json import JsonSchema, JsonValue, dump, dumps
 
 __all__ = [
+    'AllOf',
+    'AnyOf',
+    'Constraint',
     'Context',
     'JsonSchema',
     'JsonValue',
+    'NoneOf',
     'Object',
     'cast',
     'declare',

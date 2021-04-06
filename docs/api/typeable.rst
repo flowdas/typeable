@@ -77,6 +77,45 @@ This package defines the following functions and decorators:
 
 This package defines a number of classes, which are detailed in the sections below.
 
+.. class:: AllOf(arg: Constraint, *args: Constraint)
+
+   :Class:`Constraint` that must satisfy all constraints passed as arguments.
+
+.. class:: AnyOf(arg: Constraint, *args: Constraint)
+
+   :Class:`Constraint` that must satisfy at least one of the constraints passed as arguments.
+
+.. class:: Constraint()
+
+   Base class of constraints checked at runtime.
+
+   Used as metadata provided to :data:`typing.Annotated`.
+
+   Other than this purpose, the user does not have to deal with instances of :class:`Constraint` directly.
+   The following interface is only needed if you want to define a new constraint by creating a subclass of :class:`Constraint`.
+
+   .. method:: annotate(schema: JsonSchema)
+
+      Add the constraint to the JSON Schema passed as the **schema** argument.
+
+   .. method:: compile()
+
+      Returns a callable that evaluates the constraint.
+
+      The callable takes the value after casting by :func:`cast`.
+      If the callable's return value evaluates to true, it is interpreted as satisfying the constraint.
+      Returning false or raising an exception is interpreted as not satisfying the constraint.
+
+   .. method:: emit()
+
+      Returns a string expressing the constraint.
+
+      The expression must assume that the argument to be tested is provided as a variable called ``x``.
+      For example, ``"(x > 0)"``.
+
+      If the expression refers to a module, :meth:`emit` can return a 2-tuple ``(expr, ns)``.
+      ``expr`` is an expression, ``ns`` is a mapping where the key is the module name, and the value is the module instance.
+
 .. class:: Context(**policies)
 
    By passing the :class:`Context` object to the :func:`cast` you can change 
@@ -207,6 +246,10 @@ This package defines a number of classes, which are detailed in the sections bel
    You cannot create an instance, you can only type cast with :func:`cast`.
 
    Values converted to this type can be passed directly to :func:`json.dumps` and :func:`json.dump` in the standard library. 
+
+.. class:: NoneOf(arg: Constraint, *args: Constraint)
+
+   :Class:`Constraint` which must not satisfy any of the constraints passed as arguments.
 
 .. class:: Object(value = dataclasses.MISSING, /, *, ctx: Context = None, **kwargs)
 

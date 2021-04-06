@@ -57,7 +57,9 @@ class JsonSchema(Object):
     enum: list
     additionalProperties: Union[bool, 'JsonSchema']
     items: Union['JsonSchema', List['JsonSchema']]
+    allOf: List['JsonSchema']
     anyOf: List['JsonSchema']
+    not_: 'JsonSchema' = field(key='not')
     properties: Dict[str, 'JsonSchema']
     required: List[str]
 
