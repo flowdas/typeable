@@ -31,7 +31,6 @@ class Error:
 
 class Context:
     # default policies
-    accept_nan: bool = True
     bool_is_int: bool = True
     bool_strings: Dict[str, bool] = {
         '0': False, '1': True, 'f': False, 'false': False,

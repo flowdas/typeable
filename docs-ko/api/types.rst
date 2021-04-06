@@ -155,7 +155,7 @@
 
     현재 Typeable 은 다음과 같은 :class:`Constraint` 서브 클래스를 제공합니다:
 
-    :class:`AllOf`, :class:`AnyOf`, :class:`NoneOf`.
+    :class:`AllOf`, :class:`AnyOf`, :class:`NoneOf`, :class:`IsFinite`.
 
 :data:`typing.Any`
 

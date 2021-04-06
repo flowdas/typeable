@@ -128,12 +128,6 @@ This package defines a number of classes, which are detailed in the sections bel
    values of parameters, or add new parameters. The currently defined 
    parameters are:
 
-   .. attribute:: accept_nan 
-      :type: bool 
-      :value: True
-
-      If this attribute is :const:`False`, then :class:`float` and :class:`complex` does not accept NaN(not a number) or infinity.
-
    .. attribute:: bool_is_int
       :type: bool 
       :value: True
@@ -229,6 +223,14 @@ This package defines a number of classes, which are detailed in the sections bel
           ('b', 2)
 
     .. method:: traverse(key)
+
+.. class:: IsFinite()
+
+   :Class:`Constraint` which allows only finite numbers.
+
+   Applies only to :class:`int`, :class:`float`, and :class:`complex` types, and does not allow NaN or infinity.
+
+   Standard JSON does not allow NaN or infinite, so it is not reflected in JSON Schema.
 
 .. class:: JsonSchema(value_or_type = dataclasses.MISSING, *, ctx: Context = None)
 

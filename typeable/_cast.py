@@ -340,10 +340,7 @@ def _cast_int_bool(cls: Type[int], val: bool, ctx):
 @cast.register
 def _cast_float_object(cls: Type[float], val, ctx):
     # assume not isinstance(val, cls)
-    r = cls(val)
-    if not ctx.accept_nan and not math.isfinite(r):
-        raise ValueError(f'ctx.accept_nan={ctx.accept_nan}')
-    return r
+    return cls(val)
 
 
 @cast.register
@@ -365,8 +362,6 @@ def _cast_complex_object(cls: Type[complex], val, ctx):
         r = cls(*val)
     else:
         r = cls(val)
-    if not ctx.accept_nan and not cmath.isfinite(r):
-        raise ValueError(f'ctx.accept_nan={ctx.accept_nan}')
     return r
 
 

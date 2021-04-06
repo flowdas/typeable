@@ -156,7 +156,7 @@ Standard Types
 
     Currently Typeable provides the following :class:`Constraint` subclasses:
 
-    :class:`AllOf`, :class:`AnyOf` and :class:`NoneOf`.
+    :class:`AllOf`, :class:`AnyOf`, :class:`NoneOf`, and :class:`IsFinite`.
 
 :data:`typing.Any`
 

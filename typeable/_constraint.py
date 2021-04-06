@@ -4,8 +4,11 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
+import cmath
+import math
+
 from ._cast import cast
-from ._json import JsonSchema, JsonValue
+from ._json import JsonSchema
 from .typing import (
     Annotated,
     Type,
@@ -126,3 +129,10 @@ class NoneOf(AnyOf):
         s = JsonSchema()
         super().annotate(s)
         schema.not_ = s
+
+
+class IsFinite(Constraint):
+    def emit(self):
+        expr = '((isinstance(x,(float,int)) and math.isfinite(x)) or (isinstance(x,complex) and cmath.isfinite(x)))'
+        ns = dict(math=math, cmath=cmath)
+        return expr, ns

@@ -125,12 +125,6 @@
    :class:`Context` 인스턴스의 어트리뷰트로 제공됩니다. :class:`Context` 를 서브클래싱해서
    파라미터의 기본값을 변경하거나, 새 파라미터를 추가할 수 있습니다. 현제 정의된 파라미터는 다음과 같습니다:
 
-   .. attribute:: accept_nan 
-      :type: bool 
-      :value: True
-
-      이 어트리뷰트가 :const:`False` 면, :class:`float`, :class:`complex` 로 NaN(not a number) 이나 무한대를 받아들이지 않습니다.
-
    .. attribute:: bool_is_int
       :type: bool 
       :value: True
@@ -222,6 +216,14 @@
           ('b', 2)
 
    .. method:: traverse(key)
+
+.. class:: IsFinite()
+
+   유한한 숫자만을 허락하는 :class:`Constraint`.
+
+   :class:`int`, :class:`float`, :class:`complex` 형에만 적용되고, NaN 이나 무한을 허락하지 않습니다.
+
+   표준 JSON 은 NaN 이나 무한을 허락하지 않기 때문에, JSON Schema 에는 반영되지 않습니다.
 
 .. class:: JsonSchema(value_or_type = dataclasses.MISSING, *, ctx: Context = None)
 

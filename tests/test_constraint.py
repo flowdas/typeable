@@ -181,3 +181,13 @@ def test_NoneOf():
     assert cast(JsonValue, schema) == {
         'not': {'format': 'negative'}
     }
+
+
+def test_IsFinite():
+    c = IsFinite()
+
+    assert c(1)
+    assert c(3.14)
+    assert c(complex(1, 3))
+    assert not c(float('nan'))
+    assert not c(complex(3, float('nan')))

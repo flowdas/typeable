@@ -134,10 +134,6 @@ def test_float():
     # str
     assert cast(float, "123.456") == 123.456
     assert math.isnan(cast(float, "nan"))
-    with pytest.raises(ValueError):
-        cast(float, "nan", ctx=Context(accept_nan=False))
-    with pytest.raises(ValueError):
-        cast(float, "inf", ctx=Context(accept_nan=False))
 
     # bool
     assert cast(float, True) == 1.0
@@ -164,10 +160,6 @@ def test_complex():
     # str
     assert cast(complex, "123+456j") == complex(123, 456)
     assert cmath.isnan(cast(complex, "nan+nanj"))
-    with pytest.raises(ValueError):
-        cast(complex, "nan+nanj", ctx=Context(accept_nan=False))
-    with pytest.raises(ValueError):
-        cast(complex, "inf", ctx=Context(accept_nan=False))
 
     # bool
     assert cast(complex, True) == 1.0 + 0j
