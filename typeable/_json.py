@@ -62,6 +62,10 @@ class JsonSchema(Object):
     not_: 'JsonSchema' = field(key='not')
     properties: Dict[str, 'JsonSchema']
     required: List[str]
+    exclusiveMinimum: Union[int, float]
+    exclusiveMaximum: Union[int, float]
+    minimum: Union[int, float]
+    maximum: Union[int, float]
 
     def __init__(self, value_or_type=MISSING, *, ctx=None):
         if value_or_type is MISSING:

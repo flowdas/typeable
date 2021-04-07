@@ -5,7 +5,17 @@
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 from ._cast import cast, declare
-from ._constraint import Constraint, AllOf, AnyOf, NoneOf, IsFinite
+from ._constraint import (
+    Constraint,
+    AllOf,
+    AnyOf,
+    NoneOf,
+    IsFinite,
+    IsGreaterThan,
+    IsGreaterThanOrEqual,
+    IsLessThan,
+    IsLessThanOrEqual,
+)
 from ._context import Context
 from ._object import Object, field, fields
 from ._json import JsonSchema, JsonValue, dump, dumps
@@ -16,6 +26,10 @@ __all__ = [
     'Constraint',
     'Context',
     'IsFinite',
+    'IsGreaterThan',
+    'IsGreaterThanOrEqual',
+    'IsLessThan',
+    'IsLessThanOrEqual',
     'JsonSchema',
     'JsonValue',
     'NoneOf',

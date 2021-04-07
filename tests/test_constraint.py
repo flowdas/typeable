@@ -191,3 +191,33 @@ def test_IsFinite():
     assert c(complex(1, 3))
     assert not c(float('nan'))
     assert not c(complex(3, float('nan')))
+
+
+def test_range():
+    c = IsGreaterThan(0)
+    assert c(1)
+    assert not c(0)
+    schema = JsonSchema()
+    c.annotate(schema)
+    assert cast(JsonValue, schema) == {'exclusiveMinimum': 0}
+
+    c = IsGreaterThanOrEqual(0)
+    assert c(0)
+    assert not c(-1)
+    schema = JsonSchema()
+    c.annotate(schema)
+    assert cast(JsonValue, schema) == {'minimum': 0}
+
+    c = IsLessThan(0)
+    assert c(-1)
+    assert not c(0)
+    schema = JsonSchema()
+    c.annotate(schema)
+    assert cast(JsonValue, schema) == {'exclusiveMaximum': 0}
+
+    c = IsLessThanOrEqual(0)
+    assert c(0)
+    assert not c(1)
+    schema = JsonSchema()
+    c.annotate(schema)
+    assert cast(JsonValue, schema) == {'maximum': 0}

@@ -4,7 +4,6 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 import asyncio
-import cmath
 from contextlib import contextmanager
 import datetime
 from email.utils import parsedate_to_datetime
@@ -13,7 +12,6 @@ import functools
 import importlib
 import inspect
 import itertools
-import math
 import re
 from abc import get_cache_token
 from collections.abc import (

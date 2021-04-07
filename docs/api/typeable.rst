@@ -232,6 +232,30 @@ This package defines a number of classes, which are detailed in the sections bel
 
    Standard JSON does not allow NaN or infinite, so it is not reflected in JSON Schema.
 
+.. class:: IsGreaterThan(exclusive_minimum)
+
+   :class:`Constraint` that only allows values greater than *exclusive_minimum*.
+
+   It is expressed as *exclusiveMinimum* in JSON Schema.
+
+.. class:: IsGreaterThanOrEqual(minimum)
+
+   :class:`Constraint` that only allows values greater than or equal to *minimum*.
+
+   It is expressed as *minimum* in JSON Schema.
+
+.. class:: IsLessThan(exclusive_maximum)
+
+   :class:`Constraint` that only allows values less than *exclusive_maximum*.
+
+   It is expressed as *exclusiveMaximum* in JSON Schema.
+
+.. class:: IsLessThanOrEqual(maximum)
+
+   :class:`Constraint` that only allows values less than or equal to *maximum*.
+
+   It is expressed as *maximum* in JSON Schema.
+
 .. class:: JsonSchema(value_or_type = dataclasses.MISSING, *, ctx: Context = None)
 
    A subclass of :class:`Object` representing `JSON Schema <https://json-schema.org/>`_.

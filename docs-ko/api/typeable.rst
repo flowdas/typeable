@@ -225,6 +225,30 @@
 
    표준 JSON 은 NaN 이나 무한을 허락하지 않기 때문에, JSON Schema 에는 반영되지 않습니다.
 
+.. class:: IsGreaterThan(exclusive_minimum)
+
+   *exclusive_minimum* 보다 큰 값만 허락하는 :class:`Constraint`.
+
+   JSON Schema 에는 *exclusiveMinimum* 으로 표현됩니다.
+
+.. class:: IsGreaterThanOrEqual(minimum)
+
+   *minimum* 보다 크거나 같은 값만 허락하는 :class:`Constraint`.
+
+   JSON Schema 에는 *minimum* 으로 표현됩니다.
+
+.. class:: IsLessThan(exclusive_maximum)
+
+   *exclusive_maximum* 보다 작은 값만 허락하는 :class:`Constraint`.
+
+   JSON Schema 에는 *exclusiveMaximum* 으로 표현됩니다.
+
+.. class:: IsLessThanOrEqual(maximum)
+
+   *maximum* 보다 작거나 같은 값만 허락하는 :class:`Constraint`.
+
+   JSON Schema 에는 *maximum* 으로 표현됩니다.
+
 .. class:: JsonSchema(value_or_type = dataclasses.MISSING, *, ctx: Context = None)
 
    `JSON Schema <https://json-schema.org/>`_ 를 표현하는 :class:`Object` 의 서브 클래스.

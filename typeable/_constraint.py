@@ -45,6 +45,8 @@ def _jsonschema_Annotated(self, cls: Type[Annotated], T, *args):
 #
 
 class Constraint:
+    __slots__ = ('_code',)
+
     def __repr__(self):
         return f"{self.__class__.__name__}()"
 
@@ -76,6 +78,8 @@ class Constraint:
 
 
 class _Combined(Constraint):
+    __slots__ = ('args',)
+
     def __init__(self, arg, *args):
         self.args = (arg,) + args
 
@@ -107,16 +111,22 @@ class _Combined(Constraint):
 
 
 class AllOf(_Combined):
+    __slots__ = ()
+
     OP = 'and'
     KEYWORD = 'allOf'
 
 
 class AnyOf(_Combined):
+    __slots__ = ()
+
     OP = 'or'
     KEYWORD = 'anyOf'
 
 
 class NoneOf(AnyOf):
+    __slots__ = ()
+
     def emit(self):
         expr = super().emit()
         if isinstance(expr, tuple):
@@ -132,7 +142,61 @@ class NoneOf(AnyOf):
 
 
 class IsFinite(Constraint):
+    __slots__ = ()
+
     def emit(self):
         expr = '((isinstance(x,(float,int)) and math.isfinite(x)) or (isinstance(x,complex) and cmath.isfinite(x)))'
         ns = dict(math=math, cmath=cmath)
         return expr, ns
+
+
+class IsGreaterThan(Constraint):
+    __slots__ = ('_value',)
+
+    def __init__(self, exclusive_minimum):
+        self._value = exclusive_minimum
+
+    def emit(self):
+        return f"(x > {self._value!r})"
+
+    def annotate(self, schema):
+        schema.exclusiveMinimum = self._value
+
+
+class IsGreaterThanOrEqual(Constraint):
+    __slots__ = ('_value',)
+
+    def __init__(self, minimum):
+        self._value = minimum
+
+    def emit(self):
+        return f"(x >= {self._value!r})"
+
+    def annotate(self, schema):
+        schema.minimum = self._value
+
+
+class IsLessThan(Constraint):
+    __slots__ = ('_value',)
+
+    def __init__(self, exclusive_maximum):
+        self._value = exclusive_maximum
+
+    def emit(self):
+        return f"(x < {self._value!r})"
+
+    def annotate(self, schema):
+        schema.exclusiveMaximum = self._value
+
+
+class IsLessThanOrEqual(Constraint):
+    __slots__ = ('_value',)
+
+    def __init__(self, maximum):
+        self._value = maximum
+
+    def emit(self):
+        return f"(x <= {self._value!r})"
+
+    def annotate(self, schema):
+        schema.maximum = self._value
