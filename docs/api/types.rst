@@ -77,6 +77,22 @@ Builtin Types
 
 :class:`tuple`
 
+:class:`type`
+
+    Converted to and from :class:`str`.
+
+    When converting a type object to :class:`str`, it is converted to :term:`fully qualified name <qualified name>`.
+    For builtin types, the :mod:`builtins` module is used as the module name.
+
+    When converting from :class:`str` to a type object, it accepts :term:`fully qualified name <qualified name>`.
+    However, for builtin types, you can omit :mod:`builtins`.
+
+    If *val* is a type, only type checking is performed and *val* is returned as it is.
+
+    Given a generic type parameter, it is interpreted as covariant.
+    In other words, it accepts all subclasses of the type parameter.
+
+    In addition to :exc:`TypeError`, :exc:`ImportError` or :exc:`AttributeError` can also be raised.
 
 Standard Types
 --------------
@@ -125,6 +141,25 @@ Standard Types
 :mod:`typing`
 ~~~~~~~~~~~~~
 
+:data:`typing.Annotated`
+
+    A type ``T`` can be annotated with metadata ``x`` via the typehint ``Annotated[T, x]``.
+
+    If ``x`` is an instance of :class:`Constraint`, then :func:`cast` checks if the value after casting meets the constraint defined by ``x``.
+    Also, this constraint is reflected in :class:`JsonSchema`.
+
+    If multiple metadata is provided, all constraints must be satisfied.
+
+    Ignored if ``x`` is not an instance of :class:`Constraint`.
+
+    Since :data:`typing.Annotated` was added in Python 3.9, the :mod:`typeable.typing` module provides backport.
+
+    Currently Typeable provides the following :class:`Constraint` subclasses:
+
+    :class:`AllOf`, :class:`AnyOf`, :class:`NoneOf`, :class:`IsFinite`, :class:`IsGreaterThan`,
+    :class:`IsGreaterThanOrEqual`, :class:`IsLessThan`, :class:`IsLessThanOrEqual`, :class:`IsLongerThanOrEqual`,
+    and :class:`IsShorterThanOrEqual`.
+
 :data:`typing.Any`
 
     Pass ``val`` as it is without conversion or checking.
@@ -157,6 +192,10 @@ Standard Types
 :class:`typing.Set`
 
 :data:`typing.Tuple`
+
+:class:`typing.Type`
+
+    Same as the conversion rule for :class:`type`.
 
 :data:`typing.Union`
 

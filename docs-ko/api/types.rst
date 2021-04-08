@@ -77,7 +77,23 @@
 
 :class:`tuple`
 
-    
+:class:`type`
+
+    :class:`str` 과 양방향 변환됩니다.
+
+    형 객체를 :class:`str` 로 변환할 때 :term:`완전히 정규화된 이름 <qualified name>` 으로 변환됩니다.
+    내장형은 :mod:`builtins` 모듈이 모듈 이름으로 사용됩니다.
+
+    :class:`str` 에서 형 객체로 변환할 때 :term:`완전히 정규화된 이름 <qualified name>` 을 받아들입니다.
+    다만 내장형은 :mod:`builtins` 를 생략할 수 있습니다.
+
+    *val* 이 형이면 형 검사만 수행한 후 *val* 을 그대로 반환합니다.
+
+    제네릭 형 매개 변수가 주어지면 공변적(covariant)으로 해석합니다.
+    즉 형 매개 변수의 서브 클래스를 모두 받아들입니다.
+
+    :exc:`TypeError` 뿐만 아니라, :exc:`ImportError` 나 :exc:`AttributeError` 도 발생할 수 있습니다.
+
 표준 라이브러리 형
 --------------------------
 
@@ -124,6 +140,25 @@
 :mod:`typing`
 ~~~~~~~~~~~~~
 
+:data:`typing.Annotated`
+
+    형 ``T`` 는 형 힌트 ``Annotated[T, x]`` 를 통해 메타 데이터 ``x`` 로 어노테이트될 수 있습니다.
+
+    ``x`` 가 :class:`Constraint` 의 인스턴스면, :func:`cast` 는 형 변환 후의 값이 ``x`` 가 정의하는 제약 조건을 만족하는지 검사합니다.
+    또한, 이 제약 조건은 :class:`JsonSchema` 에도 반영됩니다.
+
+    메타 데이터가 여러개가 제공되면 모든 제약 조건을 만족해야 합니다.
+
+    ``x`` 가 :class:`Constraint` 의 인스턴스가 아니면 무시합니다.
+
+    :data:`typing.Annotated` 는 파이썬 3.9에 추가되었기 때문에, :mod:`typeable.typing` 모듈에서 역이식을 제공합니다.
+
+    현재 Typeable 은 다음과 같은 :class:`Constraint` 서브 클래스를 제공합니다:
+
+    :class:`AllOf`, :class:`AnyOf`, :class:`NoneOf`, :class:`IsFinite`, :class:`IsGreaterThan`,
+    :class:`IsGreaterThanOrEqual`, :class:`IsLessThan`, :class:`IsLessThanOrEqual`, :class:`IsLongerThanOrEqual`,
+    :class:`IsShorterThanOrEqual`.
+
 :data:`typing.Any`
 
     ``val`` 을 변환이나 검사 없이 그대로 통과시킵니다.
@@ -156,6 +191,10 @@
 :class:`typing.Set`
 
 :data:`typing.Tuple`
+
+:class:`typing.Type`
+
+    :class:`type` 의 변환 규칙과 같습니다.
 
 :data:`typing.Union`
 

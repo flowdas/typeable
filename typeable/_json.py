@@ -4,21 +4,18 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 from abc import get_cache_token
-from collections.abc import Mapping
 from dataclasses import MISSING
 import datetime
 import enum
 from functools import _find_impl
 import json
-import inspect
 
 from ._cast import cast, declare, _get_type_args
-from ._object import Object, fields
-from .typing import Union, Dict, List, Tuple, _GenericBases, get_origin, get_type_hints, Type, Any, Literal
+from ._object import Object, fields, field, _META
+from .typing import Union, Dict, List, Tuple, _GenericBases, get_origin, Type, Any, Literal
 
 with declare('_JsonValue') as _:
-    _JsonValue = Union[float, bool, int, str,
-                       None, Dict[str, _], List[_], Tuple[_, ...]]
+    _JsonValue = Union[float, bool, int, str, None, Dict[str, _], List[_], Tuple[_, ...]]
 
 
 class JsonValue:
@@ -53,15 +50,28 @@ class JsonSchema(Object):
     _dispatch_cache = {}
     _cache_token = None
 
+    ref: str = field(key='$ref')
     type: Union[str, List[str]]
     uniqueItems: bool
     format: str
     enum: list
     additionalProperties: Union[bool, 'JsonSchema']
     items: Union['JsonSchema', List['JsonSchema']]
+    allOf: List['JsonSchema']
     anyOf: List['JsonSchema']
+    not_: 'JsonSchema' = field(key='not')
     properties: Dict[str, 'JsonSchema']
     required: List[str]
+    exclusiveMinimum: Union[int, float]
+    exclusiveMaximum: Union[int, float]
+    minimum: Union[int, float]
+    maximum: Union[int, float]
+    minLength: int
+    maxLength: int
+    minProperties: int
+    maxProperties: int
+    minItems: int
+    maxItems: int
 
     def __init__(self, value_or_type=MISSING, *, ctx=None):
         if value_or_type is MISSING:
@@ -109,6 +119,7 @@ class JsonSchema(Object):
                     cls._dispatch_cache[tp] = func
 
         return func
+
 
 #
 # builtins
@@ -173,11 +184,6 @@ def _jsonschema_None(self, cls: Type[None]):
     self.type = 'null'
 
 
-@JsonSchema.register(object)
-def _jsonschema_object(self, cls: Type[object]):
-    pass
-
-
 @JsonSchema.register(set)
 def _jsonschema_set(self, cls: Type[set], T=None):
     self.type = 'array'
@@ -207,6 +213,7 @@ def _jsonschema_tuple(self, cls: Type[tuple], *Ts):
 
     self.items = [JsonSchema(T) for T in Ts]
 
+
 #
 # datetime
 #
@@ -234,6 +241,7 @@ def _jsonschema_time(self, cls: Type[datetime.time]):
 def _jsonschema_timedelta(self, cls: Type[datetime.timedelta]):
     self.type = 'string'
     self.format = 'duration'
+
 
 #
 # enum
@@ -303,6 +311,7 @@ def _jsonschema_Union(self, cls, *Ts):
     else:
         self.anyOf = schemas
 
+
 #
 # typeable
 #
@@ -315,17 +324,21 @@ def _jsonschema_JsonValue(self, cls):
 
 @JsonSchema.register(Object)
 def _jsonschema_Object(self, cls):
-    self.type = 'object'
-    self.additionalProperties = False
+    meta = getattr(cls, _META)
+    if meta.jsonschema:
+        self.ref = meta.jsonschema
+    else:
+        self.type = 'object'
+        self.additionalProperties = False
 
-    flds = fields(cls)
-    if flds:
-        properties = {}
-        required = []
-        for f in flds:
-            properties[f.key] = JsonSchema(f.type)
-            if f.required:
-                required.append(f.key)
-        self.properties = properties
-        if required:
-            self.required = required
+        flds = fields(cls)
+        if flds:
+            properties = {}
+            required = []
+            for f in flds:
+                properties[f.key] = JsonSchema(f.type)
+                if f.required:
+                    required.append(f.key)
+            self.properties = properties
+            if required:
+                self.required = required

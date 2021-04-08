@@ -34,8 +34,32 @@ def test_initializer():
     x = X(data)
     assert x.i == data['i']
 
+    x = X(**data)
+    assert x.i == data['i']
+
+    with pytest.raises(TypeError):
+        X({}, **data)
+
     with pytest.raises(TypeError):
         X(1)
+
+
+def test_missing():
+    class X(Object):
+        i: int
+        j: int
+
+    data = {'i': 0}
+
+    x = X(data)
+    assert x.i == data['i']
+    with pytest.raises(AttributeError):
+        x.j
+
+    x = X(**data)
+    assert x.i == data['i']
+    with pytest.raises(AttributeError):
+        x.j
 
 
 class NestedX(Object):
@@ -191,8 +215,8 @@ def test_inheritance():
 
 def test_nullable():
     class X(Object):
-        a: int          # not allowed
-        b: int = None   # allowed
+        a: int  # not allowed
+        b: int = None  # allowed
         c: int = field(nullable=True)  # allowed
         # not allowed, but default is None
         d: int = field(default=None, nullable=False)
@@ -256,3 +280,137 @@ def test_JsonValue():
     assert cast(JsonValue, x) == data
 
     assert cast(JsonValue, {'result': X()}) == {'result': {}}
+
+
+def test_kind():
+    class Authenticator(Object):  # abstract
+        type: str = field(kind=True)
+
+    class ApiKeyAuthenticator(Authenticator, kind='apiKey'):  # concrete
+        name: str = 'X-API-Key'
+
+    class HttpAuthenticator(Authenticator):  # abstract
+        pass
+
+    class HttpBearerAuthenticator(HttpAuthenticator, kind='http.bearer'):  # concrete
+        format: str = 'jwt'
+
+    data = dict(
+        type='apiKey',
+        name='x-api-key',
+    )
+    x = cast(Authenticator, data)
+    assert isinstance(x, ApiKeyAuthenticator)
+    assert cast(JsonValue, x) == data
+
+    with pytest.raises(TypeError):  # no kind field
+        cast(Authenticator, {'name': 'x-api-key'})
+
+    with pytest.raises(TypeError):  # incompatible kind field
+        cast(HttpAuthenticator, dict(
+            type='apiKey',
+            name='x-api-key',
+        ))
+
+    data = dict(
+        type='http.bearer',
+        format='JWT',
+    )
+    x = cast(Authenticator, data)
+    assert isinstance(x, HttpBearerAuthenticator)
+    assert cast(JsonValue, x) == data
+
+    x = cast(HttpAuthenticator, data)
+    assert isinstance(x, HttpBearerAuthenticator)
+    assert cast(JsonValue, x) == data
+
+    # For concrete classes, the kind field behaves as if default_factory was specified.
+    x = cast(HttpBearerAuthenticator, dict(format=data['format']))
+    assert isinstance(x, HttpBearerAuthenticator)
+    assert cast(JsonValue, x) == data
+
+    # only one kind field allowed
+    with pytest.raises(TypeError):
+        class XAuthenticator(Authenticator):
+            scheme: str = field(kind=True)
+
+    # kind option requires kind field
+    with pytest.raises(TypeError):
+        class XObject(Object, kind='X'):
+            pass
+
+    # duplicated kind option not allowed
+    with pytest.raises(TypeError):
+        class XAuthenticator(Authenticator, kind='apiKey'):
+            pass
+
+    # kind field cannot be nullable
+    with pytest.raises(ValueError):
+        class XObject(Object):
+            type: str = field(kind=True, nullable=True)
+
+
+def test_kind_fields():
+    class Authenticator(Object):  # abstract
+        type: str = field(kind=True)
+
+    class ApiKeyAuthenticator(Authenticator, kind='apiKey'):  # concrete
+        name: str = 'X-API-Key'
+
+    class HttpAuthenticator(Authenticator):  # abstract
+        pass
+
+    class HttpBearerAuthenticator(HttpAuthenticator, kind='http.bearer'):  # concrete
+        format: str = 'jwt'
+
+    flds = fields(Authenticator)
+    assert len(flds) == 1
+    assert flds[0].kind
+    type_field = flds[0]
+
+    flds = fields(ApiKeyAuthenticator)
+    assert len(flds) == 2
+    assert flds[0] is type_field
+    assert flds[0].name == 'type'
+    assert flds[0].kind
+
+    flds = fields(HttpAuthenticator)
+    assert len(flds) == 1
+    assert flds[0] is type_field
+    assert flds[0].name == 'type'
+    assert flds[0].kind
+
+    flds = fields(HttpBearerAuthenticator)
+    assert len(flds) == 2
+    assert flds[0] is type_field
+    assert flds[0].name == 'type'
+    assert flds[0].kind
+
+
+def test_kind_ctor():
+    class Authenticator(Object):  # abstract
+        type: str = field(kind=True)
+
+    class ApiKeyAuthenticator(Authenticator, kind='apiKey'):  # concrete
+        name: str = 'X-API-Key'
+
+    with pytest.raises(TypeError):  # cannot instantiate abstract class
+        Authenticator()
+
+    x = ApiKeyAuthenticator()
+    assert x.__class__ is ApiKeyAuthenticator
+    assert x.type == 'apiKey'
+
+    x = ApiKeyAuthenticator(name='x-api-key')
+    assert x.type == 'apiKey'
+    assert x.name == 'x-api-key'
+    assert x.__class__ is ApiKeyAuthenticator
+
+    x = ApiKeyAuthenticator(type='apiKey', name='x-api-key')
+    assert x.type == 'apiKey'
+    assert x.name == 'x-api-key'
+    assert x.__class__ is ApiKeyAuthenticator
+
+    # cannot instantiate concrete class with invalid kind
+    with pytest.raises(TypeError):
+        ApiKeyAuthenticator(type='x', name='x-api-key')

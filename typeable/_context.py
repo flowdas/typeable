@@ -3,8 +3,10 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
 import sys
 from contextlib import contextmanager
+
 try:
     from contextlib import nullcontext  # since 3.7
 except ImportError:  # pragma: no cover
@@ -29,7 +31,6 @@ class Error:
 
 class Context:
     # default policies
-    accept_nan: bool = True
     bool_is_int: bool = True
     bool_strings: Dict[str, bool] = {
         '0': False, '1': True, 'f': False, 'false': False,
@@ -73,7 +74,7 @@ class Context:
             error.exc_info = sys.exc_info()
             error.location = tuple(self._stack)
             raise
-        finally:
+        finally:  # pragma: no cover ; TODO: coverage's bug?
             self._stack = None
 
     @contextmanager

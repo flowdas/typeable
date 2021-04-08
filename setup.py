@@ -9,7 +9,7 @@ setup_requires = [
 ]
 
 install_requires = [
-    'typing-extensions;python_version<"3.8"',
+    'typing-extensions;python_version<"3.9"',
 ]
 
 tests_require = [

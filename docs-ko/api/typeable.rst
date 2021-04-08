@@ -71,11 +71,52 @@
    
    *ensure_ascii* 와 *separators* 의 기본값을 변경했습니다.
 
-.. function:: field(*, key=None, default=dataclasses.MISSING, default_factory=None, nullable=None, required=False)
+.. function:: field(*, key=None, default=dataclasses.MISSING, default_factory=None, nullable=None, required=False, kind=False)
 
 .. function:: fields(class_or_instance)
 
-이 패키지는 몇 가지 클래스를 정의합니다. 아래에 나오는 절에서 자세히 설명합니다.
+이 패키지는 여러 클래스를 정의합니다. 아래에 나오는 절에서 자세히 설명합니다.
+
+.. class:: AllOf(arg: Constraint, *args: Constraint)
+
+   인자로 전달된 모든 제약 조건들을 모두 만족해야하는 :class:`Constraint`.
+
+.. class:: AnyOf(arg: Constraint, *args: Constraint)
+
+   인자로 전달된 제약 조건 중 하나 이상을 만족해야하는 :class:`Constraint`.
+
+.. class:: Constraint()
+
+   실행 시간에 검사되는 제약 조건들의 베이스 클래스.
+
+   :data:`typing.Annotated` 에 제공되는 메타 데이터로 사용됩니다.
+
+   이 용도 외에 사용자가 :class:`Constraint` 의 인스턴스를 직접 다룰 일은 없습니다.
+   다음 인터페이스는 :class:`Constraint` 의 서브 클래스를 만들어 새로운 제약 조건을 정의하고자 할 때만 필요합니다.
+
+   .. method:: annotate(root: JsonSchema, schema: JsonSchema)
+
+      제약 조건을 *schema* 인자로 전달된 JSON Schema 에 추가합니다.
+
+      *root* 는 :data:`typing.Annotated` 로 정의된 형의 JSON Schema 인스턴스 입니다.
+
+   .. method:: compile()
+
+      제약 조건을 평가하는 콜러블을 반환합니다.
+
+      콜러블은 :func:`cast` 가 캐스팅한 후의 값을 인자로 취합니다.
+      콜러블의 반환값이 참으로 평가되면 제약 조건을 만족하는 것으로 해석합니다.
+      거짓을 반환하거나 예외를 발생시키면 제약 조건을 만족하지 않는 것으로 해석합니다.
+
+   .. method:: emit()
+
+      제약 조건을 표현하는 문자열을 반환합니다.
+
+      표현식은 검사하고자 하는 인자가 ``x`` 라는 변수로 제공된다고 가정해야 합니다.
+      예를 들어, ``"(x > 0)"``.
+
+      표현식이 모듈을 참조한다면, :meth:`emit` 는 ``(expr, ns)`` 2-튜플을 반환할 수 있습니다.
+      ``expr`` 은 표현식이고, ``ns`` 는 키가 모듈 이름이고, 값이 모듈 인스턴스인 매핑 입니다.
 
 .. class:: Context(**policies)
 
@@ -85,12 +126,6 @@
    *policies* 에 전달된 키워드 전용 파라미터는 변환 규칙을 변경하는데 사용됩니다. 이 파라미터는 
    :class:`Context` 인스턴스의 어트리뷰트로 제공됩니다. :class:`Context` 를 서브클래싱해서
    파라미터의 기본값을 변경하거나, 새 파라미터를 추가할 수 있습니다. 현제 정의된 파라미터는 다음과 같습니다:
-
-   .. attribute:: accept_nan 
-      :type: bool 
-      :value: True
-
-      이 어트리뷰트가 :const:`False` 면, :class:`float`, :class:`complex` 로 NaN(not a number) 이나 무한대를 받아들이지 않습니다.
 
    .. attribute:: bool_is_int
       :type: bool 
@@ -184,6 +219,50 @@
 
    .. method:: traverse(key)
 
+.. class:: IsFinite()
+
+   유한한 숫자만을 허락하는 :class:`Constraint`.
+
+   :class:`int`, :class:`float`, :class:`complex` 형에만 적용되고, NaN 이나 무한을 허락하지 않습니다.
+
+   표준 JSON 은 NaN 이나 무한을 허락하지 않기 때문에, JSON Schema 에는 반영되지 않습니다.
+
+.. class:: IsGreaterThan(exclusive_minimum)
+
+   *exclusive_minimum* 보다 큰 값만 허락하는 :class:`Constraint`.
+
+   JSON Schema 에는 *exclusiveMinimum* 으로 표현됩니다.
+
+.. class:: IsGreaterThanOrEqual(minimum)
+
+   *minimum* 보다 크거나 같은 값만 허락하는 :class:`Constraint`.
+
+   JSON Schema 에는 *minimum* 으로 표현됩니다.
+
+.. class:: IsLessThan(exclusive_maximum)
+
+   *exclusive_maximum* 보다 작은 값만 허락하는 :class:`Constraint`.
+
+   JSON Schema 에는 *exclusiveMaximum* 으로 표현됩니다.
+
+.. class:: IsLessThanOrEqual(maximum)
+
+   *maximum* 보다 작거나 같은 값만 허락하는 :class:`Constraint`.
+
+   JSON Schema 에는 *maximum* 으로 표현됩니다.
+
+.. class:: IsLongerThanOrEqual(minimum)
+
+   *minimum* 보다 길거나 같은 값만 허락하는 :class:`Constraint`.
+
+   JSON Schema 에는 형에 따라 *minLength*, *minProperties*, *minItems* 로 표현됩니다.
+
+.. class:: IsShorterThanOrEqual(maximum)
+
+   *maximum* 보다 짧거나 같은 값만 허락하는 :class:`Constraint`.
+
+   JSON Schema 에는 형에 따라 *maxLength*, *maxProperties*, *maxItems* 로 표현됩니다.
+
 .. class:: JsonSchema(value_or_type = dataclasses.MISSING, *, ctx: Context = None)
 
    `JSON Schema <https://json-schema.org/>`_ 를 표현하는 :class:`Object` 의 서브 클래스.
@@ -201,7 +280,11 @@
 
    이 형으로 변환된 값은 표준 라이브러리의 :func:`json.dumps` 와 :func:`json.dump` 로 직접 전달할 수 있습니다. 
 
-.. class:: Object(value = dataclasses.MISSING, *, ctx: Context = None)
+.. class:: NoneOf(arg: Constraint, *args: Constraint)
+
+   인자로 전달된 제약 조건 중 어느 것도 만족하지 않아야 하는 :class:`Constraint`.
+
+.. class:: Object(value = dataclasses.MISSING, /, *, ctx: Context = None, **kwargs)
 
    형이 지정된 필드를 갖는 객체 모델을 표현합니다.
 

@@ -3,6 +3,7 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
 import cmath
 import collections
 import math
@@ -10,13 +11,17 @@ import sys
 import pytest
 
 from typeable.typing import (
+    Any,
     Dict,
     FrozenSet,
     List,
+    Optional,
     Set,
     Tuple,
+    Type,
 )
 from typeable import *
+
 
 #
 # object
@@ -25,10 +30,21 @@ from typeable import *
 
 def test_object():
     # None
-    cast(object, None).__class__ is object
+    assert cast(object, None) is None
 
     # object
     assert cast(object, object()).__class__ is object
+
+    # custom class
+    class X:
+        pass
+
+    x = X()
+    assert cast(X, x) is x
+
+    with pytest.raises(TypeError):
+        cast(X, '')
+
 
 #
 # None
@@ -37,8 +53,12 @@ def test_object():
 
 def test_None():
     assert cast(type(None), None) is None
+    assert cast(object, None) is None
+    assert cast(Any, None) is None
+    assert cast(Optional[int], None) is None
     with pytest.raises(TypeError):
         cast(type(None), object())
+
 
 #
 # bool
@@ -76,6 +96,7 @@ def test_bool():
     with pytest.raises(TypeError):
         cast(bool, 1.0)
 
+
 #
 # int
 #
@@ -103,6 +124,7 @@ def test_int():
     # int
     assert cast(int, 123) == 123
 
+
 #
 # float
 #
@@ -112,10 +134,6 @@ def test_float():
     # str
     assert cast(float, "123.456") == 123.456
     assert math.isnan(cast(float, "nan"))
-    with pytest.raises(ValueError):
-        cast(float, "nan", ctx=Context(accept_nan=False))
-    with pytest.raises(ValueError):
-        cast(float, "inf", ctx=Context(accept_nan=False))
 
     # bool
     assert cast(float, True) == 1.0
@@ -132,6 +150,7 @@ def test_float():
     # float
     assert cast(float, 123.456) == 123.456
 
+
 #
 # complex
 #
@@ -141,21 +160,17 @@ def test_complex():
     # str
     assert cast(complex, "123+456j") == complex(123, 456)
     assert cmath.isnan(cast(complex, "nan+nanj"))
-    with pytest.raises(ValueError):
-        cast(complex, "nan+nanj", ctx=Context(accept_nan=False))
-    with pytest.raises(ValueError):
-        cast(complex, "inf", ctx=Context(accept_nan=False))
 
     # bool
-    assert cast(complex, True) == 1.0+0j
+    assert cast(complex, True) == 1.0 + 0j
     with pytest.raises(TypeError):
         cast(complex, True, ctx=Context(bool_is_int=False))
 
     # int
-    assert cast(complex, 123) == 123+0j
+    assert cast(complex, 123) == 123 + 0j
 
     # float
-    assert cast(complex, 123.456) == 123.456+0j
+    assert cast(complex, 123.456) == 123.456 + 0j
 
     # tuple
     assert cast(complex, [123, 456]) == complex(123, 456)
@@ -168,12 +183,15 @@ def test_complex():
     # complex
     assert cast(complex, complex(123, 456)) == complex(123, 456)
 
+
 #
 # str
 #
 
 
 def test_str():
+    from datetime import datetime
+
     # bool
     assert cast(str, True) == 'True'
 
@@ -195,8 +213,13 @@ def test_str():
     # object
     with pytest.raises(TypeError):
         cast(str, object())
-    print(object)
     cast(str, object(), ctx=Context(strict_str=False))
+
+    # type
+    assert cast(str, int) == 'builtins.int'
+    assert cast(str, datetime) == 'datetime.datetime'
+    assert cast(str, OuterClass) == 'tests.test_builtin_types.OuterClass'
+    assert cast(str, OuterClass.InnerClass) == 'tests.test_builtin_types.OuterClass.InnerClass'
 
     # None
     with pytest.raises(TypeError):
@@ -206,6 +229,7 @@ def test_str():
 
     # str
     assert cast(str, 'hello') == 'hello'
+
 
 #
 # bytes
@@ -233,6 +257,7 @@ def test_bytes():
     # bytes
     assert cast(bytes, b'hello') == b'hello'
 
+
 #
 # bytearray
 #
@@ -259,6 +284,7 @@ def test_bytearray():
 
     # bytearray
     assert cast(bytearray, bytearray(b'hello')) == bytearray(b'hello')
+
 
 #
 # list
@@ -303,6 +329,23 @@ def test_list():
             assert isinstance(l[i], X)
             assert l[i].i == i
 
+    # no copy
+    data = list(range(10))
+    assert cast(list, data) is data
+    assert cast(List, data) is data
+    assert cast(List[int], data) is data
+
+    # copy
+    data = list(range(9))
+    data.append('9')
+    expected = list(range(10))
+
+    assert cast(list, data) is data
+    assert cast(List, data) is data
+    assert cast(List[int], data) == expected
+    assert cast(List[int], tuple(data)) == expected
+
+
 #
 # dict
 #
@@ -313,7 +356,6 @@ def test_dict():
     d = {'a': 1, 'b': 2}
     r = cast(dict, collections.OrderedDict(d))
     assert r == {'a': 1, 'b': 2}
-    assert r.__class__ is dict
 
     # list
     assert cast(dict, [('a', 1), ('b', 2)]) == {'a': 1, 'b': 2}
@@ -358,43 +400,125 @@ def test_dict():
             assert isinstance(v, X)
             assert v.i == i
 
+    # no copy
+    data = {str(i): i for i in range(10)}
+    assert cast(dict, data) is data
+    assert cast(Dict, data) is data
+    assert cast(Dict[str, int], data) is data
+
+    # copy
+    expected = data.copy()
+    data['9'] = '9'
+
+    assert cast(dict, data) is data
+    assert cast(Dict, data) is data
+    assert cast(Dict[str, int], data) == expected
+    assert cast(Dict[str, int], collections.UserDict(data)) == expected
+
+
 #
-# set, frozenset
+# set
 #
 
 
-@pytest.mark.parametrize('T,GT', [(set, Set), (frozenset, FrozenSet)])
-def test_set(T, GT):
+def test_set():
     # dict
-    assert cast(T, {'a': 1, 'b': 2}) == {'a', 'b'}
+    assert cast(set, {'a': 1, 'b': 2}) == {'a', 'b'}
 
     # None
     with pytest.raises(TypeError):
-        cast(T, None)
+        cast(set, None)
 
     # set
-    expected = {i for i in range(10)}
-    data = {str(v) for v in expected}
+    expected = set(range(10))
+    data = set(str(v) for v in expected)
 
-    l = cast(GT, data)
-    assert isinstance(l, T)
+    l = cast(Set, data)
+    assert isinstance(l, set)
     assert l == data
 
-    l = cast(T, data)
-    assert isinstance(l, T)
+    l = cast(set, data)
+    assert isinstance(l, set)
     assert l == data
 
     # generic set
-    l = cast(GT[int], data)
+    l = cast(Set[int], data)
 
-    assert isinstance(l, T)
+    assert isinstance(l, set)
     assert l == expected
 
     if sys.version_info >= (3, 9):
-        l = cast(T[int], data)
+        l = cast(set[int], data)
 
-        assert isinstance(l, T)
+        assert isinstance(l, set)
         assert l == expected
+
+    # no copy
+    data = set(range(10))
+    assert cast(set, data) is data
+    assert cast(Set, data) is data
+    assert cast(Set[int], data) is data
+
+    # copy
+    data = set(range(9))
+    data.add('9')
+    expected = set(range(10))
+
+    assert cast(set, data) is data
+    assert cast(Set, data) is data
+    assert cast(Set[int], data) == expected
+    assert cast(Set[int], frozenset(data)) == expected
+
+
+def test_frozenset():
+    # dict
+    assert cast(frozenset, {'a': 1, 'b': 2}) == frozenset({'a', 'b'})
+
+    # None
+    with pytest.raises(TypeError):
+        cast(frozenset, None)
+
+    # frozenset
+    expected = frozenset(range(10))
+    data = frozenset(str(v) for v in expected)
+
+    l = cast(FrozenSet, data)
+    assert isinstance(l, frozenset)
+    assert l == data
+
+    l = cast(frozenset, data)
+    assert isinstance(l, frozenset)
+    assert l == data
+
+    # generic set
+    l = cast(FrozenSet[int], data)
+
+    assert isinstance(l, frozenset)
+    assert l == expected
+
+    if sys.version_info >= (3, 9):
+        l = cast(frozenset[int], data)
+
+        assert isinstance(l, frozenset)
+        assert l == expected
+
+    # no copy
+    data = frozenset(range(10))
+    assert cast(frozenset, data) is data
+    assert cast(FrozenSet, data) is data
+    assert cast(FrozenSet[int], data) is data
+
+    # copy
+    data = set(range(9))
+    data.add('9')
+    data = frozenset(data)
+    expected = frozenset(range(10))
+
+    assert cast(frozenset, data) is data
+    assert cast(FrozenSet, data) is data
+    assert cast(FrozenSet[int], data) == expected
+    assert cast(FrozenSet[int], set(data)) == expected
+
 
 #
 # tuple
@@ -433,6 +557,20 @@ def test_tuple():
         assert isinstance(l, tuple)
         assert l == expected
 
+    # homogeneous no copy
+    data = tuple(range(10))
+    assert cast(tuple, data) is data
+    assert cast(Tuple, data) is data
+    assert cast(Tuple[int, ...], data) is data
+
+    # homogeneous copy
+    data = tuple(range(9)) + ('9',)
+    expected = tuple(range(10))
+    assert cast(tuple, data) is data
+    assert cast(Tuple, data) is data
+    assert cast(Tuple[int, ...], data) == expected
+    assert cast(Tuple[int, ...], list(range(9)) + ['9']) == expected
+
     # heterogeneous tuple
     data = (1, "2", "3")
     expected = ("1", 2, "3")
@@ -450,6 +588,14 @@ def test_tuple():
 
     assert isinstance(l, tuple)
     assert l == expected
+
+    l = cast(Tuple[str, int, str], list(data))
+
+    assert isinstance(l, tuple)
+    assert l == expected
+
+    assert cast(Tuple[int, int, int], data) == (1, 2, 3)
+    assert cast(Tuple[int, int, int], list(data)) == (1, 2, 3)
 
     if sys.version_info >= (3, 9):
         l = cast(tuple[str, int, str], data)
@@ -488,8 +634,73 @@ def test_tuple():
         cast(Tuple[int], (1, 2))
 
     with pytest.raises(TypeError):
+        cast(Tuple[int], [1, 2])
+
+    with pytest.raises(TypeError):
         cast(Tuple[int], ())
 
+    with pytest.raises(TypeError):
+        cast(Tuple[int], [])
+
     # complex
-    cast(tuple, complex(1, 2)) == (1, 2)
-    cast(Tuple[float, float], complex(1, 2)) == (1, 2)
+    assert cast(tuple, complex(1, 2)) == (1, 2)
+    assert cast(Tuple[float, float], complex(1, 2)) == (1, 2)
+
+
+#
+# type
+#
+
+class OuterClass:
+    class InnerClass:
+        pass
+
+
+def test_type():
+    from datetime import datetime
+    from collections.abc import Iterable
+
+    # str
+    assert cast(type, 'int') == int
+    assert cast(Type, 'int') == int
+    assert cast(Type[Any], 'int') == int
+    assert cast(Type[object], 'int') == int
+    assert cast(type, 'datetime.datetime') == datetime
+    assert cast(type, 'collections.abc.Iterable') == Iterable
+    assert cast(Type[int], 'int') == int
+    assert cast(Type[int], 'bool') == bool
+    assert cast(type, 'tests.test_builtin_types.OuterClass') is OuterClass
+    assert cast(type, 'tests.test_builtin_types.OuterClass.InnerClass') is OuterClass.InnerClass
+
+    with pytest.raises(TypeError):
+        cast(type, '')
+    with pytest.raises(AttributeError):
+        cast(type, 'collections.abc.UNKNOWN_TYPE_NAME')
+    with pytest.raises(AttributeError):
+        cast(type, 'collections.UNKNOWN_MODULE.Iterable')
+    with pytest.raises(TypeError):
+        cast(type, 'collections.abc')
+    with pytest.raises(TypeError):
+        cast(type, 'dataclasses.MISSING')
+    with pytest.raises(ModuleNotFoundError):
+        cast(type, 'buintins.str')  # mis-spelling
+    with pytest.raises(TypeError):
+        cast(Type[int], 'str')
+
+    # None
+    with pytest.raises(TypeError):
+        cast(type, None)
+    with pytest.raises(TypeError):
+        cast(Type, None)
+    with pytest.raises(TypeError):
+        cast(Type[Any], None)
+    with pytest.raises(TypeError):
+        cast(Type[object], None)
+
+    # type
+    assert cast(type, int) == int
+    assert cast(Type, int) == int
+    assert cast(Type[Any], int) == int
+    assert cast(Type[object], int) == int
+    with pytest.raises(TypeError):
+        cast(Type[None], object)

@@ -71,11 +71,52 @@ This package defines the following functions and decorators:
    
    This function has changed the default values for the *ensure_ascii* and *separators* arguments.
 
-.. function:: field(*, key=None, default=dataclasses.MISSING, default_factory=None, nullable=None, required=False)
+.. function:: field(*, key=None, default=dataclasses.MISSING, default_factory=None, nullable=None, required=False, kind=False)
 
 .. function:: fields(class_or_instance)   
 
 This package defines a number of classes, which are detailed in the sections below.
+
+.. class:: AllOf(arg: Constraint, *args: Constraint)
+
+   :Class:`Constraint` that must satisfy all constraints passed as arguments.
+
+.. class:: AnyOf(arg: Constraint, *args: Constraint)
+
+   :Class:`Constraint` that must satisfy at least one of the constraints passed as arguments.
+
+.. class:: Constraint()
+
+   Base class of constraints checked at runtime.
+
+   Used as metadata provided to :data:`typing.Annotated`.
+
+   Other than this purpose, the user does not have to deal with instances of :class:`Constraint` directly.
+   The following interface is only needed if you want to define a new constraint by creating a subclass of :class:`Constraint`.
+
+   .. method:: annotate(root: JsonSchema, schema: JsonSchema)
+
+      Add the constraint to the JSON Schema passed as the *schema* argument.
+
+      *root* is a JSON Schema instance of type defined as :data:`typing.Annotated`.
+
+   .. method:: compile()
+
+      Returns a callable that evaluates the constraint.
+
+      The callable takes the value after casting by :func:`cast`.
+      If the callable's return value evaluates to true, it is interpreted as satisfying the constraint.
+      Returning false or raising an exception is interpreted as not satisfying the constraint.
+
+   .. method:: emit()
+
+      Returns a string expressing the constraint.
+
+      The expression must assume that the argument to be tested is provided as a variable called ``x``.
+      For example, ``"(x > 0)"``.
+
+      If the expression refers to a module, :meth:`emit` can return a 2-tuple ``(expr, ns)``.
+      ``expr`` is an expression, ``ns`` is a mapping where the key is the module name, and the value is the module instance.
 
 .. class:: Context(**policies)
 
@@ -88,12 +129,6 @@ This package defines a number of classes, which are detailed in the sections bel
    instance. You can also subclass :class:`Context` to change the default 
    values of parameters, or add new parameters. The currently defined 
    parameters are:
-
-   .. attribute:: accept_nan 
-      :type: bool 
-      :value: True
-
-      If this attribute is :const:`False`, then :class:`float` and :class:`complex` does not accept NaN(not a number) or infinity.
 
    .. attribute:: bool_is_int
       :type: bool 
@@ -191,6 +226,50 @@ This package defines a number of classes, which are detailed in the sections bel
 
     .. method:: traverse(key)
 
+.. class:: IsFinite()
+
+   :Class:`Constraint` which allows only finite numbers.
+
+   Applies only to :class:`int`, :class:`float`, and :class:`complex` types, and does not allow NaN or infinity.
+
+   Standard JSON does not allow NaN or infinite, so it is not reflected in JSON Schema.
+
+.. class:: IsGreaterThan(exclusive_minimum)
+
+   :class:`Constraint` that only allows values greater than *exclusive_minimum*.
+
+   It is expressed as *exclusiveMinimum* in JSON Schema.
+
+.. class:: IsGreaterThanOrEqual(minimum)
+
+   :class:`Constraint` that only allows values greater than or equal to *minimum*.
+
+   It is expressed as *minimum* in JSON Schema.
+
+.. class:: IsLessThan(exclusive_maximum)
+
+   :class:`Constraint` that only allows values less than *exclusive_maximum*.
+
+   It is expressed as *exclusiveMaximum* in JSON Schema.
+
+.. class:: IsLessThanOrEqual(maximum)
+
+   :class:`Constraint` that only allows values less than or equal to *maximum*.
+
+   It is expressed as *maximum* in JSON Schema.
+
+.. class:: IsLongerThanOrEqual(minimum)
+
+   :class:`Constraint` that only allows values longer than or equal to *minimum*.
+
+    In JSON Schema, it is expressed as *minLength*, *minProperties*, *minItems* depending on the type.
+
+.. class:: IsShorterThanOrEqual(maximum)
+
+   :class:`Constraint` that only allows values shorter than or equal to *maximum*.
+
+    In JSON Schema, it is expressed as *maxLength*, *maxProperties*, *maxItems* depending on the type.
+
 .. class:: JsonSchema(value_or_type = dataclasses.MISSING, *, ctx: Context = None)
 
    A subclass of :class:`Object` representing `JSON Schema <https://json-schema.org/>`_.
@@ -208,7 +287,11 @@ This package defines a number of classes, which are detailed in the sections bel
 
    Values converted to this type can be passed directly to :func:`json.dumps` and :func:`json.dump` in the standard library. 
 
-.. class:: Object(value = dataclasses.MISSING, *, ctx: Context = None)
+.. class:: NoneOf(arg: Constraint, *args: Constraint)
+
+   :Class:`Constraint` which must not satisfy any of the constraints passed as arguments.
+
+.. class:: Object(value = dataclasses.MISSING, /, *, ctx: Context = None, **kwargs)
 
    Represents an object model with typed fields.
 

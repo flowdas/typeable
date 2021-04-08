@@ -8,6 +8,7 @@ import inspect
 
 import pytest
 from typeable.typing import (
+    Annotated,
     Any,
     Dict,
     ForwardRef,
@@ -26,6 +27,7 @@ from typeable import *
 
 def test_get_origin():
     assert get_origin(Type[int]) == type
+    assert get_origin(Type) == type
     assert get_origin(List[int]) == list
     assert get_origin(List) == list
     assert get_origin(Dict[str, str]) == dict
@@ -42,6 +44,8 @@ def test_get_origin():
     assert get_origin(Union[int, None]) == Union
     assert get_origin(Any) is None
     assert get_origin(Literal) is None
+    assert get_origin(Annotated) is None
+    assert get_origin(Annotated[int, lambda: True]) is Annotated
 
 
 def test_get_args():
@@ -49,6 +53,7 @@ def test_get_args():
         i: int
 
     assert get_args(Type[int]) == (int,)
+    assert get_args(Type) == ()
     assert get_args(List[int]) == (int,)
     assert get_args(List[X]) == (X,)
     assert get_args(List) == ()
@@ -67,6 +72,8 @@ def test_get_args():
     assert get_args(Any) == ()
     assert get_args(Literal) == ()
     assert get_args(Literal['2.0']) == ('2.0',)
+    assert get_args(Annotated) == ()
+    assert get_args(Annotated[int, True, False]) == (int, True, False)
 
 
 Integer = int
@@ -152,7 +159,6 @@ def test_function_with_ctx():
 
 
 def test_function_ctx_conflict():
-
     with pytest.raises(TypeError):
         @cast.function
         def test(ctx: int):
@@ -170,6 +176,7 @@ def test_function_args():
         for a in args:
             assert isinstance(a, int)
         return args
+
     assert test(1, "2", 3.14) == (1, 2, 3)
 
 
@@ -179,6 +186,7 @@ def test_function_kwargs():
         for k, v in kwargs.items():
             assert isinstance(v, int)
         return kwargs
+
     assert test(a=1, b="2", c=3.14) == {'a': 1, 'b': 2, 'c': 3}
 
 
