@@ -94,9 +94,11 @@ This package defines a number of classes, which are detailed in the sections bel
    Other than this purpose, the user does not have to deal with instances of :class:`Constraint` directly.
    The following interface is only needed if you want to define a new constraint by creating a subclass of :class:`Constraint`.
 
-   .. method:: annotate(schema: JsonSchema)
+   .. method:: annotate(root: JsonSchema, schema: JsonSchema)
 
-      Add the constraint to the JSON Schema passed as the **schema** argument.
+      Add the constraint to the JSON Schema passed as the *schema* argument.
+
+      *root* is a JSON Schema instance of type defined as :data:`typing.Annotated`.
 
    .. method:: compile()
 
@@ -255,6 +257,18 @@ This package defines a number of classes, which are detailed in the sections bel
    :class:`Constraint` that only allows values less than or equal to *maximum*.
 
    It is expressed as *maximum* in JSON Schema.
+
+.. class:: IsLongerThanOrEqual(minimum)
+
+   :class:`Constraint` that only allows values longer than or equal to *minimum*.
+
+    In JSON Schema, it is expressed as *minLength*, *minProperties*, *minItems* depending on the type.
+
+.. class:: IsShorterThanOrEqual(maximum)
+
+   :class:`Constraint` that only allows values shorter than or equal to *maximum*.
+
+    In JSON Schema, it is expressed as *maxLength*, *maxProperties*, *maxItems* depending on the type.
 
 .. class:: JsonSchema(value_or_type = dataclasses.MISSING, *, ctx: Context = None)
 

@@ -37,7 +37,7 @@ def _jsonschema_Annotated(self, cls: Type[Annotated], T, *args):
         setattr(self, k, v)
     for arg in args:
         if isinstance(arg, Constraint):
-            arg.annotate(self)
+            arg.annotate(this, self)
 
 
 #
@@ -73,7 +73,7 @@ class Constraint:
     def emit(self):
         return 'True'
 
-    def annotate(self, schema):
+    def annotate(self, root, schema):
         pass
 
 
@@ -98,14 +98,14 @@ class _Combined(Constraint):
             expr = '(' + f" {self.OP} ".join(f"({expr})" for expr in exprs) + ')'
             return expr, (ns if ns else None)
 
-    def annotate(self, schema):
+    def annotate(self, root, schema):
         if len(self.args) == 1:
-            self.args[0].annotate(schema)
+            self.args[0].annotate(root, schema)
         else:
             schemas = []
             for arg in self.args:
                 s = JsonSchema()
-                arg.annotate(s)
+                arg.annotate(root, s)
                 schemas.append(s)
             setattr(schema, self.KEYWORD, schemas)
 
@@ -135,9 +135,9 @@ class NoneOf(AnyOf):
             ns = None
         return f"(not {expr})", ns
 
-    def annotate(self, schema):
+    def annotate(self, root, schema):
         s = JsonSchema()
-        super().annotate(s)
+        super().annotate(root, s)
         schema.not_ = s
 
 
@@ -159,7 +159,7 @@ class IsGreaterThan(Constraint):
     def emit(self):
         return f"(x > {self._value!r})"
 
-    def annotate(self, schema):
+    def annotate(self, root, schema):
         schema.exclusiveMinimum = self._value
 
 
@@ -172,7 +172,7 @@ class IsGreaterThanOrEqual(Constraint):
     def emit(self):
         return f"(x >= {self._value!r})"
 
-    def annotate(self, schema):
+    def annotate(self, root, schema):
         schema.minimum = self._value
 
 
@@ -185,7 +185,7 @@ class IsLessThan(Constraint):
     def emit(self):
         return f"(x < {self._value!r})"
 
-    def annotate(self, schema):
+    def annotate(self, root, schema):
         schema.exclusiveMaximum = self._value
 
 
@@ -198,5 +198,41 @@ class IsLessThanOrEqual(Constraint):
     def emit(self):
         return f"(x <= {self._value!r})"
 
-    def annotate(self, schema):
+    def annotate(self, root, schema):
         schema.maximum = self._value
+
+
+class IsLongerThanOrEqual(Constraint):
+    __slots__ = ('_value',)
+
+    def __init__(self, minimum):
+        self._value = minimum
+
+    def emit(self):
+        return f"(len(x) >= {self._value!r})"
+
+    def annotate(self, root, schema):
+        if root.type == 'string':
+            schema.minLength = self._value
+        elif root.type == 'object':
+            schema.minProperties = self._value
+        elif root.type == 'array':
+            schema.minItems = self._value
+
+
+class IsShorterThanOrEqual(Constraint):
+    __slots__ = ('_value',)
+
+    def __init__(self, maximum):
+        self._value = maximum
+
+    def emit(self):
+        return f"(len(x) <= {self._value!r})"
+
+    def annotate(self, root, schema):
+        if root.type == 'string':
+            schema.maxLength = self._value
+        elif root.type == 'object':
+            schema.maxProperties = self._value
+        elif root.type == 'array':
+            schema.maxItems = self._value

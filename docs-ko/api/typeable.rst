@@ -94,9 +94,11 @@
    이 용도 외에 사용자가 :class:`Constraint` 의 인스턴스를 직접 다룰 일은 없습니다.
    다음 인터페이스는 :class:`Constraint` 의 서브 클래스를 만들어 새로운 제약 조건을 정의하고자 할 때만 필요합니다.
 
-   .. method:: annotate(schema: JsonSchema)
+   .. method:: annotate(root: JsonSchema, schema: JsonSchema)
 
-      제약 조건을 **schema** 인자로 전달된 JSON Schema 에 추가합니다.
+      제약 조건을 *schema* 인자로 전달된 JSON Schema 에 추가합니다.
+
+      *root* 는 :data:`typing.Annotated` 로 정의된 형의 JSON Schema 인스턴스 입니다.
 
    .. method:: compile()
 
@@ -248,6 +250,18 @@
    *maximum* 보다 작거나 같은 값만 허락하는 :class:`Constraint`.
 
    JSON Schema 에는 *maximum* 으로 표현됩니다.
+
+.. class:: IsLongerThanOrEqual(minimum)
+
+   *minimum* 보다 길거나 같은 값만 허락하는 :class:`Constraint`.
+
+   JSON Schema 에는 형에 따라 *minLength*, *minProperties*, *minItems* 로 표현됩니다.
+
+.. class:: IsShorterThanOrEqual(maximum)
+
+   *maximum* 보다 짧거나 같은 값만 허락하는 :class:`Constraint`.
+
+   JSON Schema 에는 형에 따라 *maxLength*, *maxProperties*, *maxItems* 로 표현됩니다.
 
 .. class:: JsonSchema(value_or_type = dataclasses.MISSING, *, ctx: Context = None)
 
