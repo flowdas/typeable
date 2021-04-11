@@ -263,3 +263,17 @@ def test_length():
     schema = JsonSchema()
     c.annotate(root, schema)
     assert cast(JsonValue, schema) == {}
+
+
+def test_IsMultipleOf():
+    c = IsMultipleOf(2)
+    assert c(8)
+    assert not c(5)
+    assert c(4.0)
+    assert not c(4.1)
+    schema = JsonSchema()
+    c.annotate(schema, schema)
+    assert cast(JsonValue, schema) == {'multipleOf': 2}
+
+    with pytest.raises(ValueError):
+        IsMultipleOf(0)

@@ -264,6 +264,14 @@ This package defines a number of classes, which are detailed in the sections bel
 
     In JSON Schema, it is expressed as *minLength*, *minProperties*, *minItems* depending on the type.
 
+.. class:: IsMultipleOf(value)
+
+   :class:`Constraint` that allows only numbers that are integer multiples of *value*.
+
+   Raises :exc:`ValueError` if *value* is not positive.
+
+   It is expressed as *multipleOf* in JSON Schema.
+
 .. class:: IsShorterThanOrEqual(maximum)
 
    :class:`Constraint` that only allows values shorter than or equal to *maximum*.

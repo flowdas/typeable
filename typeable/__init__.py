@@ -16,6 +16,7 @@ from ._constraint import (
     IsLessThan,
     IsLessThanOrEqual,
     IsLongerThanOrEqual,
+    IsMultipleOf,
     IsShorterThanOrEqual,
 )
 from ._context import Context
@@ -33,6 +34,7 @@ __all__ = [
     'IsLessThan',
     'IsLessThanOrEqual',
     'IsLongerThanOrEqual',
+    'IsMultipleOf',
     'IsShorterThanOrEqual',
     'JsonSchema',
     'JsonValue',

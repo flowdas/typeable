@@ -158,7 +158,7 @@ Standard Types
 
     :class:`AllOf`, :class:`AnyOf`, :class:`NoneOf`, :class:`IsFinite`, :class:`IsGreaterThan`,
     :class:`IsGreaterThanOrEqual`, :class:`IsLessThan`, :class:`IsLessThanOrEqual`, :class:`IsLongerThanOrEqual`,
-    and :class:`IsShorterThanOrEqual`.
+    :class:`IsMultipleOf`, and :class:`IsShorterThanOrEqual`.
 
 :data:`typing.Any`
 

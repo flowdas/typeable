@@ -257,6 +257,14 @@
 
    JSON Schema 에는 형에 따라 *minLength*, *minProperties*, *minItems* 로 표현됩니다.
 
+.. class:: IsMultipleOf(value)
+
+   *value* 의 정수배인 숫자만 허락하는 :class:`Constraint`.
+
+   *value* 가 양수가 아니면 :exc:`ValueError` 를 발생시킵니다.
+
+   JSON Schema 에는 *multipleOf* 로 표현됩니다.
+
 .. class:: IsShorterThanOrEqual(maximum)
 
    *maximum* 보다 짧거나 같은 값만 허락하는 :class:`Constraint`.

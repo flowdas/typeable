@@ -236,3 +236,18 @@ class IsShorterThanOrEqual(Constraint):
             schema.maxProperties = self._value
         elif root.type == 'array':
             schema.maxItems = self._value
+
+
+class IsMultipleOf(Constraint):
+    __slots__ = ('_value',)
+
+    def __init__(self, value):
+        if value <= 0:
+            raise ValueError(f"not positive: {value}")
+        self._value = value
+
+    def emit(self):
+        return f"(x % {self._value!r} == 0)"
+
+    def annotate(self, root, schema):
+        schema.multipleOf = self._value
