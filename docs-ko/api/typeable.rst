@@ -257,6 +257,14 @@
 
    JSON Schema 에는 형에 따라 *minLength*, *minProperties*, *minItems* 로 표현됩니다.
 
+.. class:: IsMatched(pattern)
+
+   정규식 *pattern* 과 일치하는 문자열만 허락하는 :class:`Constraint`.
+
+   정규식은 묵시적으로 앵커링되지 않습니다. 즉, :func:`re.search` 로 일치를 검사합니다.
+
+   JSON Schema 에는 *pattern* 으로 표현됩니다.
+
 .. class:: IsMultipleOf(value)
 
    *value* 의 정수배인 숫자만 허락하는 :class:`Constraint`.

@@ -157,7 +157,7 @@
 
     :class:`AllOf`, :class:`AnyOf`, :class:`NoneOf`, :class:`IsFinite`, :class:`IsGreaterThan`,
     :class:`IsGreaterThanOrEqual`, :class:`IsLessThan`, :class:`IsLessThanOrEqual`, :class:`IsLongerThanOrEqual`,
-    :class:`IsMultipleOf`, :class:`IsShorterThanOrEqual`.
+    :class:`IsMatched`, :class:`IsMultipleOf`, :class:`IsShorterThanOrEqual`.
 
 :data:`typing.Any`
 

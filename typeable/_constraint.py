@@ -6,6 +6,7 @@
 
 import cmath
 import math
+import re
 
 from ._cast import cast
 from ._json import JsonSchema
@@ -251,3 +252,18 @@ class IsMultipleOf(Constraint):
 
     def annotate(self, root, schema):
         schema.multipleOf = self._value
+
+
+class IsMatched(Constraint):
+    __slots__ = ('_value',)
+
+    def __init__(self, pattern):
+        self._value = pattern
+
+    def emit(self):
+        expr = f"(re.search({self._value!r}, x) is not None)"
+        ns = dict(re=re)
+        return expr, ns
+
+    def annotate(self, root, schema):
+        schema.pattern = self._value

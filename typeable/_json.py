@@ -73,6 +73,7 @@ class JsonSchema(Object):
     maxProperties: int
     minItems: int
     maxItems: int
+    pattern: str
 
     def __init__(self, value_or_type=MISSING, *, ctx=None):
         if value_or_type is MISSING:

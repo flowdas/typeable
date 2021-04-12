@@ -277,3 +277,12 @@ def test_IsMultipleOf():
 
     with pytest.raises(ValueError):
         IsMultipleOf(0)
+
+
+def test_IsMatched():
+    c = IsMatched('p')
+    assert c('apple')
+    assert not c('orange')
+    schema = JsonSchema()
+    c.annotate(schema, schema)
+    assert cast(JsonValue, schema) == {'pattern': 'p'}
