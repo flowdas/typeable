@@ -52,13 +52,15 @@ def declare(name):
     yield ref
     frame = inspect.currentframe().f_back.f_back
     args = [frame.f_globals, frame.f_locals]
+    kwargs = {}
     if _RECURSIVE_GUARD:
-        args.append(set())
+        kwargs['recursive_guard'] = set()
     try:
-        ref._evaluate(*args)
+        ref._evaluate(*args, **kwargs)
     finally:
         del frame
         del args
+        del kwargs
 
 
 #
