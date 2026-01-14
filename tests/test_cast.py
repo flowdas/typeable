@@ -5,6 +5,7 @@
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 import asyncio
 import inspect
+import sys
 
 import pytest
 from typeable.typing import (
@@ -66,7 +67,10 @@ def test_get_args():
     assert get_args(Tuple[int]) == (int,)
     assert get_args(Tuple[int, str]) == (int, str)
     assert get_args(Tuple[int, ...]) == (int, ...)
-    assert get_args(Tuple[()]) == ((),)
+    if sys.version_info < (3, 11):
+        assert get_args(Tuple[()]) == ((),)
+    else:
+        assert get_args(Tuple[()]) == ()
     assert get_args(Tuple) == ()
     assert get_args(Union[int, None]) == (int, type(None))
     assert get_args(Any) == ()

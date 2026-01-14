@@ -79,6 +79,9 @@ _TYPES = '__types__'
 
 def _get_type_args(tp):
     args = get_args(tp)
+    # recover pre-3.11 empty tuple behavior
+    if not args and hasattr(tp, "__args__"):
+        args = ((),)
     evaled = list(args)
     changed = False
     for i, arg in enumerate(evaled):
