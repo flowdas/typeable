@@ -1,4 +1,5 @@
 from enum import IntEnum, Enum, IntFlag, Flag
+import sys
 
 from typeable import *
 
@@ -144,7 +145,12 @@ def test_Flag():
         W = 2
         X = 1
 
-    with pytest.raises(TypeError):
+    if sys.version_info < (3, 11):
+        Exc = TypeError
+    else:
+        Exc = ValueError
+
+    with pytest.raises(Exc):
         cast(Perm, Perm2.R)
 
 
