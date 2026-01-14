@@ -88,9 +88,10 @@ def _get_type_args(tp):
         try:
             if isinstance(arg, ForwardRef):
                 _args = [None, None]
+                kwargs = {}
                 if _RECURSIVE_GUARD:
-                    _args.append(frozenset())
-                evaled[i] = arg._evaluate(*_args)
+                    kwargs['recursive_guard'] = frozenset()
+                evaled[i] = arg._evaluate(*_args, **kwargs)
                 changed = True
         except TypeError:  # pragma: no cover; TODO: Is this really necessary?
             continue
