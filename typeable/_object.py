@@ -4,6 +4,7 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 from collections.abc import Mapping
+import sys
 from .typing import (
     Type,
     get_type_hints,
@@ -12,6 +13,15 @@ from ._cast import cast
 from ._context import Context
 
 from dataclasses import MISSING
+
+if sys.version_info < (3, 10):
+    def _get_annotations(cls):
+        # We need __annotations__ to find the newly defined field in cls.
+        # __annotations__ may not be defined, and for this purpose it should be looked up in cls.__dict__.
+        return cls.__dict__.get('__annotations__', {})
+else:
+    def _get_annotations(cls):
+        return cls.__annotations__
 
 # avoid name mangling
 _FIELDS = '__fields'
@@ -97,9 +107,11 @@ class Object:
                 if issubclass(klass, cls):
                     cls = klass
                 else:
-                    raise TypeError(f"{klass.__qualname__} is not subclass of {cls.__qualname__}")
+                    raise TypeError(
+                        f"{klass.__qualname__} is not subclass of {cls.__qualname__}")
             else:
-                raise TypeError(f"Unknown '{vtable.field.name}' field value: {kind}")
+                raise TypeError(
+                    f"Unknown '{vtable.field.name}' field value: {kind}")
 
         return super().__new__(cls)
 
@@ -121,7 +133,8 @@ class Object:
             if not vtable:
                 raise TypeError(f"No kind field")
             if kind in vtable.classes:
-                raise TypeError(f"Kind '{kind}' is already defined by class {vtable.classes[kind].__qualname__}")
+                raise TypeError(
+                    f"Kind '{kind}' is already defined by class {vtable.classes[kind].__qualname__}")
             else:
                 vtable.classes[kind] = cls
         setattr(cls, _META, _Meta(kind, jsonschema))
@@ -185,7 +198,8 @@ def fields(class_or_instance):
     try:
         _fields = getattr(class_or_instance, _FIELDS)
     except AttributeError:
-        raise TypeError(f"must be called with an Object type or instance: {class_or_instance}")
+        raise TypeError(
+            f"must be called with an Object type or instance: {class_or_instance}")
     if _fields is None:
         cls = class_or_instance if _FIELDS in class_or_instance.__dict__ else class_or_instance.__class__
         fields_map = {}
@@ -199,9 +213,7 @@ def fields(class_or_instance):
                     fields_map[f.name] = f
 
         _fields = []
-        # We need __annotations__ to find the newly defined field in cls.
-        # __annotations__ may not be defined, and for this purpose it should be looked up in cls.__dict__.
-        annotations = cls.__dict__.get('__annotations__', {})
+        annotations = _get_annotations(cls)
         for name, type in get_type_hints(cls).items():
             if name in annotations:
                 has_class_var = hasattr(cls, name)
