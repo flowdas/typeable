@@ -231,7 +231,7 @@ def test_date():
         pass
 
     dt = datetime.utcnow()
-    assert cast(Date, dt) == dt
+    assert cast(Date, dt) == dt.date()
 
     ctx = Context(lossy_conversion=False)
     with pytest.raises(ValueError):
