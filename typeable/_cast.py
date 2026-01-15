@@ -22,6 +22,7 @@ from numbers import Number
 from inspect import (
     signature,
 )
+import sys
 from .typing import (
     Any,
     Dict,
@@ -45,23 +46,29 @@ from ._context import Context
 # declare
 #
 
-
-@contextmanager
-def declare(name):
-    ref = ForwardRef(name)
-    yield ref
-    frame = inspect.currentframe().f_back.f_back
-    args = [frame.f_globals, frame.f_locals]
-    kwargs = {}
-    if _RECURSIVE_GUARD:
-        kwargs['recursive_guard'] = set()
-    try:
-        ref._evaluate(*args, **kwargs)
-    finally:
-        del frame
-        del args
-        del kwargs
-
+if sys.version_info < (3, 14):
+    @contextmanager
+    def declare(name):
+        ref = ForwardRef(name)
+        yield ref
+        frame = inspect.currentframe().f_back.f_back
+        args = [frame.f_globals, frame.f_locals]
+        kwargs = {}
+        if _RECURSIVE_GUARD:
+            kwargs['recursive_guard'] = set()
+        try:
+            ret = ref._evaluate(*args, **kwargs)
+            print(f"evaluated: {ret}")
+        finally:
+            del frame
+            del args
+            del kwargs
+else:
+    @contextmanager
+    def declare(name):
+        ref = ForwardRef(name)
+        ref.__globals__ = inspect.currentframe().f_back.f_back.f_globals
+        yield ref
 
 #
 # cast

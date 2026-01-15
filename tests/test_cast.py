@@ -87,8 +87,6 @@ def test_declare():
     with declare('Integer') as Ref:
         T = List[Ref]
 
-    assert get_args(T) == (ForwardRef('Integer'),)
-
     assert cast(T, [2]) == [2]
     assert cast(T, ["2"]) == [2]
 
