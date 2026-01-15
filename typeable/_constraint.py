@@ -22,7 +22,7 @@ from .typing import (
 
 
 @cast.register
-def _cast_Annotated_object(cls: Type[Annotated], val, ctx, T, *args):
+def _cast_Annotated_object(cls, val, ctx, T, *args) -> Annotated:
     r = cast(T, val, ctx=ctx)
     for arg in args:
         if isinstance(arg, Constraint):
@@ -32,7 +32,7 @@ def _cast_Annotated_object(cls: Type[Annotated], val, ctx, T, *args):
 
 
 @JsonSchema.register(Annotated)
-def _jsonschema_Annotated(self, cls: Type[Annotated], T, *args):
+def _jsonschema_Annotated(self, cls, T, *args):
     this = JsonSchema(T)
     for k, v in this.__dict__.items():
         setattr(self, k, v)
@@ -96,7 +96,8 @@ class _Combined(Constraint):
                     ns.update(expr[1] or {})
                     expr = expr[0]
                 exprs.append(expr)
-            expr = '(' + f" {self.OP} ".join(f"({expr})" for expr in exprs) + ')'
+            expr = '(' + \
+                f" {self.OP} ".join(f"({expr})" for expr in exprs) + ')'
             return expr, (ns if ns else None)
 
     def annotate(self, root, schema):
