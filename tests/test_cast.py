@@ -281,6 +281,9 @@ def test_function_async():
         return a
 
     assert inspect.iscoroutinefunction(test)
-    loop = asyncio.get_event_loop()
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
     assert loop.run_until_complete(test(123)) == 123
     assert loop.run_until_complete(test("123")) == 123
