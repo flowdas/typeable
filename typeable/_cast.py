@@ -57,8 +57,7 @@ if sys.version_info < (3, 14):
         if _RECURSIVE_GUARD:
             kwargs['recursive_guard'] = set()
         try:
-            ret = ref._evaluate(*args, **kwargs)
-            print(f"evaluated: {ret}")
+            ref._evaluate(*args, **kwargs)
         finally:
             del frame
             del args
