@@ -67,8 +67,13 @@ else:
     @contextmanager
     def declare(name):
         ref = ForwardRef(name)
-        ref.__globals__ = inspect.currentframe().f_back.f_back.f_globals
         yield ref
+        frame = inspect.currentframe().f_back.f_back
+        globals = frame.f_globals.copy()
+        globals.update(frame.f_locals)
+        ref.__globals__ = globals
+        del frame
+        del globals
 
 #
 # cast
@@ -762,6 +767,8 @@ def _cast_Union_object(cls, val, ctx, *Ts) -> Union:
         try:
             return cast(T, val)
         except:
+            import traceback
+            traceback.print_exc()
             continue
     else:
         raise TypeError("no match")
