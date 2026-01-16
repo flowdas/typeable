@@ -14,7 +14,7 @@ completeness.
 
 Your criticism and participation are always welcome.
 
-Typeable requires Python 3.7+.
+Typeable requires Python 3.9+.
 
 Documentations:
 
