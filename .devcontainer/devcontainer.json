@@ -12,7 +12,14 @@
 	// "forwardPorts": [],
 
 	// Use 'postCreateCommand' to run commands after the container is created.
-	"postCreateCommand": "./install.sh"
+	"postCreateCommand": "./install.sh",
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"vector-of-bool.gitflow"
+			]
+		}
+	}
 
 	// Configure tool-specific properties.
 	// "customizations": {},
