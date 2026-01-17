@@ -18,6 +18,7 @@ tests_require = [
 ]
 
 dev_requires = tests_require + [
+    'build',
     'sphinx',
 ]
 
