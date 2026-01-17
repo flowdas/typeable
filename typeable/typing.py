@@ -71,4 +71,6 @@ for _name in (
 ):
     if hasattr(typing, _name):  # pragma: no cover
         _GenericBases.append(getattr(typing, _name))
+if hasattr(Union, "__mro__"):
+    _GenericBases.append(Union)
 _GenericBases = tuple(_GenericBases)

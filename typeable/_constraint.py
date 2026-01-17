@@ -6,6 +6,7 @@
 
 import cmath
 import math
+import re
 
 from ._cast import cast
 from ._json import JsonSchema
@@ -21,7 +22,7 @@ from .typing import (
 
 
 @cast.register
-def _cast_Annotated_object(cls: Type[Annotated], val, ctx, T, *args):
+def _cast_Annotated_object(cls, val, ctx, T, *args) -> Annotated:
     r = cast(T, val, ctx=ctx)
     for arg in args:
         if isinstance(arg, Constraint):
@@ -31,7 +32,7 @@ def _cast_Annotated_object(cls: Type[Annotated], val, ctx, T, *args):
 
 
 @JsonSchema.register(Annotated)
-def _jsonschema_Annotated(self, cls: Type[Annotated], T, *args):
+def _jsonschema_Annotated(self, cls, T, *args):
     this = JsonSchema(T)
     for k, v in this.__dict__.items():
         setattr(self, k, v)
@@ -95,7 +96,8 @@ class _Combined(Constraint):
                     ns.update(expr[1] or {})
                     expr = expr[0]
                 exprs.append(expr)
-            expr = '(' + f" {self.OP} ".join(f"({expr})" for expr in exprs) + ')'
+            expr = '(' + \
+                f" {self.OP} ".join(f"({expr})" for expr in exprs) + ')'
             return expr, (ns if ns else None)
 
     def annotate(self, root, schema):
@@ -236,3 +238,33 @@ class IsShorterThanOrEqual(Constraint):
             schema.maxProperties = self._value
         elif root.type == 'array':
             schema.maxItems = self._value
+
+
+class IsMultipleOf(Constraint):
+    __slots__ = ('_value',)
+
+    def __init__(self, value):
+        if value <= 0:
+            raise ValueError(f"not positive: {value}")
+        self._value = value
+
+    def emit(self):
+        return f"(x % {self._value!r} == 0)"
+
+    def annotate(self, root, schema):
+        schema.multipleOf = self._value
+
+
+class IsMatched(Constraint):
+    __slots__ = ('_value',)
+
+    def __init__(self, pattern):
+        self._value = pattern
+
+    def emit(self):
+        expr = f"(re.search({self._value!r}, x) is not None)"
+        ns = dict(re=re)
+        return expr, ns
+
+    def annotate(self, root, schema):
+        schema.pattern = self._value

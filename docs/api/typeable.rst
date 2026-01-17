@@ -264,6 +264,22 @@ This package defines a number of classes, which are detailed in the sections bel
 
     In JSON Schema, it is expressed as *minLength*, *minProperties*, *minItems* depending on the type.
 
+.. class:: IsMatched(pattern)
+
+   :class:`Constraint` that only allows strings that match the regular expression *pattern*.
+
+   Regular expressions are not implicitly anchored. That is, matches are checked with :func:`re.search`.
+
+   It is expressed as *pattern* in JSON Schema.
+
+.. class:: IsMultipleOf(value)
+
+   :class:`Constraint` that allows only numbers that are integer multiples of *value*.
+
+   Raises :exc:`ValueError` if *value* is not positive.
+
+   It is expressed as *multipleOf* in JSON Schema.
+
 .. class:: IsShorterThanOrEqual(maximum)
 
    :class:`Constraint` that only allows values shorter than or equal to *maximum*.

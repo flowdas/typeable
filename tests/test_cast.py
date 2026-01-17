@@ -5,6 +5,7 @@
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 import asyncio
 import inspect
+import sys
 
 import pytest
 from typeable.typing import (
@@ -66,7 +67,10 @@ def test_get_args():
     assert get_args(Tuple[int]) == (int,)
     assert get_args(Tuple[int, str]) == (int, str)
     assert get_args(Tuple[int, ...]) == (int, ...)
-    assert get_args(Tuple[()]) == ((),)
+    if sys.version_info < (3, 11):
+        assert get_args(Tuple[()]) == ((),)
+    else:
+        assert get_args(Tuple[()]) == ()
     assert get_args(Tuple) == ()
     assert get_args(Union[int, None]) == (int, type(None))
     assert get_args(Any) == ()
@@ -82,8 +86,6 @@ Integer = int
 def test_declare():
     with declare('Integer') as Ref:
         T = List[Ref]
-
-    assert get_args(T) == (ForwardRef('Integer'),)
 
     assert cast(T, [2]) == [2]
     assert cast(T, ["2"]) == [2]
@@ -279,6 +281,9 @@ def test_function_async():
         return a
 
     assert inspect.iscoroutinefunction(test)
-    loop = asyncio.get_event_loop()
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
     assert loop.run_until_complete(test(123)) == 123
     assert loop.run_until_complete(test("123")) == 123

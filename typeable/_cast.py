@@ -22,6 +22,7 @@ from numbers import Number
 from inspect import (
     signature,
 )
+import sys
 from .typing import (
     Any,
     Dict,
@@ -45,21 +46,33 @@ from ._context import Context
 # declare
 #
 
-
-@contextmanager
-def declare(name):
-    ref = ForwardRef(name)
-    yield ref
-    frame = inspect.currentframe().f_back.f_back
-    args = [frame.f_globals, frame.f_locals]
-    if _RECURSIVE_GUARD:
-        args.append(set())
-    try:
-        ref._evaluate(*args)
-    finally:
+if sys.version_info < (3, 14):
+    @contextmanager
+    def declare(name):
+        ref = ForwardRef(name)
+        yield ref
+        frame = inspect.currentframe().f_back.f_back
+        args = [frame.f_globals, frame.f_locals]
+        kwargs = {}
+        if _RECURSIVE_GUARD:
+            kwargs['recursive_guard'] = set()
+        try:
+            ref._evaluate(*args, **kwargs)
+        finally:
+            del frame
+            del args
+            del kwargs
+else:
+    @contextmanager
+    def declare(name):
+        ref = ForwardRef(name)
+        yield ref
+        frame = inspect.currentframe().f_back.f_back
+        globals = frame.f_globals.copy()
+        globals.update(frame.f_locals)
+        ref.__globals__ = globals
         del frame
-        del args
-
+        del globals
 
 #
 # cast
@@ -77,15 +90,19 @@ _TYPES = '__types__'
 
 def _get_type_args(tp):
     args = get_args(tp)
+    # recover pre-3.11 empty tuple behavior
+    if not args and hasattr(tp, "__args__"):
+        args = ((),)
     evaled = list(args)
     changed = False
     for i, arg in enumerate(evaled):
         try:
             if isinstance(arg, ForwardRef):
                 _args = [None, None]
+                kwargs = {}
                 if _RECURSIVE_GUARD:
-                    _args.append(frozenset())
-                evaled[i] = arg._evaluate(*_args)
+                    kwargs['recursive_guard'] = frozenset()
+                evaled[i] = arg._evaluate(*_args, **kwargs)
                 changed = True
         except TypeError:  # pragma: no cover; TODO: Is this really necessary?
             continue
@@ -749,6 +766,8 @@ def _cast_Union_object(cls, val, ctx, *Ts) -> Union:
         try:
             return cast(T, val)
         except:
+            import traceback
+            traceback.print_exc()
             continue
     else:
         raise TypeError("no match")

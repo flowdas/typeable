@@ -66,12 +66,14 @@ class JsonSchema(Object):
     exclusiveMaximum: Union[int, float]
     minimum: Union[int, float]
     maximum: Union[int, float]
+    multipleOf: Union[int, float]
     minLength: int
     maxLength: int
     minProperties: int
     maxProperties: int
     minItems: int
     maxItems: int
+    pattern: str
 
     def __init__(self, value_or_type=MISSING, *, ctx=None):
         if value_or_type is MISSING:
