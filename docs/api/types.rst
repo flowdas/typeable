@@ -97,6 +97,11 @@ Builtin Types
 Standard Types
 --------------
 
+:mod:`dataclasses`
+~~~~~~~~~~~~~~~~~~
+
+All classes decorated with @dataclass are converted to and from :class:`dict`.
+
 :mod:`datetime`
 ~~~~~~~~~~~~~~~
 
