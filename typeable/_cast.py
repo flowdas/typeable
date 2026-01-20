@@ -5,6 +5,7 @@
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 import asyncio
 from contextlib import contextmanager
+from dataclasses import is_dataclass, fields
 import datetime
 from email.utils import parsedate_to_datetime
 import enum
@@ -290,12 +291,22 @@ def _cast_Any_object(cls: Type[Any], val, ctx):
 # object (fallback)
 #
 
+def _cast_dataclass_dict(cls, val: dict, ctx):
+    return cls(**val)
+
 
 @cast.register
 def _cast_object_object(cls: Type[object], val, ctx, *Ts):
     if Ts:
         raise NotImplementedError
-    return cls(val)
+    if is_dataclass(cls):
+        if isinstance(val, dict):
+            return _cast_dataclass_dict(cls, val, ctx)
+        else:
+            raise TypeError(
+                f"No implementation found for '{cls.__qualname__}' from {val.__class__.__qualname__}")
+    else:
+        return cls(val)
 
 
 #
@@ -506,10 +517,19 @@ def _copy_dict_object(r, it, ctx, KT, VT):
     return r
 
 
+def _dataclass_items(obj):
+    return [(f.name, getattr(obj, f.name)) for f in fields(obj)]
+
+
 @cast.register
 def _cast_dict_object(cls: Type[dict], val, ctx, K=None, V=None):
     if K is None:
+        if is_dataclass(val):
+            val = _dataclass_items(val)
         return cls(val)
+
+    if is_dataclass(val):
+        val = cls(_dataclass_items(val))
 
     if isinstance(val, cls):
         r = None
