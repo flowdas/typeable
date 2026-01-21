@@ -5,7 +5,7 @@
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 import asyncio
 from contextlib import contextmanager
-from dataclasses import is_dataclass, fields
+from dataclasses import is_dataclass, fields, Field, MISSING
 import datetime
 from email.utils import parsedate_to_datetime
 import enum
@@ -41,7 +41,7 @@ from .typing import (
 )
 
 from ._context import Context
-
+from ._polymorphic import _resolve_polymorphic
 
 #
 # declare
@@ -291,8 +291,29 @@ def _cast_Any_object(cls: Type[Any], val, ctx):
 # object (fallback)
 #
 
-def _cast_dataclass_dict(cls, val: dict, ctx):
-    return cls(**val)
+def _cast_dataclass_Mapping(cls, val: Mapping, ctx):
+    if ctx is None:
+        ctx = Context()
+    cls = _resolve_polymorphic(cls, val, ctx)
+    field_map: dict[str, Field] = {f.name: f for f in fields(cls)}
+    kwargs = {}
+    for k, v in val.items():
+        with ctx.traverse(k):
+            if k in field_map and field_map[k].init:
+                kwargs[k] = cast(field_map[k].type, v, ctx=ctx)
+            else:
+                raise TypeError(
+                    f"{cls.__name__}.__init__() got an unexpected keyword argument '{k}'")
+    try:
+        return cls(**kwargs)
+    except TypeError:
+        for k, f in field_map.items():
+            if k not in val:
+                if f.init and f.default is MISSING and f.default_factory is MISSING:
+                    with ctx.traverse(k):
+                        raise TypeError(
+                            f"{cls.__name__}.__init__() missing 1 required argument: '{k}'")
+        raise
 
 
 @cast.register
@@ -300,8 +321,8 @@ def _cast_object_object(cls: Type[object], val, ctx, *Ts):
     if Ts:
         raise NotImplementedError
     if is_dataclass(cls):
-        if isinstance(val, dict):
-            return _cast_dataclass_dict(cls, val, ctx)
+        if isinstance(val, Mapping):
+            return _cast_dataclass_Mapping(cls, val, ctx)
         else:
             raise TypeError(
                 f"No implementation found for '{cls.__qualname__}' from {val.__class__.__qualname__}")
@@ -1168,7 +1189,7 @@ def _cast_Literal_object(cls, val, ctx, *literals) -> Literal:
         if literal == val:
             return literal
     else:
-        raise ValueError(f"One of {literals!r} required, but {val!r} is given")
+        raise TypeError(f"One of {literals!r} required, but {val!r} is given")
 
 
 #

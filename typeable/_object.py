@@ -8,20 +8,12 @@ import sys
 from .typing import (
     Type,
     get_type_hints,
+    _get_annotations,
 )
 from ._cast import cast
 from ._context import Context
 
 from dataclasses import MISSING
-
-if sys.version_info < (3, 10):
-    def _get_annotations(cls):
-        # We need __annotations__ to find the newly defined field in cls.
-        # __annotations__ may not be defined, and for this purpose it should be looked up in cls.__dict__.
-        return cls.__dict__.get('__annotations__', {})
-else:
-    def _get_annotations(cls):
-        return cls.__annotations__
 
 # avoid name mangling
 _FIELDS = '__fields'

@@ -23,6 +23,7 @@ from ._constraint import (
 from ._context import Context
 from ._object import Object, field, fields
 from ._json import JsonSchema, JsonValue, dump, dumps
+from ._polymorphic import is_polymorphic, polymorphic
 
 __all__ = [
     'AllOf',
@@ -48,4 +49,6 @@ __all__ = [
     'dumps',
     'field',
     'fields',
+    'is_polymorphic',
+    'polymorphic',
 ]

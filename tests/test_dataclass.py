@@ -4,10 +4,11 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 from dataclasses import *
+from typing import Literal
 
 import pytest
 
-from typeable import cast, JsonValue
+from typeable import cast, JsonValue, Context
 
 
 def test_cast():
@@ -61,3 +62,61 @@ def test_JsonValue():
 
     assert cast(JsonValue, {'result': X(**data)}) == {'result': data}
 
+
+def test_Literal():
+    @dataclass
+    class X:
+        i: Literal[1, 2, 3]
+
+    data = {'i': 1}
+
+    x = cast(X, data)
+    assert cast(dict, x) == data
+
+    data = {'i': 0}
+    with pytest.raises(TypeError):
+        cast(X, data)
+
+
+def test_context_with_type_mismatch():
+    @dataclass
+    class X:
+        i: Literal[1, 2, 3]
+
+    ctx = Context()
+
+    with pytest.raises(TypeError):
+        with ctx.capture() as error:
+            cast(X, {"i": 0}, ctx=ctx)
+    assert error.location == ("i",)
+
+
+def test_context_with_missing_field():
+    @dataclass
+    class X:
+        i: Literal[1, 2, 3]
+
+    ctx = Context()
+
+    with pytest.raises(TypeError):
+        with ctx.capture() as error:
+            cast(X, {}, ctx=ctx)
+    assert error.location == ("i",)
+
+    with pytest.raises(TypeError):
+        with ctx.capture() as error:
+            cast(X, {"i": 1, "j": 0}, ctx=ctx)
+    assert error.location == ("j",)
+
+
+def test_context_with_extra_field():
+    @dataclass
+    class X:
+        i: Literal[1, 2, 3]
+
+    ctx = Context()
+
+    with pytest.raises(TypeError):
+        with ctx.capture() as error:
+            cast(X, {"i": 1, "j": 0}, ctx=ctx)
+    assert error.location == ("j",)
