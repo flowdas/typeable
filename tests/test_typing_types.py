@@ -116,5 +116,5 @@ def test_Literal():
     assert cast(Literal['2.0', '1.0', 3.0], '2.0') == '2.0'
     assert cast(Literal['2.0', '1.0', 3.0], '1.0') == '1.0'
     assert cast(Literal['2.0', '1.0', 3.0], 3.0) == 3.0
-    with pytest.raises(ValueError):
+    with pytest.raises(TypeError):
         cast(Literal['2.0', '1.0', 3.0], 4)
