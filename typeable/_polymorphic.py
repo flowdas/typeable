@@ -1,11 +1,21 @@
 from collections.abc import Callable, Mapping
-from dataclasses import dataclass, fields, Field, MISSING, _FIELDS
-from typing import Any, Literal, Optional, TypeVar, overload
-
-from .typing import (
+from dataclasses import (
+    dataclass,
+    field as _field,
+    fields,
+    Field,
+    MISSING,
+    _FIELDS,  # type: ignore
+)
+from typing import (
+    Any,
+    Literal,
+    Optional,
+    TypeVar,
     get_origin,
     get_args,
     get_type_hints,
+    overload,
 )
 
 _T = TypeVar("_T", bound=type)
@@ -22,7 +32,7 @@ def polymorphic(cls: _T, /) -> _T: ...
 def polymorphic(cls: None = None, /, *, on: str) -> Callable[[_T], _T]: ...
 
 
-def polymorphic(_=None, /, *, on: Optional[str] = None):
+def polymorphic(_=None, /, *, on: str | None = None):
     def deco(cls: _T) -> _T:
         discriminator: str
 
@@ -54,12 +64,12 @@ def polymorphic(_=None, /, *, on: Optional[str] = None):
         assert field is not None
         if field.default is not MISSING or field.default_factory is not MISSING:
             raise TypeError("the discriminator field cannot have a default value.")
-        next: Optional[_Polymorphic] = getattr(cls, _POLYMORPHIC, None)
+        next: _Polymorphic | None = getattr(cls, _POLYMORPHIC, None)
         if next and next.cls is cls:
             raise TypeError("duplicated @polymorphic")
 
         setattr(cls, _POLYMORPHIC, _Polymorphic(cls, field, next))
-        cls.__init_subclass__ = classmethod(_init_subclass_)
+        setattr(cls, "__init_subclass__", classmethod(_init_subclass_))
         return cls
 
     if _ is None:
@@ -91,24 +101,17 @@ def _init_subclass_(cls: type):
         mark.classes[val] = cls
 
 
+@dataclass(slots=True)
 class _Polymorphic:
-    __slots__ = (
-        "cls",
-        "field",
-        "next",
-        "classes",
-    )
-
-    def __init__(self, cls: type, field: Field, next: Optional["_Polymorphic"]):
-        self.cls = cls
-        self.field = field
-        self.next = next
-        self.classes = {}
+    cls: type
+    field: Field
+    next: Optional["_Polymorphic"]
+    classes: dict = _field(default_factory=dict)
 
 
 def _get_discriminator_names(cls: type):
     names = []
-    mark: Optional[_Polymorphic] = getattr(cls, _POLYMORPHIC, None)
+    mark: _Polymorphic | None = getattr(cls, _POLYMORPHIC, None)
     while mark is not None:
         names.append(mark.field.name)
         mark = mark.next
@@ -122,7 +125,7 @@ def is_polymorphic(cls: type) -> bool:
 def _resolve_polymorphic(cls: _T, val: Mapping, ctx) -> _T:
     klass = cls
     while True:
-        mark: Optional[_Polymorphic] = getattr(klass, _POLYMORPHIC, None)
+        mark: _Polymorphic | None = getattr(klass, _POLYMORPHIC, None)
         if not mark or mark.cls is not klass:
             break
         value = val.get(mark.field.name, MISSING)

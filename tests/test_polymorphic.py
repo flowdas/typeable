@@ -8,7 +8,12 @@ from typing import Literal
 
 import pytest
 
-from typeable import cast, polymorphic, JsonValue, Context, is_polymorphic
+from typeable import (
+    deepcast,
+    polymorphic,
+    Context,
+    is_polymorphic,
+)
 
 
 def test_polymorphic_is_dataclass():
@@ -79,9 +84,9 @@ def test_impl_discriminator_is_literal():
         name="x-api-key",
     )
 
-    x = cast(Authenticator, data)
+    x = deepcast(Authenticator, data)
     assert isinstance(x, ApiKeyAuthenticator)
-    assert cast(JsonValue, x) == data
+    assert deepcast(dict, x) == data
 
     with pytest.raises(TypeError):
 
@@ -125,7 +130,7 @@ def test_impl_discriminator_is_case_sensitive():
     )
 
     with pytest.raises(TypeError):
-        cast(Authenticator, data)
+        deepcast(Authenticator, data)
 
 
 def test_impl_discriminator_type_mismatch():
@@ -156,9 +161,9 @@ def test_impl_instanciation():
         name="x-api-key",
     )
 
-    x = cast(ApiKeyAuthenticator, data)
+    x = deepcast(ApiKeyAuthenticator, data)
     assert isinstance(x, ApiKeyAuthenticator)
-    assert cast(JsonValue, x) == data
+    assert deepcast(dict, x) == data
 
 
 def test_impl_discriminator_mismatch():
@@ -181,7 +186,7 @@ def test_impl_discriminator_mismatch():
     )
 
     with pytest.raises(TypeError):
-        cast(ApiKeyAuthenticator, data)
+        deepcast(ApiKeyAuthenticator, data)
 
 
 def test_impl_type_check():
@@ -203,7 +208,7 @@ def test_impl_type_check():
 
     with pytest.raises(ValueError):
         with ctx.capture() as error:
-            cast(Authenticator, data, ctx=ctx)
+            deepcast(Authenticator, data, ctx=ctx)
     assert error.location == ("name",)
 
 
@@ -222,7 +227,7 @@ def test_impl_type_conversion():
         name="123",
     )
 
-    x = cast(Authenticator, data)
+    x = deepcast(Authenticator, data)
     assert isinstance(x, ApiKeyAuthenticator)
     assert x.name == 123
 
@@ -252,9 +257,9 @@ def test_multiple_discriptor():
         scheme="bearer",
         format="JWT",
     )
-    x = cast(Authenticator, data)
+    x = deepcast(Authenticator, data)
     assert isinstance(x, HttpBearerAuthenticator)
-    assert cast(JsonValue, x) == data
+    assert deepcast(dict, x) == data
 
 
 def test_partially_polymorphic():
@@ -282,9 +287,9 @@ def test_partially_polymorphic():
         scheme="bearer",
         format="JWT",
     )
-    x = cast(HttpAuthenticator, data)
+    x = deepcast(HttpAuthenticator, data)
     assert isinstance(x, HttpBearerAuthenticator)
-    assert cast(JsonValue, x) == data
+    assert deepcast(dict, x) == data
 
 
 def test_is_polymorphic():

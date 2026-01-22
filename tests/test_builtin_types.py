@@ -6,11 +6,9 @@
 
 import cmath
 import collections
+from dataclasses import dataclass
 import math
-import sys
-import pytest
-
-from typeable.typing import (
+from typing import (
     Any,
     Dict,
     FrozenSet,
@@ -20,7 +18,13 @@ from typeable.typing import (
     Tuple,
     Type,
 )
-from typeable import *
+
+import pytest
+
+from typeable import (
+    Context,
+    deepcast,
+)
 
 
 #
@@ -30,20 +34,20 @@ from typeable import *
 
 def test_object():
     # None
-    assert cast(object, None) is None
+    assert deepcast(object, None) is None
 
     # object
-    assert cast(object, object()).__class__ is object
+    assert deepcast(object, object()).__class__ is object
 
     # custom class
     class X:
         pass
 
     x = X()
-    assert cast(X, x) is x
+    assert deepcast(X, x) is x
 
     with pytest.raises(TypeError):
-        cast(X, "")
+        deepcast(X, "")
 
 
 #
@@ -52,12 +56,12 @@ def test_object():
 
 
 def test_None():
-    assert cast(type(None), None) is None
-    assert cast(object, None) is None
-    assert cast(Any, None) is None
-    assert cast(Optional[int], None) is None
+    assert deepcast(type(None), None) is None
+    assert deepcast(object, None) is None
+    assert deepcast(Any, None) is None
+    assert deepcast(Optional[int], None) is None
     with pytest.raises(TypeError):
-        cast(type(None), object())
+        deepcast(type(None), object())
 
 
 #
@@ -67,34 +71,34 @@ def test_None():
 
 def test_bool():
     # str
-    assert cast(bool, "false") is False
-    assert cast(bool, "true") is True
-    assert cast(bool, "fAlSe") is False
-    assert cast(bool, "tRuE") is True
+    assert deepcast(bool, "false") is False
+    assert deepcast(bool, "true") is True
+    assert deepcast(bool, "fAlSe") is False
+    assert deepcast(bool, "tRuE") is True
     with pytest.raises(ValueError):
-        cast(bool, "SUCCESS")
+        deepcast(bool, "SUCCESS")
     ctx = Context(bool_strings={})
     with pytest.raises(TypeError):
-        cast(bool, "SUCCESS", ctx=ctx)
+        deepcast(bool, "SUCCESS", ctx=ctx)
 
     # int
-    assert cast(bool, 0) is False
-    assert cast(bool, 1) is True
-    assert cast(bool, 2) is True
+    assert deepcast(bool, 0) is False
+    assert deepcast(bool, 1) is True
+    assert deepcast(bool, 2) is True
     with pytest.raises(ValueError):
-        cast(bool, 2, ctx=Context(lossy_conversion=False))
+        deepcast(bool, 2, ctx=Context(lossy_conversion=False))
     with pytest.raises(TypeError):
-        cast(bool, 0, ctx=Context(bool_is_int=False))
+        deepcast(bool, 0, ctx=Context(bool_is_int=False))
 
     # bool
-    assert cast(bool, False) is False
-    assert cast(bool, True) is True
+    assert deepcast(bool, False) is False
+    assert deepcast(bool, True) is True
 
     # float
     with pytest.raises(TypeError):
-        cast(bool, 0.0)
+        deepcast(bool, 0.0)
     with pytest.raises(TypeError):
-        cast(bool, 1.0)
+        deepcast(bool, 1.0)
 
 
 #
@@ -104,25 +108,25 @@ def test_bool():
 
 def test_int():
     # str
-    assert cast(int, "123") == 123
-    assert cast(int, "123", ctx=Context(lossy_conversion=False)) == 123
+    assert deepcast(int, "123") == 123
+    assert deepcast(int, "123", ctx=Context(lossy_conversion=False)) == 123
 
     # bool
-    assert cast(int, True) == 1
+    assert deepcast(int, True) == 1
     with pytest.raises(TypeError):
-        cast(int, True, ctx=Context(bool_is_int=False))
+        deepcast(int, True, ctx=Context(bool_is_int=False))
 
     # float
-    assert cast(int, 123.456) == 123
+    assert deepcast(int, 123.456) == 123
     with pytest.raises(ValueError):
-        cast(int, 123.456, ctx=Context(lossy_conversion=False))
+        deepcast(int, 123.456, ctx=Context(lossy_conversion=False))
 
     # complex
     with pytest.raises(TypeError):
-        cast(int, complex())
+        deepcast(int, complex())
 
     # int
-    assert cast(int, 123) == 123
+    assert deepcast(int, 123) == 123
 
 
 #
@@ -132,23 +136,23 @@ def test_int():
 
 def test_float():
     # str
-    assert cast(float, "123.456") == 123.456
-    assert math.isnan(cast(float, "nan"))
+    assert deepcast(float, "123.456") == 123.456
+    assert math.isnan(deepcast(float, "nan"))
 
     # bool
-    assert cast(float, True) == 1.0
+    assert deepcast(float, True) == 1.0
     with pytest.raises(TypeError):
-        cast(float, True, ctx=Context(bool_is_int=False))
+        deepcast(float, True, ctx=Context(bool_is_int=False))
 
     # int
-    assert cast(float, 123) == 123
+    assert deepcast(float, 123) == 123
 
     # complex
     with pytest.raises(TypeError):
-        cast(float, complex())
+        deepcast(float, complex())
 
     # float
-    assert cast(float, 123.456) == 123.456
+    assert deepcast(float, 123.456) == 123.456
 
 
 #
@@ -158,30 +162,30 @@ def test_float():
 
 def test_complex():
     # str
-    assert cast(complex, "123+456j") == complex(123, 456)
-    assert cmath.isnan(cast(complex, "nan+nanj"))
+    assert deepcast(complex, "123+456j") == complex(123, 456)
+    assert cmath.isnan(deepcast(complex, "nan+nanj"))
 
     # bool
-    assert cast(complex, True) == 1.0 + 0j
+    assert deepcast(complex, True) == 1.0 + 0j
     with pytest.raises(TypeError):
-        cast(complex, True, ctx=Context(bool_is_int=False))
+        deepcast(complex, True, ctx=Context(bool_is_int=False))
 
     # int
-    assert cast(complex, 123) == 123 + 0j
+    assert deepcast(complex, 123) == 123 + 0j
 
     # float
-    assert cast(complex, 123.456) == 123.456 + 0j
+    assert deepcast(complex, 123.456) == 123.456 + 0j
 
     # tuple
-    assert cast(complex, [123, 456]) == complex(123, 456)
-    assert cast(complex, (123, 456)) == complex(123, 456)
+    assert deepcast(complex, [123, 456]) == complex(123, 456)
+    assert deepcast(complex, (123, 456)) == complex(123, 456)
 
     # complex
     with pytest.raises(TypeError):
-        cast(float, complex())
+        deepcast(float, complex())
 
     # complex
-    assert cast(complex, complex(123, 456)) == complex(123, 456)
+    assert deepcast(complex, complex(123, 456)) == complex(123, 456)
 
 
 #
@@ -193,45 +197,45 @@ def test_str():
     from datetime import datetime
 
     # bool
-    assert cast(str, True) == "True"
+    assert deepcast(str, True) == "True"
 
     # int
-    assert cast(str, 123) == "123"
+    assert deepcast(str, 123) == "123"
 
     # float
-    assert cast(str, 123.456) == str(123.456)
+    assert deepcast(str, 123.456) == str(123.456)
 
     # complex
-    assert cast(str, complex(1, 2)) == "(1+2j)"
+    assert deepcast(str, complex(1, 2)) == "(1+2j)"
 
     # bytes
-    assert cast(str, b"hello") == "hello"
+    assert deepcast(str, b"hello") == "hello"
 
     # bytearray
-    assert cast(str, bytearray(b"hello")) == "hello"
+    assert deepcast(str, bytearray(b"hello")) == "hello"
 
     # object
     with pytest.raises(TypeError):
-        cast(str, object())
-    cast(str, object(), ctx=Context(strict_str=False))
+        deepcast(str, object())
+    deepcast(str, object(), ctx=Context(strict_str=False))
 
     # type
-    assert cast(str, int) == "builtins.int"
-    assert cast(str, datetime) == "datetime.datetime"
-    assert cast(str, OuterClass) == "tests.test_builtin_types.OuterClass"
+    assert deepcast(str, int) == "builtins.int"
+    assert deepcast(str, datetime) == "datetime.datetime"
+    assert deepcast(str, OuterClass) == "tests.test_builtin_types.OuterClass"
     assert (
-        cast(str, OuterClass.InnerClass)
+        deepcast(str, OuterClass.InnerClass)
         == "tests.test_builtin_types.OuterClass.InnerClass"
     )
 
     # None
     with pytest.raises(TypeError):
-        cast(str, None)
+        deepcast(str, None)
     with pytest.raises(TypeError):
-        cast(str, None, ctx=Context(strict_str=False))
+        deepcast(str, None, ctx=Context(strict_str=False))
 
     # str
-    assert cast(str, "hello") == "hello"
+    assert deepcast(str, "hello") == "hello"
 
 
 #
@@ -241,24 +245,24 @@ def test_str():
 
 def test_bytes():
     # str
-    assert cast(bytes, "hello") == b"hello"
+    assert deepcast(bytes, "hello") == b"hello"
 
     # list[int]
-    assert cast(bytes, [0, 1, 2, 3, 4]) == b"\x00\x01\x02\x03\x04"
+    assert deepcast(bytes, [0, 1, 2, 3, 4]) == b"\x00\x01\x02\x03\x04"
 
     # int
     with pytest.raises(TypeError):
-        cast(bytes, 5)
+        deepcast(bytes, 5)
 
     # None
     with pytest.raises(TypeError):
-        cast(bytes, None)
+        deepcast(bytes, None)
 
     # bytearray
-    assert cast(bytes, bytearray(b"hello")) == b"hello"
+    assert deepcast(bytes, bytearray(b"hello")) == b"hello"
 
     # bytes
-    assert cast(bytes, b"hello") == b"hello"
+    assert deepcast(bytes, b"hello") == b"hello"
 
 
 #
@@ -268,24 +272,24 @@ def test_bytes():
 
 def test_bytearray():
     # str
-    assert cast(bytearray, "hello") == bytearray(b"hello")
+    assert deepcast(bytearray, "hello") == bytearray(b"hello")
 
     # list[int]
-    assert cast(bytearray, [0, 1, 2, 3, 4]) == bytearray(b"\x00\x01\x02\x03\x04")
+    assert deepcast(bytearray, [0, 1, 2, 3, 4]) == bytearray(b"\x00\x01\x02\x03\x04")
 
     # int
     with pytest.raises(TypeError):
-        cast(bytearray, 5)
+        deepcast(bytearray, 5)
 
     # None
     with pytest.raises(TypeError):
-        cast(bytearray, None)
+        deepcast(bytearray, None)
 
     # bytes
-    assert cast(bytearray, b"hello") == bytearray(b"hello")
+    assert deepcast(bytearray, b"hello") == bytearray(b"hello")
 
     # bytearray
-    assert cast(bytearray, bytearray(b"hello")) == bytearray(b"hello")
+    assert deepcast(bytearray, bytearray(b"hello")) == bytearray(b"hello")
 
 
 #
@@ -295,35 +299,36 @@ def test_bytearray():
 
 def test_list():
     # dict
-    assert cast(list, {"a": 1, "b": 2}) == [("a", 1), ("b", 2)]
+    assert deepcast(list, {"a": 1, "b": 2}) == [("a", 1), ("b", 2)]
 
     # None
     with pytest.raises(TypeError):
-        cast(list, None)
+        deepcast(list, None)
 
     # list
-    class X(Object):
+    @dataclass
+    class X:
         i: int
 
     data = [{"i": i} for i in range(10)]
 
-    l = cast(List, data)
+    l = deepcast(List, data)
     assert isinstance(l, list)
     assert l == data
 
-    l = cast(list, data)
+    l = deepcast(list, data)
     assert isinstance(l, list)
     assert l == data
 
     # generic list
-    l = cast(List[X], data)
+    l = deepcast(List[X], data)
 
     assert isinstance(l, list)
     for i in range(len(data)):
         assert isinstance(l[i], X)
         assert l[i].i == i
 
-    l = cast(list[X], data)
+    l = deepcast(list[X], data)
 
     assert isinstance(l, list)
     for i in range(len(data)):
@@ -332,19 +337,19 @@ def test_list():
 
     # no copy
     data = list(range(10))
-    assert cast(list, data) is data
-    assert cast(List, data) is data
-    assert cast(List[int], data) is data
+    assert deepcast(list, data) is data
+    assert deepcast(List, data) is data
+    assert deepcast(List[int], data) is data
 
     # copy
     data = list(range(9))
     data.append("9")
     expected = list(range(10))
 
-    assert cast(list, data) is data
-    assert cast(List, data) is data
-    assert cast(List[int], data) == expected
-    assert cast(List[int], tuple(data)) == expected
+    assert deepcast(list, data) is data
+    assert deepcast(List, data) is data
+    assert deepcast(List[int], data) == expected
+    assert deepcast(List[int], tuple(data)) == expected
 
 
 #
@@ -355,32 +360,33 @@ def test_list():
 def test_dict():
     # mapping
     d = {"a": 1, "b": 2}
-    r = cast(dict, collections.OrderedDict(d))
+    r = deepcast(dict, collections.OrderedDict(d))
     assert r == {"a": 1, "b": 2}
 
     # list
-    assert cast(dict, [("a", 1), ("b", 2)]) == {"a": 1, "b": 2}
+    assert deepcast(dict, [("a", 1), ("b", 2)]) == {"a": 1, "b": 2}
 
     # None
     with pytest.raises(TypeError):
-        cast(dict, None)
+        deepcast(dict, None)
 
     # dict
-    class X(Object):
+    @dataclass
+    class X:
         i: int
 
     data = {i: {"i": i} for i in range(10)}
 
-    r = cast(Dict, data)
+    r = deepcast(Dict, data)
     assert isinstance(r, dict)
     assert r == data
 
-    r = cast(dict, data)
+    r = deepcast(dict, data)
     assert isinstance(r, dict)
     assert r == data
 
     # generic dict
-    r = cast(Dict[str, X], data)
+    r = deepcast(Dict[str, X], data)
 
     assert isinstance(r, dict)
     assert len(r) == len(data)
@@ -389,9 +395,9 @@ def test_dict():
         assert isinstance(v, X)
         assert v.i == i
 
-    assert cast(Dict[str, int], [("a", 1), ("b", 2)]) == {"a": 1, "b": 2}
+    assert deepcast(Dict[str, int], [("a", 1), ("b", 2)]) == {"a": 1, "b": 2}
 
-    r = cast(dict[str, X], data)
+    r = deepcast(dict[str, X], data)
 
     assert isinstance(r, dict)
     assert len(r) == len(data)
@@ -402,18 +408,18 @@ def test_dict():
 
     # no copy
     data = {str(i): i for i in range(10)}
-    assert cast(dict, data) is data
-    assert cast(Dict, data) is data
-    assert cast(Dict[str, int], data) is data
+    assert deepcast(dict, data) is data
+    assert deepcast(Dict, data) is data
+    assert deepcast(Dict[str, int], data) is data
 
     # copy
     expected = data.copy()
     data["9"] = "9"
 
-    assert cast(dict, data) is data
-    assert cast(Dict, data) is data
-    assert cast(Dict[str, int], data) == expected
-    assert cast(Dict[str, int], collections.UserDict(data)) == expected
+    assert deepcast(dict, data) is data
+    assert deepcast(Dict, data) is data
+    assert deepcast(Dict[str, int], data) == expected
+    assert deepcast(Dict[str, int], collections.UserDict(data)) == expected
 
 
 #
@@ -423,88 +429,88 @@ def test_dict():
 
 def test_set():
     # dict
-    assert cast(set, {"a": 1, "b": 2}) == {"a", "b"}
+    assert deepcast(set, {"a": 1, "b": 2}) == {"a", "b"}
 
     # None
     with pytest.raises(TypeError):
-        cast(set, None)
+        deepcast(set, None)
 
     # set
     expected = set(range(10))
     data = set(str(v) for v in expected)
 
-    l = cast(Set, data)
+    l = deepcast(Set, data)
     assert isinstance(l, set)
     assert l == data
 
-    l = cast(set, data)
+    l = deepcast(set, data)
     assert isinstance(l, set)
     assert l == data
 
     # generic set
-    l = cast(Set[int], data)
+    l = deepcast(Set[int], data)
 
     assert isinstance(l, set)
     assert l == expected
 
-    l = cast(set[int], data)
+    l = deepcast(set[int], data)
 
     assert isinstance(l, set)
     assert l == expected
 
     # no copy
     data = set(range(10))
-    assert cast(set, data) is data
-    assert cast(Set, data) is data
-    assert cast(Set[int], data) is data
+    assert deepcast(set, data) is data
+    assert deepcast(Set, data) is data
+    assert deepcast(Set[int], data) is data
 
     # copy
     data = set(range(9))
     data.add("9")
     expected = set(range(10))
 
-    assert cast(set, data) is data
-    assert cast(Set, data) is data
-    assert cast(Set[int], data) == expected
-    assert cast(Set[int], frozenset(data)) == expected
+    assert deepcast(set, data) is data
+    assert deepcast(Set, data) is data
+    assert deepcast(Set[int], data) == expected
+    assert deepcast(Set[int], frozenset(data)) == expected
 
 
 def test_frozenset():
     # dict
-    assert cast(frozenset, {"a": 1, "b": 2}) == frozenset({"a", "b"})
+    assert deepcast(frozenset, {"a": 1, "b": 2}) == frozenset({"a", "b"})
 
     # None
     with pytest.raises(TypeError):
-        cast(frozenset, None)
+        deepcast(frozenset, None)
 
     # frozenset
     expected = frozenset(range(10))
     data = frozenset(str(v) for v in expected)
 
-    l = cast(FrozenSet, data)
+    l = deepcast(FrozenSet, data)
     assert isinstance(l, frozenset)
     assert l == data
 
-    l = cast(frozenset, data)
+    l = deepcast(frozenset, data)
     assert isinstance(l, frozenset)
     assert l == data
 
     # generic set
-    l = cast(FrozenSet[int], data)
+    l = deepcast(FrozenSet[int], data)
 
     assert isinstance(l, frozenset)
     assert l == expected
 
-    l = cast(frozenset[int], data)
+    l = deepcast(frozenset[int], data)
 
     assert isinstance(l, frozenset)
     assert l == expected
 
     # no copy
     data = frozenset(range(10))
-    assert cast(frozenset, data) is data
-    assert cast(FrozenSet, data) is data
-    assert cast(FrozenSet[int], data) is data
+    assert deepcast(frozenset, data) is data
+    assert deepcast(FrozenSet, data) is data
+    assert deepcast(FrozenSet[int], data) is data
 
     # copy
     data = set(range(9))
@@ -512,10 +518,10 @@ def test_frozenset():
     data = frozenset(data)
     expected = frozenset(range(10))
 
-    assert cast(frozenset, data) is data
-    assert cast(FrozenSet, data) is data
-    assert cast(FrozenSet[int], data) == expected
-    assert cast(FrozenSet[int], set(data)) == expected
+    assert deepcast(frozenset, data) is data
+    assert deepcast(FrozenSet, data) is data
+    assert deepcast(FrozenSet[int], data) == expected
+    assert deepcast(FrozenSet[int], set(data)) == expected
 
 
 #
@@ -525,76 +531,76 @@ def test_frozenset():
 
 def test_tuple():
     # dict
-    assert cast(tuple, {"a": 1, "b": 2}) == (("a", 1), ("b", 2))
+    assert deepcast(tuple, {"a": 1, "b": 2}) == (("a", 1), ("b", 2))
 
     # None
     with pytest.raises(TypeError):
-        cast(tuple, None)
+        deepcast(tuple, None)
 
     # homogeneous tuple
     expected = tuple(range(10))
     data = tuple(str(i) for i in range(10))
 
-    l = cast(Tuple, data)
+    l = deepcast(Tuple, data)
     assert isinstance(l, tuple)
     assert l == data
 
-    l = cast(tuple, data)
+    l = deepcast(tuple, data)
     assert isinstance(l, tuple)
     assert l == data
 
     # homogeneous generic tuple
-    l = cast(Tuple[int, ...], data)
+    l = deepcast(Tuple[int, ...], data)
 
     assert isinstance(l, tuple)
     assert l == expected
 
-    l = cast(tuple[int, ...], data)
+    l = deepcast(tuple[int, ...], data)
 
     assert isinstance(l, tuple)
     assert l == expected
 
     # homogeneous no copy
     data = tuple(range(10))
-    assert cast(tuple, data) is data
-    assert cast(Tuple, data) is data
-    assert cast(Tuple[int, ...], data) is data
+    assert deepcast(tuple, data) is data
+    assert deepcast(Tuple, data) is data
+    assert deepcast(Tuple[int, ...], data) is data
 
     # homogeneous copy
     data = tuple(range(9)) + ("9",)
     expected = tuple(range(10))
-    assert cast(tuple, data) is data
-    assert cast(Tuple, data) is data
-    assert cast(Tuple[int, ...], data) == expected
-    assert cast(Tuple[int, ...], list(range(9)) + ["9"]) == expected
+    assert deepcast(tuple, data) is data
+    assert deepcast(Tuple, data) is data
+    assert deepcast(Tuple[int, ...], data) == expected
+    assert deepcast(Tuple[int, ...], list(range(9)) + ["9"]) == expected
 
     # heterogeneous tuple
     data = (1, "2", "3")
     expected = ("1", 2, "3")
 
-    l = cast(Tuple, data)
+    l = deepcast(Tuple, data)
     assert isinstance(l, tuple)
     assert l == data
 
-    l = cast(tuple, data)
+    l = deepcast(tuple, data)
     assert isinstance(l, tuple)
     assert l == data
 
     # heterogeneous generic tuple
-    l = cast(Tuple[str, int, str], data)
+    l = deepcast(Tuple[str, int, str], data)
 
     assert isinstance(l, tuple)
     assert l == expected
 
-    l = cast(Tuple[str, int, str], list(data))
+    l = deepcast(Tuple[str, int, str], list(data))
 
     assert isinstance(l, tuple)
     assert l == expected
 
-    assert cast(Tuple[int, int, int], data) == (1, 2, 3)
-    assert cast(Tuple[int, int, int], list(data)) == (1, 2, 3)
+    assert deepcast(Tuple[int, int, int], data) == (1, 2, 3)
+    assert deepcast(Tuple[int, int, int], list(data)) == (1, 2, 3)
 
-    l = cast(tuple[str, int, str], data)
+    l = deepcast(tuple[str, int, str], data)
 
     assert isinstance(l, tuple)
     assert l == expected
@@ -602,44 +608,44 @@ def test_tuple():
     # empty tuple
     data = ()
 
-    l = cast(Tuple, data)
+    l = deepcast(Tuple, data)
     assert isinstance(l, tuple)
     assert l == data
 
-    l = cast(tuple, data)
+    l = deepcast(tuple, data)
     assert isinstance(l, tuple)
     assert l == data
 
     # empty generic tuple
-    l = cast(Tuple[()], data)
+    l = deepcast(Tuple[()], data)
 
     assert isinstance(l, tuple)
     assert l == data
 
-    l = cast(tuple[()], data)
+    l = deepcast(tuple[()], data)
 
     assert isinstance(l, tuple)
     assert l == data
 
     # length mismatch
     with pytest.raises(TypeError):
-        cast(Tuple[()], (1,))
+        deepcast(Tuple[()], (1,))
 
     with pytest.raises(TypeError):
-        cast(Tuple[int], (1, 2))
+        deepcast(Tuple[int], (1, 2))
 
     with pytest.raises(TypeError):
-        cast(Tuple[int], [1, 2])
+        deepcast(Tuple[int], [1, 2])
 
     with pytest.raises(TypeError):
-        cast(Tuple[int], ())
+        deepcast(Tuple[int], ())
 
     with pytest.raises(TypeError):
-        cast(Tuple[int], [])
+        deepcast(Tuple[int], [])
 
     # complex
-    assert cast(tuple, complex(1, 2)) == (1, 2)
-    assert cast(Tuple[float, float], complex(1, 2)) == (1, 2)
+    assert deepcast(tuple, complex(1, 2)) == (1, 2)
+    assert deepcast(Tuple[float, float], complex(1, 2)) == (1, 2)
 
 
 #
@@ -657,49 +663,49 @@ def test_type():
     from collections.abc import Iterable
 
     # str
-    assert cast(type, "int") == int
-    assert cast(Type, "int") == int
-    assert cast(Type[Any], "int") == int
-    assert cast(Type[object], "int") == int
-    assert cast(type, "datetime.datetime") == datetime
-    assert cast(type, "collections.abc.Iterable") == Iterable
-    assert cast(Type[int], "int") == int
-    assert cast(Type[int], "bool") == bool
-    assert cast(type, "tests.test_builtin_types.OuterClass") is OuterClass
+    assert deepcast(type, "int") == int
+    assert deepcast(Type, "int") == int
+    assert deepcast(Type[Any], "int") == int
+    assert deepcast(Type[object], "int") == int
+    assert deepcast(type, "datetime.datetime") == datetime
+    assert deepcast(type, "collections.abc.Iterable") == Iterable
+    assert deepcast(Type[int], "int") == int
+    assert deepcast(Type[int], "bool") == bool
+    assert deepcast(type, "tests.test_builtin_types.OuterClass") is OuterClass
     assert (
-        cast(type, "tests.test_builtin_types.OuterClass.InnerClass")
+        deepcast(type, "tests.test_builtin_types.OuterClass.InnerClass")
         is OuterClass.InnerClass
     )
 
     with pytest.raises(TypeError):
-        cast(type, "")
+        deepcast(type, "")
     with pytest.raises(AttributeError):
-        cast(type, "collections.abc.UNKNOWN_TYPE_NAME")
+        deepcast(type, "collections.abc.UNKNOWN_TYPE_NAME")
     with pytest.raises(AttributeError):
-        cast(type, "collections.UNKNOWN_MODULE.Iterable")
+        deepcast(type, "collections.UNKNOWN_MODULE.Iterable")
     with pytest.raises(TypeError):
-        cast(type, "collections.abc")
+        deepcast(type, "collections.abc")
     with pytest.raises(TypeError):
-        cast(type, "dataclasses.MISSING")
+        deepcast(type, "dataclasses.MISSING")
     with pytest.raises(ModuleNotFoundError):
-        cast(type, "buintins.str")  # mis-spelling
+        deepcast(type, "buintins.str")  # mis-spelling
     with pytest.raises(TypeError):
-        cast(Type[int], "str")
+        deepcast(Type[int], "str")
 
     # None
     with pytest.raises(TypeError):
-        cast(type, None)
+        deepcast(type, None)
     with pytest.raises(TypeError):
-        cast(Type, None)
+        deepcast(Type, None)
     with pytest.raises(TypeError):
-        cast(Type[Any], None)
+        deepcast(Type[Any], None)
     with pytest.raises(TypeError):
-        cast(Type[object], None)
+        deepcast(Type[object], None)
 
     # type
-    assert cast(type, int) == int
-    assert cast(Type, int) == int
-    assert cast(Type[Any], int) == int
-    assert cast(Type[object], int) == int
+    assert deepcast(type, int) == int
+    assert deepcast(Type, int) == int
+    assert deepcast(Type[Any], int) == int
+    assert deepcast(Type[object], int) == int
     with pytest.raises(TypeError):
-        cast(Type[None], object)
+        deepcast(Type[None], object)

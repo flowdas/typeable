@@ -4,15 +4,14 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 from collections.abc import Mapping
-import sys
-from .typing import (
+from dataclasses import MISSING
+from typing import (
     Type,
     get_type_hints,
 )
-from ._cast import cast
-from ._context import Context
 
-from dataclasses import MISSING
+from ._deepcast import deepcast
+from ._context import Context
 
 # avoid name mangling
 _FIELDS = "__fields"
@@ -68,7 +67,7 @@ class Object:
                             raise TypeError("None not allowed")
                 else:
                     with ctx.traverse(field.key):
-                        val = cast(field.type, val, ctx=ctx)
+                        val = deepcast(field.type, val, ctx=ctx)
                 self.__dict__[field.name] = val
         elif value is MISSING:
             flds = fields(self)
@@ -232,7 +231,7 @@ def fields(class_or_instance):
                             f.nullable = True
                     else:
                         # validate default. Note ctx not transferred. Is this wrong decision?
-                        f.default = cast(f.type, f.default)
+                        f.default = deepcast(f.type, f.default)
                     setattr(cls, name, f.default)
                 elif has_class_var:
                     delattr(cls, name)
@@ -260,13 +259,13 @@ def field(
     return _Field(key, default, default_factory, nullable, required, kind)
 
 
-@cast.register
+@deepcast.register
 def _cast_Object_object(cls: Type[Object], val, ctx):
     # assume not isinstance(val, cls)
     return cls(val, ctx=ctx)
 
 
-@cast.register
+@deepcast.register
 def _cast_dict_Object(cls: Type[dict], val: Object, ctx, K=None, V=None):
     d = val.__dict__
     r = cls()
@@ -276,5 +275,5 @@ def _cast_dict_Object(cls: Type[dict], val: Object, ctx, K=None, V=None):
                 r[f.key] = d[f.name]
             else:
                 with ctx.traverse(f.key):
-                    r[cast(K, f.key, ctx=ctx)] = cast(V, d[f.name], ctx=ctx)
+                    r[deepcast(K, f.key, ctx=ctx)] = deepcast(V, d[f.name], ctx=ctx)
     return r
