@@ -8,7 +8,6 @@ import sys
 from .typing import (
     Type,
     get_type_hints,
-    _get_annotations,
 )
 from ._cast import cast
 from ._context import Context
@@ -16,19 +15,19 @@ from ._context import Context
 from dataclasses import MISSING
 
 # avoid name mangling
-_FIELDS = '__fields'
-_VTABLE = '__vtable'
-_META = '__meta'
+_FIELDS = "__fields"
+_VTABLE = "__vtable"
+_META = "__meta"
 
 
 class Object:
-
     def __init__(self, _=MISSING, *, ctx=None, **kwargs):
         vtable = getattr(self.__class__, _VTABLE, None)
         kind = getattr(self.__class__, _META).kind
         if vtable and kind is None:
             raise TypeError(
-                f"Can't instantiate abstract class {self.__class__.__qualname__} with kind field {vtable.field.name}")
+                f"Can't instantiate abstract class {self.__class__.__qualname__} with kind field {vtable.field.name}"
+            )
 
         if ctx is None:
             ctx = Context()
@@ -48,13 +47,15 @@ class Object:
                     if val != kind:
                         with ctx.traverse(field.key):
                             raise TypeError(
-                                f"Unexpected '{self.__class__.__qualname__}.{vtable.field.name}' field value: {val}")
+                                f"Unexpected '{self.__class__.__qualname__}.{vtable.field.name}' field value: {val}"
+                            )
                 elif field.key in value:
                     val = value[field.key]
                 elif field.required:
                     with ctx.traverse(field.key):
                         raise TypeError(
-                            f"Missing key '{field.key}' for '{self.__class__.__qualname__}' object")
+                            f"Missing key '{field.key}' for '{self.__class__.__qualname__}' object"
+                        )
                 elif field.default_factory is not None:
                     val = field.default_factory()
                 else:
@@ -77,8 +78,7 @@ class Object:
                 elif field.default_factory is not None:
                     self.__dict__[field.name] = field.default_factory()
         else:
-            raise TypeError(
-                f"'{value.__class__.__qualname__}' object is not mapping")
+            raise TypeError(f"'{value.__class__.__qualname__}' object is not mapping")
 
     def __new__(cls, _=MISSING, *, ctx=None, **kwargs):
         if kwargs:
@@ -100,10 +100,10 @@ class Object:
                     cls = klass
                 else:
                     raise TypeError(
-                        f"{klass.__qualname__} is not subclass of {cls.__qualname__}")
+                        f"{klass.__qualname__} is not subclass of {cls.__qualname__}"
+                    )
             else:
-                raise TypeError(
-                    f"Unknown '{vtable.field.name}' field value: {kind}")
+                raise TypeError(f"Unknown '{vtable.field.name}' field value: {kind}")
 
         return super().__new__(cls)
 
@@ -126,7 +126,8 @@ class Object:
                 raise TypeError(f"No kind field")
             if kind in vtable.classes:
                 raise TypeError(
-                    f"Kind '{kind}' is already defined by class {vtable.classes[kind].__qualname__}")
+                    f"Kind '{kind}' is already defined by class {vtable.classes[kind].__qualname__}"
+                )
             else:
                 vtable.classes[kind] = cls
         setattr(cls, _META, _Meta(kind, jsonschema))
@@ -137,8 +138,8 @@ setattr(Object, _FIELDS, None)
 
 class _VTable:
     __slots__ = (
-        'field',
-        'classes',
+        "field",
+        "classes",
     )
 
     def __init__(self, field):
@@ -148,8 +149,8 @@ class _VTable:
 
 class _Meta:
     __slots__ = (
-        'kind',
-        'jsonschema',
+        "kind",
+        "jsonschema",
     )
 
     def __init__(self, kind, jsonschema):
@@ -162,14 +163,14 @@ setattr(Object, _META, _Meta(None, None))
 
 class _Field:
     __slots__ = (
-        'name',
-        'type',
-        'key',
-        'default',
-        'default_factory',
-        'nullable',
-        'required',
-        'kind',
+        "name",
+        "type",
+        "key",
+        "default",
+        "default_factory",
+        "nullable",
+        "required",
+        "kind",
     )
 
     def __init__(self, key, default, default_factory, nullable, required, kind):
@@ -191,9 +192,14 @@ def fields(class_or_instance):
         _fields = getattr(class_or_instance, _FIELDS)
     except AttributeError:
         raise TypeError(
-            f"must be called with an Object type or instance: {class_or_instance}")
+            f"must be called with an Object type or instance: {class_or_instance}"
+        )
     if _fields is None:
-        cls = class_or_instance if _FIELDS in class_or_instance.__dict__ else class_or_instance.__class__
+        cls = (
+            class_or_instance
+            if _FIELDS in class_or_instance.__dict__
+            else class_or_instance.__class__
+        )
         fields_map = {}
         for b in cls.__mro__[-1:0:-1]:
             # Only process Object subclasses
@@ -205,7 +211,7 @@ def fields(class_or_instance):
                     fields_map[f.name] = f
 
         _fields = []
-        annotations = _get_annotations(cls)
+        annotations = cls.__annotations__
         for name, type in get_type_hints(cls).items():
             if name in annotations:
                 has_class_var = hasattr(cls, name)
@@ -238,11 +244,19 @@ def fields(class_or_instance):
     return _fields
 
 
-def field(*, key=None, default=MISSING, default_factory=None, nullable=None, required=False, kind=False):
+def field(
+    *,
+    key=None,
+    default=MISSING,
+    default_factory=None,
+    nullable=None,
+    required=False,
+    kind=False,
+):
     if default is not MISSING and default_factory is not None:
-        raise ValueError('cannot specify both default and default_factory')
+        raise ValueError("cannot specify both default and default_factory")
     if nullable and kind:
-        raise ValueError('kind cannot be nullable')
+        raise ValueError("kind cannot be nullable")
     return _Field(key, default, default_factory, nullable, required, kind)
 
 

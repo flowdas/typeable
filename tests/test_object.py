@@ -29,13 +29,13 @@ def test_initializer():
     class X(Object):
         i: int
 
-    data = {'i': 0}
+    data = {"i": 0}
 
     x = X(data)
-    assert x.i == data['i']
+    assert x.i == data["i"]
 
     x = X(**data)
-    assert x.i == data['i']
+    assert x.i == data["i"]
 
     with pytest.raises(TypeError):
         X({}, **data)
@@ -49,28 +49,28 @@ def test_missing():
         i: int
         j: int
 
-    data = {'i': 0}
+    data = {"i": 0}
 
     x = X(data)
-    assert x.i == data['i']
+    assert x.i == data["i"]
     with pytest.raises(AttributeError):
         x.j
 
     x = X(**data)
-    assert x.i == data['i']
+    assert x.i == data["i"]
     with pytest.raises(AttributeError):
         x.j
 
 
 class NestedX(Object):
-    x: 'NestedX'
+    x: "NestedX"
 
 
 def test_nesting():
     class X(Object):
         x: NestedX
 
-    data = {'x': {'x': {}}}
+    data = {"x": {"x": {}}}
     x = X(data)
 
     assert isinstance(x.x, NestedX)
@@ -88,7 +88,7 @@ def test_fields():
     assert isinstance(flds, tuple)
     assert len(flds) == 1
     field = flds[0]
-    assert field.name == 'i'
+    assert field.name == "i"
     assert field.type == int
     assert field.default == 1
 
@@ -114,7 +114,7 @@ def test_default():
 
         assert x.i == 1
 
-        data = {'i': 0}
+        data = {"i": 0}
         x = T(data)
 
         assert x.i == 0
@@ -133,12 +133,12 @@ def test_None_default():
 
         assert x.i is None
 
-        data = {'i': 0}
+        data = {"i": 0}
         x = T(data)
 
         assert x.i == 0
 
-        data = {'i': None}
+        data = {"i": None}
         x = T(data)
 
         assert x.i is None
@@ -149,7 +149,7 @@ def test_default_factory():
         l: list = field(default_factory=list)
 
     fields(X)  # resolve
-    assert 'l' not in X.__dict__
+    assert "l" not in X.__dict__
 
     data = {}
     x = X(data)
@@ -159,7 +159,7 @@ def test_default_factory():
     y = X(data)
     assert y.l is not x.l
 
-    assert 'l' in x.__dict__
+    assert "l" in x.__dict__
 
     z = X()
     assert z.l == []
@@ -172,10 +172,10 @@ def test_default_collison():
 
 def test_key():
     class X(Object):
-        _def: bool = field(key='def')
-        _return: bool = field(key='return')
+        _def: bool = field(key="def")
+        _return: bool = field(key="return")
 
-    data = {'def': True, 'return': False}
+    data = {"def": True, "return": False}
     x = X(data)
 
     assert x._def
@@ -192,19 +192,19 @@ def test_inheritance():
         i = 2
         j: int
 
-    data = {'s': 'str', 'j': 0}
+    data = {"s": "str", "j": 0}
     x = X(data)
 
     assert x.i == 2
-    assert x.s == 'str'
+    assert x.s == "str"
     assert x.f == 3
     assert x.j == 0
 
-    data = {'i': 9, 's': 'str', 'f': 99, 'j': 0}
+    data = {"i": 9, "s": "str", "f": 99, "j": 0}
     x = X(data)
 
     assert x.i == 9
-    assert x.s == 'str'
+    assert x.s == "str"
     assert x.f == 99
     assert x.j == 0
 
@@ -221,12 +221,12 @@ def test_nullable():
         # not allowed, but default is None
         d: int = field(default=None, nullable=False)
 
-    for key in ('a', 'd'):
+    for key in ("a", "d"):
         data = {key: None}
         with pytest.raises(TypeError):
             cast(X, data)
 
-    for key in ('b', 'c'):
+    for key in ("b", "c"):
         data = {key: None}
         x = cast(X, data)
         assert getattr(x, key) is None
@@ -238,10 +238,10 @@ def test_cast():
     class X(Object):
         i: int
 
-    data = {'i': 0}
+    data = {"i": 0}
 
     x = cast(X, data)
-    assert x.i == data['i']
+    assert x.i == data["i"]
 
 
 def test_required():
@@ -249,13 +249,13 @@ def test_required():
         a: int  # not required
         b: int = field(required=True)  # required
 
-    data = {'b': 1}
+    data = {"b": 1}
     x = cast(X, data)
     assert x.b == 1
     with pytest.raises(AttributeError):
         x.a
 
-    data = {'a': 1}
+    data = {"a": 1}
     with pytest.raises(TypeError):
         cast(X, data)
 
@@ -264,7 +264,7 @@ def test_dict():
     class X(Object):
         i: int
 
-    data = {'i': 0}
+    data = {"i": 0}
 
     x = cast(X, data)
     assert cast(dict, x) == data
@@ -274,47 +274,50 @@ def test_JsonValue():
     class X(Object):
         i: int
 
-    data = {'i': 0}
+    data = {"i": 0}
 
     x = cast(X, data)
     assert cast(JsonValue, x) == data
 
-    assert cast(JsonValue, {'result': X()}) == {'result': {}}
+    assert cast(JsonValue, {"result": X()}) == {"result": {}}
 
 
 def test_kind():
     class Authenticator(Object):  # abstract
         type: str = field(kind=True)
 
-    class ApiKeyAuthenticator(Authenticator, kind='apiKey'):  # concrete
-        name: str = 'X-API-Key'
+    class ApiKeyAuthenticator(Authenticator, kind="apiKey"):  # concrete
+        name: str = "X-API-Key"
 
     class HttpAuthenticator(Authenticator):  # abstract
         pass
 
-    class HttpBearerAuthenticator(HttpAuthenticator, kind='http.bearer'):  # concrete
-        format: str = 'jwt'
+    class HttpBearerAuthenticator(HttpAuthenticator, kind="http.bearer"):  # concrete
+        format: str = "jwt"
 
     data = dict(
-        type='apiKey',
-        name='x-api-key',
+        type="apiKey",
+        name="x-api-key",
     )
     x = cast(Authenticator, data)
     assert isinstance(x, ApiKeyAuthenticator)
     assert cast(JsonValue, x) == data
 
     with pytest.raises(TypeError):  # no kind field
-        cast(Authenticator, {'name': 'x-api-key'})
+        cast(Authenticator, {"name": "x-api-key"})
 
     with pytest.raises(TypeError):  # incompatible kind field
-        cast(HttpAuthenticator, dict(
-            type='apiKey',
-            name='x-api-key',
-        ))
+        cast(
+            HttpAuthenticator,
+            dict(
+                type="apiKey",
+                name="x-api-key",
+            ),
+        )
 
     data = dict(
-        type='http.bearer',
-        format='JWT',
+        type="http.bearer",
+        format="JWT",
     )
     x = cast(Authenticator, data)
     assert isinstance(x, HttpBearerAuthenticator)
@@ -325,27 +328,31 @@ def test_kind():
     assert cast(JsonValue, x) == data
 
     # For concrete classes, the kind field behaves as if default_factory was specified.
-    x = cast(HttpBearerAuthenticator, dict(format=data['format']))
+    x = cast(HttpBearerAuthenticator, dict(format=data["format"]))
     assert isinstance(x, HttpBearerAuthenticator)
     assert cast(JsonValue, x) == data
 
     # only one kind field allowed
     with pytest.raises(TypeError):
+
         class XAuthenticator(Authenticator):
             scheme: str = field(kind=True)
 
     # kind option requires kind field
     with pytest.raises(TypeError):
-        class XObject(Object, kind='X'):
+
+        class XObject(Object, kind="X"):
             pass
 
     # duplicated kind option not allowed
     with pytest.raises(TypeError):
-        class XAuthenticator(Authenticator, kind='apiKey'):
+
+        class XAuthenticator(Authenticator, kind="apiKey"):
             pass
 
     # kind field cannot be nullable
     with pytest.raises(ValueError):
+
         class XObject(Object):
             type: str = field(kind=True, nullable=True)
 
@@ -354,14 +361,14 @@ def test_kind_fields():
     class Authenticator(Object):  # abstract
         type: str = field(kind=True)
 
-    class ApiKeyAuthenticator(Authenticator, kind='apiKey'):  # concrete
-        name: str = 'X-API-Key'
+    class ApiKeyAuthenticator(Authenticator, kind="apiKey"):  # concrete
+        name: str = "X-API-Key"
 
     class HttpAuthenticator(Authenticator):  # abstract
         pass
 
-    class HttpBearerAuthenticator(HttpAuthenticator, kind='http.bearer'):  # concrete
-        format: str = 'jwt'
+    class HttpBearerAuthenticator(HttpAuthenticator, kind="http.bearer"):  # concrete
+        format: str = "jwt"
 
     flds = fields(Authenticator)
     assert len(flds) == 1
@@ -371,19 +378,19 @@ def test_kind_fields():
     flds = fields(ApiKeyAuthenticator)
     assert len(flds) == 2
     assert flds[0] is type_field
-    assert flds[0].name == 'type'
+    assert flds[0].name == "type"
     assert flds[0].kind
 
     flds = fields(HttpAuthenticator)
     assert len(flds) == 1
     assert flds[0] is type_field
-    assert flds[0].name == 'type'
+    assert flds[0].name == "type"
     assert flds[0].kind
 
     flds = fields(HttpBearerAuthenticator)
     assert len(flds) == 2
     assert flds[0] is type_field
-    assert flds[0].name == 'type'
+    assert flds[0].name == "type"
     assert flds[0].kind
 
 
@@ -391,26 +398,26 @@ def test_kind_ctor():
     class Authenticator(Object):  # abstract
         type: str = field(kind=True)
 
-    class ApiKeyAuthenticator(Authenticator, kind='apiKey'):  # concrete
-        name: str = 'X-API-Key'
+    class ApiKeyAuthenticator(Authenticator, kind="apiKey"):  # concrete
+        name: str = "X-API-Key"
 
     with pytest.raises(TypeError):  # cannot instantiate abstract class
         Authenticator()
 
     x = ApiKeyAuthenticator()
     assert x.__class__ is ApiKeyAuthenticator
-    assert x.type == 'apiKey'
+    assert x.type == "apiKey"
 
-    x = ApiKeyAuthenticator(name='x-api-key')
-    assert x.type == 'apiKey'
-    assert x.name == 'x-api-key'
+    x = ApiKeyAuthenticator(name="x-api-key")
+    assert x.type == "apiKey"
+    assert x.name == "x-api-key"
     assert x.__class__ is ApiKeyAuthenticator
 
-    x = ApiKeyAuthenticator(type='apiKey', name='x-api-key')
-    assert x.type == 'apiKey'
-    assert x.name == 'x-api-key'
+    x = ApiKeyAuthenticator(type="apiKey", name="x-api-key")
+    assert x.type == "apiKey"
+    assert x.name == "x-api-key"
     assert x.__class__ is ApiKeyAuthenticator
 
     # cannot instantiate concrete class with invalid kind
     with pytest.raises(TypeError):
-        ApiKeyAuthenticator(type='x', name='x-api-key')
+        ApiKeyAuthenticator(type="x", name="x-api-key")

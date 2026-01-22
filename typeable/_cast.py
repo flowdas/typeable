@@ -37,7 +37,6 @@ from .typing import (
     get_args,
     get_origin,
     get_type_hints,
-    _RECURSIVE_GUARD,
 )
 
 from ._context import Context
@@ -48,22 +47,20 @@ from ._polymorphic import _resolve_polymorphic
 #
 
 if sys.version_info < (3, 14):
+
     @contextmanager
     def declare(name):
         ref = ForwardRef(name)
         yield ref
         frame = inspect.currentframe().f_back.f_back
         args = [frame.f_globals, frame.f_locals]
-        kwargs = {}
-        if _RECURSIVE_GUARD:
-            kwargs['recursive_guard'] = set()
         try:
-            ref._evaluate(*args, **kwargs)
+            ref._evaluate(*args, recursive_guard=set())
         finally:
             del frame
             del args
-            del kwargs
 else:
+
     @contextmanager
     def declare(name):
         ref = ForwardRef(name)
@@ -80,13 +77,13 @@ else:
 #
 
 
-_T = TypeVar('_T')
+_T = TypeVar("_T")
 
 _registry = {}
 _dispatch_cache = {}
 _cache_token = None
 
-_TYPES = '__types__'
+_TYPES = "__types__"
 
 
 def _get_type_args(tp):
@@ -100,10 +97,7 @@ def _get_type_args(tp):
         try:
             if isinstance(arg, ForwardRef):
                 _args = [None, None]
-                kwargs = {}
-                if _RECURSIVE_GUARD:
-                    kwargs['recursive_guard'] = frozenset()
-                evaled[i] = arg._evaluate(*_args, **kwargs)
+                evaled[i] = arg._evaluate(*_args, recursive_guard=frozenset())
                 changed = True
         except TypeError:  # pragma: no cover; TODO: Is this really necessary?
             continue
@@ -115,7 +109,8 @@ def _register(func):
     sig = signature(func)
     if len(sig.parameters) < 3:
         raise TypeError(
-            f"{func!r}() takes {len(sig.parameters)} arguments but 3 required")
+            f"{func!r}() takes {len(sig.parameters)} arguments but 3 required"
+        )
     it = iter(sig.parameters.items())
     argname, parameter = next(it)
     hints = get_type_hints(func)
@@ -129,7 +124,7 @@ def _register(func):
             )
         cls = type_args[0]
     else:
-        cls = hints.get('return')
+        cls = hints.get("return")
         if cls is None:
             raise TypeError(
                 f"Invalid signature to `cast.register()`. "
@@ -152,7 +147,7 @@ def _register(func):
     setattr(func, _TYPES, (cls, vcls))
 
     if _cache_token is None:
-        if hasattr(cls, '__abstractmethods__') or hasattr(vcls, '__abstractmethods__'):
+        if hasattr(cls, "__abstractmethods__") or hasattr(vcls, "__abstractmethods__"):
             _cache_token = get_cache_token()
     _dispatch_cache.clear()
 
@@ -176,7 +171,8 @@ def _dispatch(cls, vcls):
             vreg = _find_impl(cls, _registry)
             if not vreg:
                 raise NotImplementedError(
-                    f"No implementation found for '{cls.__qualname__}'")
+                    f"No implementation found for '{cls.__qualname__}'"
+                )
 
         try:
             return vreg[vcls]
@@ -184,26 +180,30 @@ def _dispatch(cls, vcls):
             func = _find_impl(vcls, vreg)
             if not func:
                 raise TypeError(
-                    f"No implementation found for '{cls.__qualname__}' from {vcls.__qualname__}")
+                    f"No implementation found for '{cls.__qualname__}' from {vcls.__qualname__}"
+                )
         _dispatch_cache[(cls, vcls)] = func
 
     return func
 
 
-def _function(_=None, *, ctx_name: str = 'ctx', cast_return: bool = False, keep_async: bool = True):
+def _function(
+    _=None, *, ctx_name: str = "ctx", cast_return: bool = False, keep_async: bool = True
+):
     def deco(func):
         nonlocal cast_return
 
         sig = inspect.signature(func)
         annons = get_type_hints(func)
-        if 'return' not in annons:
+        if "return" not in annons:
             cast_return = False
         use_ctx = False
         if ctx_name in sig.parameters:
             ctx_type = annons.get(ctx_name)
-            if (ctx_type == Optional[Context] or ctx_type == Context) \
-                    and (sig.parameters[ctx_name].kind not in (
-                    inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD)):
+            if (ctx_type == Optional[Context] or ctx_type == Context) and (
+                sig.parameters[ctx_name].kind
+                not in (inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD)
+            ):
                 use_ctx = True
             else:
                 raise TypeError(f"'{ctx_name}' argument conflict")
@@ -233,17 +233,19 @@ def _function(_=None, *, ctx_name: str = 'ctx', cast_return: bool = False, keep_
 
         def epilog(ctx, r):
             if cast_return:
-                with ctx.traverse('return'):
-                    r = cast(annons['return'], r, ctx=ctx)
+                with ctx.traverse("return"):
+                    r = cast(annons["return"], r, ctx=ctx)
             return r
 
         if asyncio.iscoroutinefunction(func) and keep_async:
+
             @functools.wraps(func)
             async def wrapper(*args, **kwargs):
                 ctx, ba = prolog(args, kwargs)
                 r = await func(*ba.args, **ba.kwargs)
                 return epilog(ctx, r)
         else:
+
             @functools.wraps(func)
             def wrapper(*args, **kwargs):
                 ctx, ba = prolog(args, kwargs)
@@ -291,6 +293,7 @@ def _cast_Any_object(cls: Type[Any], val, ctx):
 # object (fallback)
 #
 
+
 def _cast_dataclass_Mapping(cls, val: Mapping, ctx):
     if ctx is None:
         ctx = Context()
@@ -303,7 +306,8 @@ def _cast_dataclass_Mapping(cls, val: Mapping, ctx):
                 kwargs[k] = cast(field_map[k].type, v, ctx=ctx)
             else:
                 raise TypeError(
-                    f"{cls.__name__}.__init__() got an unexpected keyword argument '{k}'")
+                    f"{cls.__name__}.__init__() got an unexpected keyword argument '{k}'"
+                )
     try:
         return cls(**kwargs)
     except TypeError:
@@ -312,7 +316,8 @@ def _cast_dataclass_Mapping(cls, val: Mapping, ctx):
                 if f.init and f.default is MISSING and f.default_factory is MISSING:
                     with ctx.traverse(k):
                         raise TypeError(
-                            f"{cls.__name__}.__init__() missing 1 required argument: '{k}'")
+                            f"{cls.__name__}.__init__() missing 1 required argument: '{k}'"
+                        )
         raise
 
 
@@ -325,7 +330,8 @@ def _cast_object_object(cls: Type[object], val, ctx, *Ts):
             return _cast_dataclass_Mapping(cls, val, ctx)
         else:
             raise TypeError(
-                f"No implementation found for '{cls.__qualname__}' from {val.__class__.__qualname__}")
+                f"No implementation found for '{cls.__qualname__}' from {val.__class__.__qualname__}"
+            )
     else:
         return cls(val)
 
@@ -342,9 +348,9 @@ def _cast_bool_int(cls: Type[bool], val: int, ctx):
         return val
 
     if not ctx.bool_is_int:
-        raise TypeError(f'ctx.bool_is_int={ctx.bool_is_int}')
+        raise TypeError(f"ctx.bool_is_int={ctx.bool_is_int}")
     if not ctx.lossy_conversion and not (val == 0 or val == 1):
-        raise ValueError(f'ctx.lossy_conversion={ctx.lossy_conversion}')
+        raise ValueError(f"ctx.lossy_conversion={ctx.lossy_conversion}")
     return cls(val)
 
 
@@ -368,14 +374,14 @@ def _cast_int_object(cls: Type[int], val, ctx):
     # assume not isinstance(val, cls)
     r = cls(val)
     if not ctx.lossy_conversion and val.__class__(r) != val:
-        raise ValueError(f'ctx.lossy_conversion={ctx.lossy_conversion}')
+        raise ValueError(f"ctx.lossy_conversion={ctx.lossy_conversion}")
     return r
 
 
 @cast.register
 def _cast_int_bool(cls: Type[int], val: bool, ctx):
     if not ctx.bool_is_int:
-        raise TypeError(f'ctx.bool_is_int={ctx.bool_is_int}')
+        raise TypeError(f"ctx.bool_is_int={ctx.bool_is_int}")
     return val if cls is int else cls(val)
 
 
@@ -393,7 +399,7 @@ def _cast_float_object(cls: Type[float], val, ctx):
 @cast.register
 def _cast_float_bool(cls: Type[float], val: bool, ctx):
     if not ctx.bool_is_int:
-        raise TypeError(f'ctx.bool_is_int={ctx.bool_is_int}')
+        raise TypeError(f"ctx.bool_is_int={ctx.bool_is_int}")
     return cls(val)
 
 
@@ -415,7 +421,7 @@ def _cast_complex_object(cls: Type[complex], val, ctx):
 @cast.register
 def _cast_complex_bool(cls: Type[complex], val: bool, ctx):
     if not ctx.bool_is_int:
-        raise TypeError(f'ctx.bool_is_int={ctx.bool_is_int}')
+        raise TypeError(f"ctx.bool_is_int={ctx.bool_is_int}")
     return cls(val)
 
 
@@ -429,11 +435,10 @@ def _cast_str_object(cls: Type[str], val, ctx):
     # assume not isinstance(val, cls)
     if ctx.strict_str:
         if not isinstance(val, (str, Number)):
-            raise TypeError(f'ctx.strict_str={ctx.strict_str}')
+            raise TypeError(f"ctx.strict_str={ctx.strict_str}")
     else:
         if val is None:
-            raise TypeError(
-                f"{cls.__qualname__} is required, but {val!r} is given")
+            raise TypeError(f"{cls.__qualname__} is required, but {val!r} is given")
     return cls(val)
 
 
@@ -487,6 +492,7 @@ def _cast_bytearray_str(cls: Type[bytearray], val: str, ctx):
 # list
 #
 
+
 def _copy_list_object(r, it, ctx, T, i):
     for v in it:
         with ctx.traverse(i):
@@ -530,6 +536,7 @@ def _cast_list_object(cls: Type[list], val, ctx, T=None):
 #
 # dict
 #
+
 
 def _copy_dict_object(r, it, ctx, KT, VT):
     for k, v in it:
@@ -582,6 +589,7 @@ def _cast_dict_object(cls: Type[dict], val, ctx, K=None, V=None):
 # set
 #
 
+
 def _copy_set_object(r, it, ctx, T):
     for v in it:
         with ctx.traverse(v):
@@ -623,6 +631,7 @@ def _cast_set_object(cls: Type[set], val, ctx, T=None):
 # frozenset
 #
 
+
 def _copy_frozenset_object(r, cls, it, ctx, T):
     for v in it:
         with ctx.traverse(v):
@@ -663,6 +672,7 @@ def _cast_frozenset_object(cls: Type[frozenset], val, ctx, T=None):
 #
 # tuple
 #
+
 
 def _copy_homo_tuple_object(r, cls, it, ctx, T, i):
     for v in it:
@@ -718,7 +728,7 @@ def _cast_tuple_object(cls: Type[tuple], val, ctx, *Ts):
             Ts = ()
         if isinstance(val, cls):
             if len(val) != len(Ts):
-                raise TypeError('length mismatch')
+                raise TypeError("length mismatch")
             r = None
             it = zip(val, Ts)
             i = 0
@@ -745,10 +755,10 @@ def _cast_tuple_object(cls: Type[tuple], val, ctx, *Ts):
                     try:
                         v = next(it)
                     except StopIteration:
-                        raise TypeError('length mismatch')
+                        raise TypeError("length mismatch")
                     r.append(cast(T, v, ctx=ctx))
             for _ in it:
-                raise TypeError('length mismatch')
+                raise TypeError("length mismatch")
             return cls(r)
 
 
@@ -757,6 +767,7 @@ def _cast_tuple_object(cls: Type[tuple], val, ctx, *Ts):
 #
 
 # TODO: caching
+
 
 def _type_distance(tp1, tp2):
     m1 = tp1.__mro__
@@ -808,6 +819,7 @@ def _cast_Union_object(cls, val, ctx, *Ts) -> Union:
             return cast(T, val)
         except:
             import traceback
+
             traceback.print_exc()
             continue
     else:
@@ -835,24 +847,25 @@ def _cast_datetime_object(cls: Type[datetime.datetime], val, ctx):
         return cls(*val)
 
 
-ISO_DATE_HEAD = r'(?P<Y>\d{4})(-(?P<m>\d{1,2})(-(?P<D>\d{1,2})'
-ISO_DATE_TAIL = r')?)?'
-ISO_TIME = r'(?P<H>\d{1,2}):(?P<M>\d{1,2})(:(?P<S>\d{1,2}([.]\d*)?))?(?P<tzd>[+-](?P<tzh>\d{1,2}):(?P<tzm>\d{1,2})|Z)?'
-ISO_DURATION = r'(?P<sgn>[+-])?P?((?P<W>\d+)[Ww])?((?P<D>\d+)[Dd])?T?((?P<H>\d+)[Hh])?((?P<M>\d+)[Mm])?((?P<S>\d+([.]\d*)?)[Ss]?)?'
+ISO_DATE_HEAD = r"(?P<Y>\d{4})(-(?P<m>\d{1,2})(-(?P<D>\d{1,2})"
+ISO_DATE_TAIL = r")?)?"
+ISO_TIME = r"(?P<H>\d{1,2}):(?P<M>\d{1,2})(:(?P<S>\d{1,2}([.]\d*)?))?(?P<tzd>[+-](?P<tzh>\d{1,2}):(?P<tzm>\d{1,2})|Z)?"
+ISO_DURATION = r"(?P<sgn>[+-])?P?((?P<W>\d+)[Ww])?((?P<D>\d+)[Dd])?T?((?P<H>\d+)[Hh])?((?P<M>\d+)[Mm])?((?P<S>\d+([.]\d*)?)[Ss]?)?"
 ISO_PATTERN1 = re.compile(
-    ISO_DATE_HEAD + r'([T ](' + ISO_TIME + r')?)?' + ISO_DATE_TAIL + '$')
-ISO_PATTERN2 = re.compile(ISO_DATE_HEAD + ISO_DATE_TAIL + '$')
-ISO_PATTERN3 = re.compile(ISO_TIME + '$')
-ISO_PATTERN4 = re.compile(ISO_DURATION + '$')
+    ISO_DATE_HEAD + r"([T ](" + ISO_TIME + r")?)?" + ISO_DATE_TAIL + "$"
+)
+ISO_PATTERN2 = re.compile(ISO_DATE_HEAD + ISO_DATE_TAIL + "$")
+ISO_PATTERN3 = re.compile(ISO_TIME + "$")
+ISO_PATTERN4 = re.compile(ISO_DURATION + "$")
 
 
 def _parse_isotzinfo(m):
-    if m.group('tzd'):
-        if m.group('tzd') in ('Z', '+00:00', '-00:00'):
+    if m.group("tzd"):
+        if m.group("tzd") in ("Z", "+00:00", "-00:00"):
             tzinfo = datetime.timezone.utc
         else:
-            offset = int(m.group('tzh')) * 60 + int(m.group('tzm'))
-            if m.group('tzd').startswith('-'):
+            offset = int(m.group("tzh")) * 60 + int(m.group("tzm"))
+            if m.group("tzd").startswith("-"):
                 offset = -offset
             tzinfo = datetime.timezone(datetime.timedelta(minutes=offset))
     else:
@@ -861,7 +874,7 @@ def _parse_isotzinfo(m):
 
 
 def _parse_isotime(cls, m):
-    hour, min, sec = m.group('H', 'M', 'S')
+    hour, min, sec = m.group("H", "M", "S")
     hour = int(hour)
     min = int(min) if min else 0
     sec = float(sec) if sec else 0.0
@@ -871,11 +884,13 @@ def _parse_isotime(cls, m):
 
 
 def _parse_isodate(cls, m):
-    return datetime.date(*map(lambda x: 1 if x is None else int(x), m.group('Y', 'm', 'D')))
+    return datetime.date(
+        *map(lambda x: 1 if x is None else int(x), m.group("Y", "m", "D"))
+    )
 
 
 def _parse_isoduration(cls, m):
-    sign, week, day, hour, min, sec = m.group('sgn', 'W', 'D', 'H', 'M', 'S')
+    sign, week, day, hour, min, sec = m.group("sgn", "W", "D", "H", "M", "S")
     week = int(week) if week else 0
     day = int(day) if day else 0
     hour = int(hour) if hour else 0
@@ -883,27 +898,27 @@ def _parse_isoduration(cls, m):
     sec = float(sec) if sec else 0.0
 
     td = cls(weeks=week, days=day, hours=hour, minutes=min, seconds=sec)
-    return -td if sign == '-' else td
+    return -td if sign == "-" else td
 
 
 @cast.register
 def _cast_datetime_str(cls: Type[datetime.datetime], val: str, ctx):
-    if ctx.datetime_format == 'iso':
+    if ctx.datetime_format == "iso":
         m = ISO_PATTERN1.match(val.strip())
         if m is None:
             raise ValueError()
 
         date = _parse_isodate(datetime.date, m)
 
-        if m.group('H'):
+        if m.group("H"):
             time = _parse_isotime(datetime.time, m)
         else:
             time = datetime.time(tzinfo=_parse_isotzinfo(m))
 
         return cls.combine(date, time)
-    elif ctx.datetime_format == 'timestamp':
+    elif ctx.datetime_format == "timestamp":
         return cast(cls, float(val), ctx=ctx)
-    elif ctx.datetime_format == 'http' or ctx.datetime_format == 'email':
+    elif ctx.datetime_format == "http" or ctx.datetime_format == "email":
         dt = parsedate_to_datetime(val.strip())
         if cls is not datetime.datetime:
             dt = cls.combine(dt.date(), dt.timetz())
@@ -922,35 +937,49 @@ def _cast_int_datetime(cls: Type[int], val: datetime.datetime, ctx):
     ts = val.timestamp()
     r = cls(ts)
     if not ctx.lossy_conversion and r != ts:
-        raise ValueError(f'ctx.lossy_conversion={ctx.lossy_conversion}')
+        raise ValueError(f"ctx.lossy_conversion={ctx.lossy_conversion}")
     return r
 
 
-WDAY = ('Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun')
-MON = ('Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-       'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec')
+WDAY = ("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
+MON = (
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+)
 
 
 @cast.register
 def _cast_str_datetime(cls: Type[str], val: datetime.datetime, ctx):
-    if ctx.datetime_format == 'iso':
+    if ctx.datetime_format == "iso":
         r = val.isoformat()
-        return cls(r[:-6] + 'Z') if r.endswith('+00:00') else cls(r)
-    elif ctx.datetime_format == 'timestamp':
+        return cls(r[:-6] + "Z") if r.endswith("+00:00") else cls(r)
+    elif ctx.datetime_format == "timestamp":
         if val.microsecond > 0:
             return cls(val.timestamp())
         else:
             return cls(int(val.timestamp()))
-    elif ctx.datetime_format == 'http' or ctx.datetime_format == 'email':
-        if ctx.datetime_format == 'http':
+    elif ctx.datetime_format == "http" or ctx.datetime_format == "email":
+        if ctx.datetime_format == "http":
             if val.tzinfo and val.utcoffset() != datetime.timedelta():
-                val = val.replace(
-                    tzinfo=datetime.timezone.utc) - val.utcoffset()
-            format = '%s, %%d %s %%Y %%H:%%M:%%S GMT'
+                val = val.replace(tzinfo=datetime.timezone.utc) - val.utcoffset()
+            format = "%s, %%d %s %%Y %%H:%%M:%%S GMT"
         else:
-            TZ = (' %%z' if val.utcoffset() != datetime.timedelta()
-                  else ' GMT') if val.tzinfo else ''
-            format = '%s, %%d %s %%Y %%H:%%M:%%S' + TZ
+            TZ = (
+                (" %%z" if val.utcoffset() != datetime.timedelta() else " GMT")
+                if val.tzinfo
+                else ""
+            )
+            format = "%s, %%d %s %%Y %%H:%%M:%%S" + TZ
         format = format % (WDAY[val.weekday()], MON[val.month - 1])
         return cls(val.strftime(format))
     else:
@@ -967,7 +996,7 @@ def _cast_date_object(cls: Type[datetime.date], val, ctx):
     # assume not isinstance(val, cls)
     if isinstance(val, datetime.datetime):  # datetime is subclass of date
         if not ctx.lossy_conversion and (val.tzinfo or val.time() != datetime.time()):
-            raise ValueError(f'ctx.lossy_conversion={ctx.lossy_conversion}')
+            raise ValueError(f"ctx.lossy_conversion={ctx.lossy_conversion}")
         return cls(val.year, val.month, val.day)
     elif isinstance(val, datetime.date):
         return cls(val.year, val.month, val.day)
@@ -977,7 +1006,7 @@ def _cast_date_object(cls: Type[datetime.date], val, ctx):
 
 @cast.register
 def _cast_date_str(cls: Type[datetime.date], val: str, ctx):
-    if ctx.date_format == 'iso':
+    if ctx.date_format == "iso":
         m = ISO_PATTERN2.match(val.strip())
         if m is None:
             raise ValueError()
@@ -989,7 +1018,7 @@ def _cast_date_str(cls: Type[datetime.date], val: str, ctx):
 
 @cast.register
 def _cast_str_date(cls: Type[str], val: datetime.date, ctx):
-    if ctx.date_format == 'iso':
+    if ctx.date_format == "iso":
         return cls(val.isoformat())
     else:
         return cls(val.strftime(ctx.date_format))
@@ -1007,7 +1036,7 @@ def _cast_time_object(cls: Type[datetime.time], val, ctx):
         return cls(val.hour, val.minute, val.second, val.microsecond, tzinfo=val.tzinfo)
     elif isinstance(val, datetime.datetime):
         if not ctx.lossy_conversion:
-            raise ValueError(f'ctx.lossy_conversion={ctx.lossy_conversion}')
+            raise ValueError(f"ctx.lossy_conversion={ctx.lossy_conversion}")
         t = val.timetz()
         if t.__class__ is cls:
             return t
@@ -1018,7 +1047,7 @@ def _cast_time_object(cls: Type[datetime.time], val, ctx):
 
 @cast.register
 def _cast_time_str(cls: Type[datetime.time], val: str, ctx):
-    if ctx.time_format == 'iso':
+    if ctx.time_format == "iso":
         m = ISO_PATTERN3.match(val.strip())
         if m is None:
             raise ValueError()
@@ -1030,7 +1059,7 @@ def _cast_time_str(cls: Type[datetime.time], val: str, ctx):
 
 @cast.register
 def _cast_str_time(cls: Type[str], val: datetime.time, ctx):
-    if ctx.time_format == 'iso':
+    if ctx.time_format == "iso":
         return cls(val.isoformat())
     else:
         return cls(val.strftime(ctx.time_format))
@@ -1067,7 +1096,7 @@ def _cast_int_timedelta(cls: Type[int], val: datetime.timedelta, ctx):
     td = val.total_seconds()
     r = cls(td)
     if not ctx.lossy_conversion and r != td:
-        raise ValueError(f'ctx.lossy_conversion={ctx.lossy_conversion}')
+        raise ValueError(f"ctx.lossy_conversion={ctx.lossy_conversion}")
     return r
 
 
@@ -1075,25 +1104,25 @@ def _cast_int_timedelta(cls: Type[int], val: datetime.timedelta, ctx):
 def _cast_str_timedelta(cls: Type[str], val: datetime.timedelta, ctx):
     r = []
     if val.days < 0:
-        r.append('-P')
+        r.append("-P")
         val = -val
     else:
-        r.append('P')
+        r.append("P")
     if val.days:
-        r.append(f'{val.days}D')
+        r.append(f"{val.days}D")
     if val.seconds or val.microseconds:
-        r.append('T')
+        r.append("T")
         min, sec = divmod(val.seconds, 60)
         hour, min = divmod(min, 60)
         if hour:
-            r.append(f'{hour}H')
+            r.append(f"{hour}H")
         if min:
-            r.append(f'{min}M')
+            r.append(f"{min}M")
         if val.microseconds:
             sec += val.microseconds / 1000000
         if sec:
-            r.append(f'{sec}S')
-    return cls(''.join(r))
+            r.append(f"{sec}S")
+    return cls("".join(r))
 
 
 #
@@ -1196,6 +1225,7 @@ def _cast_Literal_object(cls, val, ctx, *literals) -> Literal:
 # type
 #
 
+
 @cast.register
 def _cast_type_type(cls, val: type, ctx, T=None) -> type:
     if T and T is not Any and not issubclass(val, T):
@@ -1205,9 +1235,9 @@ def _cast_type_type(cls, val: type, ctx, T=None) -> type:
 
 @cast.register
 def _cast_type_str(cls, val: str, ctx, T=None) -> type:
-    spec = val.rsplit('.', maxsplit=1)
+    spec = val.rsplit(".", maxsplit=1)
     if len(spec) == 1:
-        modname = 'builtins'
+        modname = "builtins"
         parts = spec
     else:
         modname = spec[0]
@@ -1219,7 +1249,7 @@ def _cast_type_str(cls, val: str, ctx, T=None) -> type:
             mod = importlib.import_module(modname)
             break
         except ModuleNotFoundError:
-            spec = modname.rsplit('.', maxsplit=1)
+            spec = modname.rsplit(".", maxsplit=1)
             if len(spec) <= 1:
                 raise
             modname = spec[0]

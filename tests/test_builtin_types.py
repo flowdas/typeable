@@ -43,7 +43,7 @@ def test_object():
     assert cast(X, x) is x
 
     with pytest.raises(TypeError):
-        cast(X, '')
+        cast(X, "")
 
 
 #
@@ -67,15 +67,15 @@ def test_None():
 
 def test_bool():
     # str
-    assert cast(bool, 'false') is False
-    assert cast(bool, 'true') is True
-    assert cast(bool, 'fAlSe') is False
-    assert cast(bool, 'tRuE') is True
+    assert cast(bool, "false") is False
+    assert cast(bool, "true") is True
+    assert cast(bool, "fAlSe") is False
+    assert cast(bool, "tRuE") is True
     with pytest.raises(ValueError):
-        cast(bool, 'SUCCESS')
+        cast(bool, "SUCCESS")
     ctx = Context(bool_strings={})
     with pytest.raises(TypeError):
-        cast(bool, 'SUCCESS', ctx=ctx)
+        cast(bool, "SUCCESS", ctx=ctx)
 
     # int
     assert cast(bool, 0) is False
@@ -193,22 +193,22 @@ def test_str():
     from datetime import datetime
 
     # bool
-    assert cast(str, True) == 'True'
+    assert cast(str, True) == "True"
 
     # int
-    assert cast(str, 123) == '123'
+    assert cast(str, 123) == "123"
 
     # float
     assert cast(str, 123.456) == str(123.456)
 
     # complex
-    assert cast(str, complex(1, 2)) == '(1+2j)'
+    assert cast(str, complex(1, 2)) == "(1+2j)"
 
     # bytes
-    assert cast(str, b'hello') == 'hello'
+    assert cast(str, b"hello") == "hello"
 
     # bytearray
-    assert cast(str, bytearray(b'hello')) == 'hello'
+    assert cast(str, bytearray(b"hello")) == "hello"
 
     # object
     with pytest.raises(TypeError):
@@ -216,10 +216,13 @@ def test_str():
     cast(str, object(), ctx=Context(strict_str=False))
 
     # type
-    assert cast(str, int) == 'builtins.int'
-    assert cast(str, datetime) == 'datetime.datetime'
-    assert cast(str, OuterClass) == 'tests.test_builtin_types.OuterClass'
-    assert cast(str, OuterClass.InnerClass) == 'tests.test_builtin_types.OuterClass.InnerClass'
+    assert cast(str, int) == "builtins.int"
+    assert cast(str, datetime) == "datetime.datetime"
+    assert cast(str, OuterClass) == "tests.test_builtin_types.OuterClass"
+    assert (
+        cast(str, OuterClass.InnerClass)
+        == "tests.test_builtin_types.OuterClass.InnerClass"
+    )
 
     # None
     with pytest.raises(TypeError):
@@ -228,7 +231,7 @@ def test_str():
         cast(str, None, ctx=Context(strict_str=False))
 
     # str
-    assert cast(str, 'hello') == 'hello'
+    assert cast(str, "hello") == "hello"
 
 
 #
@@ -238,10 +241,10 @@ def test_str():
 
 def test_bytes():
     # str
-    assert cast(bytes, 'hello') == b'hello'
+    assert cast(bytes, "hello") == b"hello"
 
     # list[int]
-    assert cast(bytes, [0, 1, 2, 3, 4]) == b'\x00\x01\x02\x03\x04'
+    assert cast(bytes, [0, 1, 2, 3, 4]) == b"\x00\x01\x02\x03\x04"
 
     # int
     with pytest.raises(TypeError):
@@ -252,10 +255,10 @@ def test_bytes():
         cast(bytes, None)
 
     # bytearray
-    assert cast(bytes, bytearray(b'hello')) == b'hello'
+    assert cast(bytes, bytearray(b"hello")) == b"hello"
 
     # bytes
-    assert cast(bytes, b'hello') == b'hello'
+    assert cast(bytes, b"hello") == b"hello"
 
 
 #
@@ -265,11 +268,10 @@ def test_bytes():
 
 def test_bytearray():
     # str
-    assert cast(bytearray, 'hello') == bytearray(b'hello')
+    assert cast(bytearray, "hello") == bytearray(b"hello")
 
     # list[int]
-    assert cast(bytearray, [0, 1, 2, 3, 4]) == bytearray(
-        b'\x00\x01\x02\x03\x04')
+    assert cast(bytearray, [0, 1, 2, 3, 4]) == bytearray(b"\x00\x01\x02\x03\x04")
 
     # int
     with pytest.raises(TypeError):
@@ -280,10 +282,10 @@ def test_bytearray():
         cast(bytearray, None)
 
     # bytes
-    assert cast(bytearray, b'hello') == bytearray(b'hello')
+    assert cast(bytearray, b"hello") == bytearray(b"hello")
 
     # bytearray
-    assert cast(bytearray, bytearray(b'hello')) == bytearray(b'hello')
+    assert cast(bytearray, bytearray(b"hello")) == bytearray(b"hello")
 
 
 #
@@ -293,7 +295,7 @@ def test_bytearray():
 
 def test_list():
     # dict
-    assert cast(list, {'a': 1, 'b': 2}) == [('a', 1), ('b', 2)]
+    assert cast(list, {"a": 1, "b": 2}) == [("a", 1), ("b", 2)]
 
     # None
     with pytest.raises(TypeError):
@@ -303,7 +305,7 @@ def test_list():
     class X(Object):
         i: int
 
-    data = [{'i': i} for i in range(10)]
+    data = [{"i": i} for i in range(10)]
 
     l = cast(List, data)
     assert isinstance(l, list)
@@ -321,13 +323,12 @@ def test_list():
         assert isinstance(l[i], X)
         assert l[i].i == i
 
-    if sys.version_info >= (3, 9):
-        l = cast(list[X], data)
+    l = cast(list[X], data)
 
-        assert isinstance(l, list)
-        for i in range(len(data)):
-            assert isinstance(l[i], X)
-            assert l[i].i == i
+    assert isinstance(l, list)
+    for i in range(len(data)):
+        assert isinstance(l[i], X)
+        assert l[i].i == i
 
     # no copy
     data = list(range(10))
@@ -337,7 +338,7 @@ def test_list():
 
     # copy
     data = list(range(9))
-    data.append('9')
+    data.append("9")
     expected = list(range(10))
 
     assert cast(list, data) is data
@@ -353,12 +354,12 @@ def test_list():
 
 def test_dict():
     # mapping
-    d = {'a': 1, 'b': 2}
+    d = {"a": 1, "b": 2}
     r = cast(dict, collections.OrderedDict(d))
-    assert r == {'a': 1, 'b': 2}
+    assert r == {"a": 1, "b": 2}
 
     # list
-    assert cast(dict, [('a', 1), ('b', 2)]) == {'a': 1, 'b': 2}
+    assert cast(dict, [("a", 1), ("b", 2)]) == {"a": 1, "b": 2}
 
     # None
     with pytest.raises(TypeError):
@@ -368,7 +369,7 @@ def test_dict():
     class X(Object):
         i: int
 
-    data = {i: {'i': i} for i in range(10)}
+    data = {i: {"i": i} for i in range(10)}
 
     r = cast(Dict, data)
     assert isinstance(r, dict)
@@ -388,17 +389,16 @@ def test_dict():
         assert isinstance(v, X)
         assert v.i == i
 
-    assert cast(Dict[str, int], [('a', 1), ('b', 2)]) == {'a': 1, 'b': 2}
+    assert cast(Dict[str, int], [("a", 1), ("b", 2)]) == {"a": 1, "b": 2}
 
-    if sys.version_info >= (3, 9):
-        r = cast(dict[str, X], data)
+    r = cast(dict[str, X], data)
 
-        assert isinstance(r, dict)
-        assert len(r) == len(data)
-        for i, (k, v) in enumerate(r.items()):
-            assert k == str(i)
-            assert isinstance(v, X)
-            assert v.i == i
+    assert isinstance(r, dict)
+    assert len(r) == len(data)
+    for i, (k, v) in enumerate(r.items()):
+        assert k == str(i)
+        assert isinstance(v, X)
+        assert v.i == i
 
     # no copy
     data = {str(i): i for i in range(10)}
@@ -408,7 +408,7 @@ def test_dict():
 
     # copy
     expected = data.copy()
-    data['9'] = '9'
+    data["9"] = "9"
 
     assert cast(dict, data) is data
     assert cast(Dict, data) is data
@@ -423,7 +423,7 @@ def test_dict():
 
 def test_set():
     # dict
-    assert cast(set, {'a': 1, 'b': 2}) == {'a', 'b'}
+    assert cast(set, {"a": 1, "b": 2}) == {"a", "b"}
 
     # None
     with pytest.raises(TypeError):
@@ -447,11 +447,10 @@ def test_set():
     assert isinstance(l, set)
     assert l == expected
 
-    if sys.version_info >= (3, 9):
-        l = cast(set[int], data)
+    l = cast(set[int], data)
 
-        assert isinstance(l, set)
-        assert l == expected
+    assert isinstance(l, set)
+    assert l == expected
 
     # no copy
     data = set(range(10))
@@ -461,7 +460,7 @@ def test_set():
 
     # copy
     data = set(range(9))
-    data.add('9')
+    data.add("9")
     expected = set(range(10))
 
     assert cast(set, data) is data
@@ -472,7 +471,7 @@ def test_set():
 
 def test_frozenset():
     # dict
-    assert cast(frozenset, {'a': 1, 'b': 2}) == frozenset({'a', 'b'})
+    assert cast(frozenset, {"a": 1, "b": 2}) == frozenset({"a", "b"})
 
     # None
     with pytest.raises(TypeError):
@@ -496,11 +495,10 @@ def test_frozenset():
     assert isinstance(l, frozenset)
     assert l == expected
 
-    if sys.version_info >= (3, 9):
-        l = cast(frozenset[int], data)
+    l = cast(frozenset[int], data)
 
-        assert isinstance(l, frozenset)
-        assert l == expected
+    assert isinstance(l, frozenset)
+    assert l == expected
 
     # no copy
     data = frozenset(range(10))
@@ -510,7 +508,7 @@ def test_frozenset():
 
     # copy
     data = set(range(9))
-    data.add('9')
+    data.add("9")
     data = frozenset(data)
     expected = frozenset(range(10))
 
@@ -527,7 +525,7 @@ def test_frozenset():
 
 def test_tuple():
     # dict
-    assert cast(tuple, {'a': 1, 'b': 2}) == (('a', 1), ('b', 2))
+    assert cast(tuple, {"a": 1, "b": 2}) == (("a", 1), ("b", 2))
 
     # None
     with pytest.raises(TypeError):
@@ -551,11 +549,10 @@ def test_tuple():
     assert isinstance(l, tuple)
     assert l == expected
 
-    if sys.version_info >= (3, 9):
-        l = cast(tuple[int, ...], data)
+    l = cast(tuple[int, ...], data)
 
-        assert isinstance(l, tuple)
-        assert l == expected
+    assert isinstance(l, tuple)
+    assert l == expected
 
     # homogeneous no copy
     data = tuple(range(10))
@@ -564,12 +561,12 @@ def test_tuple():
     assert cast(Tuple[int, ...], data) is data
 
     # homogeneous copy
-    data = tuple(range(9)) + ('9',)
+    data = tuple(range(9)) + ("9",)
     expected = tuple(range(10))
     assert cast(tuple, data) is data
     assert cast(Tuple, data) is data
     assert cast(Tuple[int, ...], data) == expected
-    assert cast(Tuple[int, ...], list(range(9)) + ['9']) == expected
+    assert cast(Tuple[int, ...], list(range(9)) + ["9"]) == expected
 
     # heterogeneous tuple
     data = (1, "2", "3")
@@ -597,11 +594,10 @@ def test_tuple():
     assert cast(Tuple[int, int, int], data) == (1, 2, 3)
     assert cast(Tuple[int, int, int], list(data)) == (1, 2, 3)
 
-    if sys.version_info >= (3, 9):
-        l = cast(tuple[str, int, str], data)
+    l = cast(tuple[str, int, str], data)
 
-        assert isinstance(l, tuple)
-        assert l == expected
+    assert isinstance(l, tuple)
+    assert l == expected
 
     # empty tuple
     data = ()
@@ -620,11 +616,10 @@ def test_tuple():
     assert isinstance(l, tuple)
     assert l == data
 
-    if sys.version_info >= (3, 9):
-        l = cast(tuple[()], data)
+    l = cast(tuple[()], data)
 
-        assert isinstance(l, tuple)
-        assert l == data
+    assert isinstance(l, tuple)
+    assert l == data
 
     # length mismatch
     with pytest.raises(TypeError):
@@ -651,6 +646,7 @@ def test_tuple():
 # type
 #
 
+
 class OuterClass:
     class InnerClass:
         pass
@@ -661,31 +657,34 @@ def test_type():
     from collections.abc import Iterable
 
     # str
-    assert cast(type, 'int') == int
-    assert cast(Type, 'int') == int
-    assert cast(Type[Any], 'int') == int
-    assert cast(Type[object], 'int') == int
-    assert cast(type, 'datetime.datetime') == datetime
-    assert cast(type, 'collections.abc.Iterable') == Iterable
-    assert cast(Type[int], 'int') == int
-    assert cast(Type[int], 'bool') == bool
-    assert cast(type, 'tests.test_builtin_types.OuterClass') is OuterClass
-    assert cast(type, 'tests.test_builtin_types.OuterClass.InnerClass') is OuterClass.InnerClass
+    assert cast(type, "int") == int
+    assert cast(Type, "int") == int
+    assert cast(Type[Any], "int") == int
+    assert cast(Type[object], "int") == int
+    assert cast(type, "datetime.datetime") == datetime
+    assert cast(type, "collections.abc.Iterable") == Iterable
+    assert cast(Type[int], "int") == int
+    assert cast(Type[int], "bool") == bool
+    assert cast(type, "tests.test_builtin_types.OuterClass") is OuterClass
+    assert (
+        cast(type, "tests.test_builtin_types.OuterClass.InnerClass")
+        is OuterClass.InnerClass
+    )
 
     with pytest.raises(TypeError):
-        cast(type, '')
+        cast(type, "")
     with pytest.raises(AttributeError):
-        cast(type, 'collections.abc.UNKNOWN_TYPE_NAME')
+        cast(type, "collections.abc.UNKNOWN_TYPE_NAME")
     with pytest.raises(AttributeError):
-        cast(type, 'collections.UNKNOWN_MODULE.Iterable')
+        cast(type, "collections.UNKNOWN_MODULE.Iterable")
     with pytest.raises(TypeError):
-        cast(type, 'collections.abc')
+        cast(type, "collections.abc")
     with pytest.raises(TypeError):
-        cast(type, 'dataclasses.MISSING')
+        cast(type, "dataclasses.MISSING")
     with pytest.raises(ModuleNotFoundError):
-        cast(type, 'buintins.str')  # mis-spelling
+        cast(type, "buintins.str")  # mis-spelling
     with pytest.raises(TypeError):
-        cast(Type[int], 'str')
+        cast(Type[int], "str")
 
     # None
     with pytest.raises(TypeError):

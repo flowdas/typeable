@@ -16,11 +16,11 @@ def test_cast():
     class X:
         i: int
 
-    data = {'i': 0}
+    data = {"i": 0}
 
     x = cast(X, data)
     assert isinstance(x, X)
-    assert x.i == data['i']
+    assert x.i == data["i"]
 
 
 def test_required():
@@ -29,12 +29,12 @@ def test_required():
         a: int
         b: int = 2
 
-    data = {'a': 1}
+    data = {"a": 1}
     x = cast(X, data)
     assert x.a == 1
     assert x.b == 2
 
-    data = {'b': 1}
+    data = {"b": 1}
     with pytest.raises(TypeError):
         cast(X, data)
 
@@ -44,7 +44,7 @@ def test_dict():
     class X:
         i: int
 
-    data = {'i': 0}
+    data = {"i": 0}
 
     x = cast(X, data)
     assert cast(dict, x) == data
@@ -55,12 +55,12 @@ def test_JsonValue():
     class X:
         i: int
 
-    data = {'i': 0}
+    data = {"i": 0}
 
     x = cast(X, data)
     assert cast(JsonValue, x) == data
 
-    assert cast(JsonValue, {'result': X(**data)}) == {'result': data}
+    assert cast(JsonValue, {"result": X(**data)}) == {"result": data}
 
 
 def test_Literal():
@@ -68,12 +68,12 @@ def test_Literal():
     class X:
         i: Literal[1, 2, 3]
 
-    data = {'i': 1}
+    data = {"i": 1}
 
     x = cast(X, data)
     assert cast(dict, x) == data
 
-    data = {'i': 0}
+    data = {"i": 0}
     with pytest.raises(TypeError):
         cast(X, data)
 
