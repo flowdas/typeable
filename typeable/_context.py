@@ -3,23 +3,15 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
-from contextlib import contextmanager
+from contextlib import (
+    contextmanager,
+    nullcontext,
+)
 import sys
 from typing import (
     Dict,
     get_type_hints,
 )
-
-try:
-    from contextlib import nullcontext  # since 3.7
-except ImportError:  # pragma: no cover
-
-    class nullcontext:
-        def __enter__(self):
-            pass
-
-        def __exit__(self, *excinfo):
-            pass
 
 
 _nulltraverse = nullcontext()

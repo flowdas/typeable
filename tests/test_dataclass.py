@@ -3,12 +3,12 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
-from dataclasses import *
+from dataclasses import dataclass
 from typing import Literal
 
 import pytest
 
-from typeable import deepcast, JsonValue, Context
+from typeable import deepcast, Context
 
 
 def test_cast():
@@ -50,6 +50,7 @@ def test_dict():
     assert deepcast(dict, x) == data
 
 
+@pytest.mark.skip(reason="JsonValue 제거")
 def test_JsonValue():
     @dataclass
     class X:
@@ -58,9 +59,9 @@ def test_JsonValue():
     data = {"i": 0}
 
     x = deepcast(X, data)
-    assert deepcast(JsonValue, x) == data
+    assert deepcast(JsonValue, x) == data  # type: ignore  # noqa: F821
 
-    assert deepcast(JsonValue, {"result": X(**data)}) == {"result": data}
+    assert deepcast(JsonValue, {"result": X(**data)}) == {"result": data}  # type: ignore  # noqa: F821
 
 
 def test_Literal():

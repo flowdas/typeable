@@ -11,7 +11,6 @@ import pytest
 from typeable import (
     deepcast,
     polymorphic,
-    JsonValue,
     Context,
     is_polymorphic,
 )
@@ -87,7 +86,7 @@ def test_impl_discriminator_is_literal():
 
     x = deepcast(Authenticator, data)
     assert isinstance(x, ApiKeyAuthenticator)
-    assert deepcast(JsonValue, x) == data
+    assert deepcast(dict, x) == data
 
     with pytest.raises(TypeError):
 
@@ -164,7 +163,7 @@ def test_impl_instanciation():
 
     x = deepcast(ApiKeyAuthenticator, data)
     assert isinstance(x, ApiKeyAuthenticator)
-    assert deepcast(JsonValue, x) == data
+    assert deepcast(dict, x) == data
 
 
 def test_impl_discriminator_mismatch():
@@ -260,7 +259,7 @@ def test_multiple_discriptor():
     )
     x = deepcast(Authenticator, data)
     assert isinstance(x, HttpBearerAuthenticator)
-    assert deepcast(JsonValue, x) == data
+    assert deepcast(dict, x) == data
 
 
 def test_partially_polymorphic():
@@ -290,7 +289,7 @@ def test_partially_polymorphic():
     )
     x = deepcast(HttpAuthenticator, data)
     assert isinstance(x, HttpBearerAuthenticator)
-    assert deepcast(JsonValue, x) == data
+    assert deepcast(dict, x) == data
 
 
 def test_is_polymorphic():

@@ -14,7 +14,7 @@ import datetime
 from email.utils import parsedate_to_datetime
 import enum
 import functools
-from functools import _find_impl
+from functools import _find_impl  # type: ignore
 import importlib
 import inspect
 from inspect import (
@@ -55,7 +55,7 @@ if sys.version_info < (3, 14):
         frame = inspect.currentframe().f_back.f_back
         args = [frame.f_globals, frame.f_locals]
         try:
-            ref._evaluate(*args, recursive_guard=set())
+            ref._evaluate(*args, recursive_guard=frozenset())
         finally:
             del frame
             del args
@@ -252,21 +252,21 @@ def _function(
                 r = func(*ba.args, **ba.kwargs)
                 return epilog(ctx, r)
 
-        wrapper._ctx = ctx_name
+        setattr(wrapper, "_ctx", ctx_name)
 
         return wrapper
 
     return deco if _ is None else deco(_)
 
 
-def deepcast(cls: Type[_T], val, *, ctx: Context = None) -> _T:
+def deepcast(cls: Type[_T], val: Any, *, ctx: Context | None = None) -> _T:
     origin = get_origin(cls) or cls
     Ts = _get_type_args(cls)
     tp = val.__class__
     try:
         if not Ts and isinstance(val, origin) and tp is not bool:
             return val
-    except:
+    except TypeError:
         pass
     func = _dispatch(origin, tp)
     if ctx is None:

@@ -6,6 +6,7 @@
 
 import cmath
 import collections
+from dataclasses import dataclass
 import math
 from typing import (
     Any,
@@ -20,7 +21,10 @@ from typing import (
 
 import pytest
 
-from typeable import *
+from typeable import (
+    Context,
+    deepcast,
+)
 
 
 #
@@ -302,7 +306,8 @@ def test_list():
         deepcast(list, None)
 
     # list
-    class X(Object):
+    @dataclass
+    class X:
         i: int
 
     data = [{"i": i} for i in range(10)]
@@ -366,7 +371,8 @@ def test_dict():
         deepcast(dict, None)
 
     # dict
-    class X(Object):
+    @dataclass
+    class X:
         i: int
 
     data = {i: {"i": i} for i in range(10)}
