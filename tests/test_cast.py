@@ -75,7 +75,7 @@ def test_get_args():
     assert get_args(Union[int, None]) == (int, type(None))
     assert get_args(Any) == ()
     assert get_args(Literal) == ()
-    assert get_args(Literal['2.0']) == ('2.0',)
+    assert get_args(Literal["2.0"]) == ("2.0",)
     assert get_args(Annotated) == ()
     assert get_args(Annotated[int, True, False]) == (int, True, False)
 
@@ -84,7 +84,7 @@ Integer = int
 
 
 def test_declare():
-    with declare('Integer') as Ref:
+    with declare("Integer") as Ref:
         T = List[Ref]
 
     assert cast(T, [2]) == [2]
@@ -93,6 +93,7 @@ def test_declare():
 
 def test_register():
     with pytest.raises(RuntimeError):
+
         @cast.register
         def _(cls, val, ctx) -> Object:
             return cls(val)
@@ -100,16 +101,19 @@ def test_register():
 
 def test_invalid_register():
     with pytest.raises(TypeError):
+
         @cast.register
         def _():
             pass
 
     with pytest.raises(TypeError):
+
         @cast.register
         def _(cls, val, ctx):
             pass
 
     with pytest.raises(TypeError):
+
         @cast.register
         def _(cls: Object, val, ctx) -> Object:
             pass
@@ -130,6 +134,7 @@ def test_double_dispatch():
     assert isinstance(cast(Y, {}), Y)
 
     with pytest.raises(RuntimeError):
+
         @cast.register
         def _(cls, val: X, ctx) -> Object:
             return 1
@@ -162,11 +167,13 @@ def test_function_with_ctx():
 
 def test_function_ctx_conflict():
     with pytest.raises(TypeError):
+
         @cast.function
         def test(ctx: int):
             pass
 
     with pytest.raises(TypeError):
+
         @cast.function
         def test(ctx):
             pass
@@ -189,7 +196,7 @@ def test_function_kwargs():
             assert isinstance(v, int)
         return kwargs
 
-    assert test(a=1, b="2", c=3.14) == {'a': 1, 'b': 2, 'c': 3}
+    assert test(a=1, b="2", c=3.14) == {"a": 1, "b": 2, "c": 3}
 
 
 def test_function_cast_return():
@@ -214,8 +221,8 @@ def test_function_cast_return():
         assert isinstance(a, int)
         return a
 
-    assert test(123) == '123'
-    assert test("123") == '123'
+    assert test(123) == "123"
+    assert test("123") == "123"
 
 
 def test_function_capture():
@@ -227,12 +234,12 @@ def test_function_capture():
     with pytest.raises(TypeError):
         with ctx.capture() as error:
             test(None, ctx=ctx)
-    assert error.location == ('a',)
+    assert error.location == ("a",)
 
     with pytest.raises(TypeError):
         with ctx.capture() as error:
             test("123", ctx=ctx)
-    assert error.location == ('return',)
+    assert error.location == ("return",)
 
 
 def test_function_method():

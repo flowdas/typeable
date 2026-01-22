@@ -12,10 +12,22 @@ import json
 
 from ._cast import cast, declare, _get_type_args
 from ._object import Object, fields, field, _META
-from .typing import Union, Dict, List, Tuple, _GenericBases, get_origin, Type, Any, Literal
+from .typing import (
+    Union,
+    Dict,
+    List,
+    Tuple,
+    _GenericBases,
+    get_origin,
+    Type,
+    Any,
+    Literal,
+)
 
-with declare('_JsonValue') as _:
-    _JsonValue = Union[float, bool, int, str, None, Dict[str, _], List[_], Tuple[_, ...]]
+with declare("_JsonValue") as _:
+    _JsonValue = Union[
+        float, bool, int, str, None, Dict[str, _], List[_], Tuple[_, ...]
+    ]
 
 
 class JsonValue:
@@ -29,12 +41,12 @@ def _cast_JsonValue_object(cls: Type[JsonValue], val, ctx):
 
 
 @cast.function
-def dump(obj: JsonValue, fp, *, ensure_ascii=False, separators=(',', ':'), **kw):
+def dump(obj: JsonValue, fp, *, ensure_ascii=False, separators=(",", ":"), **kw):
     return json.dump(obj, fp, ensure_ascii=ensure_ascii, separators=separators, **kw)
 
 
 @cast.function
-def dumps(obj: JsonValue, *, ensure_ascii=False, separators=(',', ':'), **kw):
+def dumps(obj: JsonValue, *, ensure_ascii=False, separators=(",", ":"), **kw):
     return json.dumps(obj, ensure_ascii=ensure_ascii, separators=separators, **kw)
 
 
@@ -50,17 +62,17 @@ class JsonSchema(Object):
     _dispatch_cache = {}
     _cache_token = None
 
-    ref: str = field(key='$ref')
+    ref: str = field(key="$ref")
     type: Union[str, List[str]]
     uniqueItems: bool
     format: str
     enum: list
-    additionalProperties: Union[bool, 'JsonSchema']
-    items: Union['JsonSchema', List['JsonSchema']]
-    allOf: List['JsonSchema']
-    anyOf: List['JsonSchema']
-    not_: 'JsonSchema' = field(key='not')
-    properties: Dict[str, 'JsonSchema']
+    additionalProperties: Union[bool, "JsonSchema"]
+    items: Union["JsonSchema", List["JsonSchema"]]
+    allOf: List["JsonSchema"]
+    anyOf: List["JsonSchema"]
+    not_: "JsonSchema" = field(key="not")
+    properties: Dict[str, "JsonSchema"]
     required: List[str]
     exclusiveMinimum: Union[int, float]
     exclusiveMaximum: Union[int, float]
@@ -94,7 +106,7 @@ class JsonSchema(Object):
             cls._registry[klass] = func
 
             if cls._cache_token is None:
-                if hasattr(klass, '__abstractmethods__'):
+                if hasattr(klass, "__abstractmethods__"):
                     cls._cache_token = get_cache_token()
             cls._dispatch_cache.clear()
 
@@ -130,40 +142,40 @@ class JsonSchema(Object):
 
 @JsonSchema.register(bool)
 def _jsonschema_bool(self, cls: Type[bool]):
-    self.type = 'boolean'
+    self.type = "boolean"
 
 
 @JsonSchema.register(bytearray)
 def _jsonschema_bytearray(self, cls: Type[bytearray]):
-    self.type = 'string'
+    self.type = "string"
 
 
 @JsonSchema.register(bytes)
 def _jsonschema_bytes(self, cls: Type[bytes]):
-    self.type = 'string'
+    self.type = "string"
 
 
 @JsonSchema.register(complex)
 def _jsonschema_complex(self, cls: Type[complex]):
-    self.type = 'array'
+    self.type = "array"
     self.items = [JsonSchema(float), JsonSchema(float)]
 
 
 @JsonSchema.register(dict)
 def _jsonschema_dict(self, cls: Type[dict], K=None, V=None):
-    self.type = 'object'
+    self.type = "object"
     if K is not None:
         self.additionalProperties = JsonSchema(V)
 
 
 @JsonSchema.register(float)
 def _jsonschema_float(self, cls: Type[float]):
-    self.type = 'number'
+    self.type = "number"
 
 
 @JsonSchema.register(frozenset)
 def _jsonschema_frozenset(self, cls: Type[frozenset], T=None):
-    self.type = 'array'
+    self.type = "array"
     self.uniqueItems = True
     if T is not None:
         self.items = JsonSchema(T)
@@ -171,24 +183,24 @@ def _jsonschema_frozenset(self, cls: Type[frozenset], T=None):
 
 @JsonSchema.register(int)
 def _jsonschema_int(self, cls: Type[int]):
-    self.type = 'integer'
+    self.type = "integer"
 
 
 @JsonSchema.register(list)
 def _jsonschema_list(self, cls: Type[list], T=None):
-    self.type = 'array'
+    self.type = "array"
     if T is not None:
         self.items = JsonSchema(T)
 
 
 @JsonSchema.register(type(None))
 def _jsonschema_None(self, cls: Type[None]):
-    self.type = 'null'
+    self.type = "null"
 
 
 @JsonSchema.register(set)
 def _jsonschema_set(self, cls: Type[set], T=None):
-    self.type = 'array'
+    self.type = "array"
     self.uniqueItems = True
     if T is not None:
         self.items = JsonSchema(T)
@@ -196,12 +208,12 @@ def _jsonschema_set(self, cls: Type[set], T=None):
 
 @JsonSchema.register(str)
 def _jsonschema_str(self, cls: Type[str]):
-    self.type = 'string'
+    self.type = "string"
 
 
 @JsonSchema.register(tuple)
 def _jsonschema_tuple(self, cls: Type[tuple], *Ts):
-    self.type = 'array'
+    self.type = "array"
 
     if not Ts:
         return
@@ -223,26 +235,26 @@ def _jsonschema_tuple(self, cls: Type[tuple], *Ts):
 
 @JsonSchema.register(datetime.date)
 def _jsonschema_date(self, cls: Type[datetime.date]):
-    self.type = 'string'
-    self.format = 'date'
+    self.type = "string"
+    self.format = "date"
 
 
 @JsonSchema.register(datetime.datetime)
 def _jsonschema_datetime(self, cls: Type[datetime.datetime]):
-    self.type = 'string'
-    self.format = 'date-time'
+    self.type = "string"
+    self.format = "date-time"
 
 
 @JsonSchema.register(datetime.time)
 def _jsonschema_time(self, cls: Type[datetime.time]):
-    self.type = 'string'
-    self.format = 'time'
+    self.type = "string"
+    self.format = "time"
 
 
 @JsonSchema.register(datetime.timedelta)
 def _jsonschema_timedelta(self, cls: Type[datetime.timedelta]):
-    self.type = 'string'
-    self.format = 'duration'
+    self.type = "string"
+    self.format = "duration"
 
 
 #
@@ -252,24 +264,24 @@ def _jsonschema_timedelta(self, cls: Type[datetime.timedelta]):
 
 @JsonSchema.register(enum.Enum)
 def _jsonschema_Enum(self, cls: Type[enum.Enum]):
-    self.type = 'string'
+    self.type = "string"
     self.enum = [x.name for x in cls]
 
 
 @JsonSchema.register(enum.Flag)
 def _jsonschema_Flag(self, cls: Type[enum.Flag]):
-    self.type = 'integer'
+    self.type = "integer"
 
 
 @JsonSchema.register(enum.IntEnum)
 def _jsonschema_IntEnum(self, cls: Type[enum.IntEnum]):
-    self.type = 'integer'
+    self.type = "integer"
     self.enum = [x.value for x in cls]
 
 
 @JsonSchema.register(enum.IntFlag)
 def _jsonschema_IntFlag(self, cls: Type[enum.IntFlag]):
-    self.type = 'integer'
+    self.type = "integer"
 
 
 #
@@ -296,7 +308,7 @@ def _jsonschema_Union(self, cls, *Ts):
         json = cast(JsonValue, schema)
         if not json:  # {}
             return
-        if 'type' not in json or len(json) != 1:
+        if "type" not in json or len(json) != 1:
             simple = False
         schemas.append(schema)
     if simple:
@@ -330,7 +342,7 @@ def _jsonschema_Object(self, cls):
     if meta.jsonschema:
         self.ref = meta.jsonschema
     else:
-        self.type = 'object'
+        self.type = "object"
         self.additionalProperties = False
 
         flds = fields(cls)

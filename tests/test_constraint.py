@@ -18,24 +18,28 @@ import pytest
 # Annotated
 #
 
+
 def test_Annotated():
     assert cast(Annotated[int, None, Constraint()], "123") == 123
 
     class Negative(Constraint):
         def emit(self):
-            return 'x < 0'
+            return "x < 0"
 
     with pytest.raises(ValueError):
         cast(Annotated[int, Negative()], "123")
 
 
 def test_JsonSchema_from_Annotated():
-    assert cast(dict, JsonSchema(Annotated[int, None, Constraint()])) == {'type': 'integer'}
+    assert cast(dict, JsonSchema(Annotated[int, None, Constraint()])) == {
+        "type": "integer"
+    }
 
 
 #
 # Constraint
 #
+
 
 def test_Constraint():
     c = Constraint()
@@ -47,7 +51,7 @@ def test_Constraint():
 
     class Bad(Constraint):
         def emit(self):
-            return 'x.x'
+            return "x.x"
 
     c = Bad()
     with pytest.raises(AttributeError):
@@ -59,7 +63,7 @@ def test_Constraint():
 def test_namespace():
     class X(Constraint):
         def emit(self):
-            return 'inspect.isclass(x)', {'inspect': inspect}
+            return "inspect.isclass(x)", {"inspect": inspect}
 
     c = X()
     assert inspect.isclass(X)
@@ -70,17 +74,17 @@ def test_namespace():
 def test_AllOf():
     class Positive(Constraint):
         def emit(self):
-            return '(x > 0)', None
+            return "(x > 0)", None
 
         def annotate(self, root, schema):
-            schema.format = 'positive'
+            schema.format = "positive"
 
     class LT10(Constraint):
         def emit(self):
-            return '(x < 10)'
+            return "(x < 10)"
 
         def annotate(self, root, schema):
-            schema.format = 'lt10'
+            schema.format = "lt10"
 
     c = AllOf(Positive(), LT10())
     assert c(5)
@@ -89,9 +93,9 @@ def test_AllOf():
     schema = JsonSchema()
     c.annotate(schema, schema)
     assert cast(JsonValue, schema) == {
-        'allOf': [
-            {'format': 'positive'},
-            {'format': 'lt10'},
+        "allOf": [
+            {"format": "positive"},
+            {"format": "lt10"},
         ]
     }
 
@@ -100,23 +104,23 @@ def test_AllOf():
     assert not c(0)
     schema = JsonSchema()
     c.annotate(schema, schema)
-    assert cast(dict, schema) == {'format': 'positive'}
+    assert cast(dict, schema) == {"format": "positive"}
 
 
 def test_AnyOf():
     class Negative(Constraint):
         def emit(self):
-            return '(x < 0)', None
+            return "(x < 0)", None
 
         def annotate(self, root, schema):
-            schema.format = 'negative'
+            schema.format = "negative"
 
     class GT10(Constraint):
         def emit(self):
-            return '(x > 10)'
+            return "(x > 10)"
 
         def annotate(self, root, schema):
-            schema.format = 'gt10'
+            schema.format = "gt10"
 
     c = AnyOf(Negative(), GT10())
     assert c(-1)
@@ -127,9 +131,9 @@ def test_AnyOf():
     schema = JsonSchema()
     c.annotate(schema, schema)
     assert cast(JsonValue, schema) == {
-        'anyOf': [
-            {'format': 'negative'},
-            {'format': 'gt10'},
+        "anyOf": [
+            {"format": "negative"},
+            {"format": "gt10"},
         ]
     }
 
@@ -138,23 +142,23 @@ def test_AnyOf():
     assert not c(0)
     schema = JsonSchema()
     c.annotate(schema, schema)
-    assert cast(dict, schema) == {'format': 'negative'}
+    assert cast(dict, schema) == {"format": "negative"}
 
 
 def test_NoneOf():
     class Negative(Constraint):
         def emit(self):
-            return '(x < 0)'
+            return "(x < 0)"
 
         def annotate(self, root, schema):
-            schema.format = 'negative'
+            schema.format = "negative"
 
     class GT10(Constraint):
         def emit(self):
-            return '(x > 10)', None
+            return "(x > 10)", None
 
         def annotate(self, root, schema):
-            schema.format = 'gt10'
+            schema.format = "gt10"
 
     c = NoneOf(Negative(), GT10())
     assert not c(-1)
@@ -165,10 +169,10 @@ def test_NoneOf():
     schema = JsonSchema()
     c.annotate(schema, schema)
     assert cast(JsonValue, schema) == {
-        'not': {
-            'anyOf': [
-                {'format': 'negative'},
-                {'format': 'gt10'},
+        "not": {
+            "anyOf": [
+                {"format": "negative"},
+                {"format": "gt10"},
             ]
         },
     }
@@ -178,9 +182,7 @@ def test_NoneOf():
     assert not c(-1)
     schema = JsonSchema()
     c.annotate(schema, schema)
-    assert cast(JsonValue, schema) == {
-        'not': {'format': 'negative'}
-    }
+    assert cast(JsonValue, schema) == {"not": {"format": "negative"}}
 
 
 def test_IsFinite():
@@ -189,8 +191,8 @@ def test_IsFinite():
     assert c(1)
     assert c(3.14)
     assert c(complex(1, 3))
-    assert not c(float('nan'))
-    assert not c(complex(3, float('nan')))
+    assert not c(float("nan"))
+    assert not c(complex(3, float("nan")))
 
 
 def test_range():
@@ -199,28 +201,28 @@ def test_range():
     assert not c(0)
     schema = JsonSchema()
     c.annotate(schema, schema)
-    assert cast(JsonValue, schema) == {'exclusiveMinimum': 0}
+    assert cast(JsonValue, schema) == {"exclusiveMinimum": 0}
 
     c = IsGreaterThanOrEqual(0)
     assert c(0)
     assert not c(-1)
     schema = JsonSchema()
     c.annotate(schema, schema)
-    assert cast(JsonValue, schema) == {'minimum': 0}
+    assert cast(JsonValue, schema) == {"minimum": 0}
 
     c = IsLessThan(0)
     assert c(-1)
     assert not c(0)
     schema = JsonSchema()
     c.annotate(schema, schema)
-    assert cast(JsonValue, schema) == {'exclusiveMaximum': 0}
+    assert cast(JsonValue, schema) == {"exclusiveMaximum": 0}
 
     c = IsLessThanOrEqual(0)
     assert c(0)
     assert not c(1)
     schema = JsonSchema()
     c.annotate(schema, schema)
-    assert cast(JsonValue, schema) == {'maximum': 0}
+    assert cast(JsonValue, schema) == {"maximum": 0}
 
 
 def test_length():
@@ -230,15 +232,15 @@ def test_length():
     root = JsonSchema(str)
     schema = JsonSchema()
     c.annotate(root, schema)
-    assert cast(JsonValue, schema) == {'minLength': 1}
+    assert cast(JsonValue, schema) == {"minLength": 1}
     root = JsonSchema(dict)
     schema = JsonSchema()
     c.annotate(root, schema)
-    assert cast(JsonValue, schema) == {'minProperties': 1}
+    assert cast(JsonValue, schema) == {"minProperties": 1}
     root = JsonSchema(list)
     schema = JsonSchema()
     c.annotate(root, schema)
-    assert cast(JsonValue, schema) == {'minItems': 1}
+    assert cast(JsonValue, schema) == {"minItems": 1}
     root = JsonSchema(int)
     schema = JsonSchema()
     c.annotate(root, schema)
@@ -250,15 +252,15 @@ def test_length():
     root = JsonSchema(str)
     schema = JsonSchema()
     c.annotate(root, schema)
-    assert cast(JsonValue, schema) == {'maxLength': 1}
+    assert cast(JsonValue, schema) == {"maxLength": 1}
     root = JsonSchema(dict)
     schema = JsonSchema()
     c.annotate(root, schema)
-    assert cast(JsonValue, schema) == {'maxProperties': 1}
+    assert cast(JsonValue, schema) == {"maxProperties": 1}
     root = JsonSchema(list)
     schema = JsonSchema()
     c.annotate(root, schema)
-    assert cast(JsonValue, schema) == {'maxItems': 1}
+    assert cast(JsonValue, schema) == {"maxItems": 1}
     root = JsonSchema(int)
     schema = JsonSchema()
     c.annotate(root, schema)
@@ -273,16 +275,16 @@ def test_IsMultipleOf():
     assert not c(4.1)
     schema = JsonSchema()
     c.annotate(schema, schema)
-    assert cast(JsonValue, schema) == {'multipleOf': 2}
+    assert cast(JsonValue, schema) == {"multipleOf": 2}
 
     with pytest.raises(ValueError):
         IsMultipleOf(0)
 
 
 def test_IsMatched():
-    c = IsMatched('p')
-    assert c('apple')
-    assert not c('orange')
+    c = IsMatched("p")
+    assert c("apple")
+    assert not c("orange")
     schema = JsonSchema()
     c.annotate(schema, schema)
-    assert cast(JsonValue, schema) == {'pattern': 'p'}
+    assert cast(JsonValue, schema) == {"pattern": "p"}

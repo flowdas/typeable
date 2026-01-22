@@ -10,12 +10,15 @@ from contextlib import contextmanager
 try:
     from contextlib import nullcontext  # since 3.7
 except ImportError:  # pragma: no cover
+
     class nullcontext:
         def __enter__(self):
             pass
 
         def __exit__(self, *excinfo):
             pass
+
+
 from .typing import (
     Dict,
     get_type_hints,
@@ -33,18 +36,27 @@ class Context:
     # default policies
     bool_is_int: bool = True
     bool_strings: Dict[str, bool] = {
-        '0': False, '1': True, 'f': False, 'false': False,
-        'n': False, 'no': False, 'off': False, 'on': True,
-        't': True, 'true': True, 'y': True, 'yes': True,
+        "0": False,
+        "1": True,
+        "f": False,
+        "false": False,
+        "n": False,
+        "no": False,
+        "off": False,
+        "on": True,
+        "t": True,
+        "true": True,
+        "y": True,
+        "yes": True,
     }
-    bytes_encoding: str = 'utf-8'
-    date_format: str = 'iso'
-    datetime_format: str = 'iso'
-    encoding_errors: str = 'strict'
+    bytes_encoding: str = "utf-8"
+    date_format: str = "iso"
+    datetime_format: str = "iso"
+    encoding_errors: str = "strict"
     lossy_conversion: bool = True
     naive_timestamp: bool = False
     strict_str: bool = True
-    time_format: str = 'iso'
+    time_format: str = "iso"
     union_prefers_same_type: bool = True
     union_prefers_base_type: bool = True
     union_prefers_super_type: bool = True
@@ -54,6 +66,7 @@ class Context:
         self._stack = None
         if policies:
             from ._cast import cast  # avoid partial import
+
             hints = get_type_hints(self.__class__)
             ctx = Context()
             for key, val in policies.items():
@@ -61,7 +74,8 @@ class Context:
                     cls = hints[key]
                 except KeyError:
                     raise TypeError(
-                        f"{self.__class__.__qualname__}() got an unexpected keyword argument '{key}'")
+                        f"{self.__class__.__qualname__}() got an unexpected keyword argument '{key}'"
+                    )
                 setattr(self, key, cast(cls, val, ctx=ctx))
 
     @contextmanager

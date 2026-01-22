@@ -5,60 +5,65 @@
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 from setuptools import setup, find_packages
 
-setup_requires = [
-]
+setup_requires = []
 
-install_requires = [
-]
+install_requires = []
 
 tests_require = [
-    'pytest',
-    'pytest-cov',
-    'tox',
+    "pytest",
+    "pytest-cov",
+    "tox",
 ]
 
 dev_requires = tests_require + [
-    'build',
-    'sphinx',
+    "build",
+    "ruff",
+    "sphinx",
 ]
 
 setup(
-    name='typeable',
-    version=open('VERSION').read().strip(),
-    url='https://github.com/flowdas/typeable',
-    description='A Python type casting at runtime',
-    author='Flowdas Inc.',
-    author_email='prospero@flowdas.com',
+    name="typeable",
+    version=open("VERSION").read().strip(),
+    url="https://github.com/flowdas/typeable",
+    description="A Python type casting at runtime",
+    author="Flowdas Inc.",
+    author_email="prospero@flowdas.com",
     packages=[
-        'typeable',
+        "typeable",
     ],
     setup_requires=setup_requires,
     install_requires=install_requires,
     tests_require=tests_require,
     extras_require={
-        'dev': dev_requires,
+        "dev": dev_requires,
     },
     scripts=[],
     entry_points={},
     zip_safe=True,
-    keywords=('validation', 'modeling', 'schema', 'typing', 'serialization', 'type casting'),
-    python_requires=">=3.9",
+    keywords=[
+        "validation",
+        "modeling",
+        "schema",
+        "typing",
+        "serialization",
+        "type casting",
+    ],
+    python_requires=">=3.10",
     classifiers=[
-        'Development Status :: 5 - Production/Stable',
-        'Intended Audience :: Developers',
-        'Topic :: Software Development :: Libraries :: Python Modules',
-        'License :: OSI Approved :: Mozilla Public License 2.0 (MPL 2.0)',
-        'Operating System :: MacOS :: MacOS X',
-        'Operating System :: POSIX',
-        'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.9',
-        'Programming Language :: Python :: 3.10',
-        'Programming Language :: Python :: 3.11',
-        'Programming Language :: Python :: 3.12',
-        'Programming Language :: Python :: 3.13',
-        'Programming Language :: Python :: 3.14',
-        'Topic :: Internet',
-        'Topic :: Utilities',
-        'Topic :: Software Development :: Libraries :: Python Modules',
+        "Development Status :: 5 - Production/Stable",
+        "Intended Audience :: Developers",
+        "Topic :: Software Development :: Libraries :: Python Modules",
+        "License :: OSI Approved :: Mozilla Public License 2.0 (MPL 2.0)",
+        "Operating System :: MacOS :: MacOS X",
+        "Operating System :: POSIX",
+        "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
+        "Programming Language :: Python :: 3.13",
+        "Programming Language :: Python :: 3.14",
+        "Topic :: Internet",
+        "Topic :: Utilities",
+        "Topic :: Software Development :: Libraries :: Python Modules",
     ],
 )

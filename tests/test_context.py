@@ -19,22 +19,22 @@ def test_policies():
 
     ctx = MyContext()
     assert ctx.bool_is_int is True
-    assert ctx.bytes_encoding == 'utf-8'
+    assert ctx.bytes_encoding == "utf-8"
     assert ctx.test_option == 0
 
     ctx = MyContext(bool_is_int=False)
     assert ctx.bool_is_int is False
-    assert ctx.bytes_encoding == 'utf-8'
+    assert ctx.bytes_encoding == "utf-8"
     assert ctx.test_option == 0
 
-    ctx = MyContext(bytes_encoding='ascii')
+    ctx = MyContext(bytes_encoding="ascii")
     assert ctx.bool_is_int is True
-    assert ctx.bytes_encoding == 'ascii'
+    assert ctx.bytes_encoding == "ascii"
     assert ctx.test_option == 0
 
     ctx = MyContext(test_option=1)
     assert ctx.bool_is_int is True
-    assert ctx.bytes_encoding == 'utf-8'
+    assert ctx.bytes_encoding == "utf-8"
     assert ctx.test_option == 1
 
     with pytest.raises(TypeError):

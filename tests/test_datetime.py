@@ -31,55 +31,56 @@ def test_datetime():
     for T in (int, float):
         t = T(0)
         assert cast(datetime, t) == aware_epoch
-        assert cast(datetime, t, ctx=Context(
-            naive_timestamp=True)) == naive_epoch
+        assert cast(datetime, t, ctx=Context(naive_timestamp=True)) == naive_epoch
 
     # str - iso
     with pytest.raises(ValueError):
-        cast(datetime, '1970-01-01T00:00:00.000Z #')
-    assert cast(datetime, '1970-01-01T00:00:00.000Z') == aware_epoch
-    assert cast(datetime, '1970-01-01T00:00:00.000+00:00') == aware_epoch
-    assert cast(datetime, '1970-01-01T00:00:00.000-00:00') == aware_epoch
-    assert cast(datetime, '1970-01-01T09:00:00.000+09:00') == aware_epoch
-    assert cast(datetime, '1969-12-31T15:00:00.000-09:00') == aware_epoch
-    assert cast(datetime, '1970-01-01T00:00:00.000') == naive_epoch
-    assert cast(datetime, '1970-1-01T00:00:00.000') == naive_epoch
-    assert cast(datetime, '1970-01-1T00:00:00.000') == naive_epoch
-    assert cast(datetime, '1970-01-01T0:00:00.000') == naive_epoch
-    assert cast(datetime, '1970-01-01T00:0:00.000') == naive_epoch
-    assert cast(datetime, '1970-01-01T00:00:0.000') == naive_epoch
-    assert cast(datetime, '1970-01-01T00:00:0.') == naive_epoch
-    assert cast(datetime, '1970-01-01T00:00:0') == naive_epoch
-    assert cast(datetime, '1970-1-1T0:0') == naive_epoch
-    assert cast(datetime, '1970-1-1 0:0') == naive_epoch
-    assert cast(datetime, '1970-1-1T') == naive_epoch
-    assert cast(datetime, '1970-1-1') == naive_epoch
-    assert cast(datetime, ' 1970-1-1 ') == naive_epoch
+        cast(datetime, "1970-01-01T00:00:00.000Z #")
+    assert cast(datetime, "1970-01-01T00:00:00.000Z") == aware_epoch
+    assert cast(datetime, "1970-01-01T00:00:00.000+00:00") == aware_epoch
+    assert cast(datetime, "1970-01-01T00:00:00.000-00:00") == aware_epoch
+    assert cast(datetime, "1970-01-01T09:00:00.000+09:00") == aware_epoch
+    assert cast(datetime, "1969-12-31T15:00:00.000-09:00") == aware_epoch
+    assert cast(datetime, "1970-01-01T00:00:00.000") == naive_epoch
+    assert cast(datetime, "1970-1-01T00:00:00.000") == naive_epoch
+    assert cast(datetime, "1970-01-1T00:00:00.000") == naive_epoch
+    assert cast(datetime, "1970-01-01T0:00:00.000") == naive_epoch
+    assert cast(datetime, "1970-01-01T00:0:00.000") == naive_epoch
+    assert cast(datetime, "1970-01-01T00:00:0.000") == naive_epoch
+    assert cast(datetime, "1970-01-01T00:00:0.") == naive_epoch
+    assert cast(datetime, "1970-01-01T00:00:0") == naive_epoch
+    assert cast(datetime, "1970-1-1T0:0") == naive_epoch
+    assert cast(datetime, "1970-1-1 0:0") == naive_epoch
+    assert cast(datetime, "1970-1-1T") == naive_epoch
+    assert cast(datetime, "1970-1-1") == naive_epoch
+    assert cast(datetime, " 1970-1-1 ") == naive_epoch
 
     # str - timestamp
-    assert cast(datetime, '0', ctx=Context(
-        datetime_format='timestamp')) == aware_epoch
-    assert cast(datetime, '0', ctx=Context(
-        datetime_format='timestamp', naive_timestamp=True)) == naive_epoch
+    assert cast(datetime, "0", ctx=Context(datetime_format="timestamp")) == aware_epoch
+    assert (
+        cast(
+            datetime,
+            "0",
+            ctx=Context(datetime_format="timestamp", naive_timestamp=True),
+        )
+        == naive_epoch
+    )
 
     # str - http & email
-    for format in ('http', 'email'):
+    for format in ("http", "email"):
         ctx = Context(datetime_format=format)
-        expected = datetime(2016, 3, 7, 0, 4, 24,
-                            tzinfo=timezone(timedelta(hours=9)))
-        assert cast(datetime, 'Mon, 07 Mar 2016 00:04:24 +0900',
-                    ctx=ctx) == expected
+        expected = datetime(2016, 3, 7, 0, 4, 24, tzinfo=timezone(timedelta(hours=9)))
+        assert cast(datetime, "Mon, 07 Mar 2016 00:04:24 +0900", ctx=ctx) == expected
 
     # str - stptime
-    ctx = Context(datetime_format=r'%Y-%m-%dT%H:%M:%S.%f%z')
-    assert cast(datetime, '1970-01-01T00:00:00.000000+0000',
-                ctx=ctx) == aware_epoch
+    ctx = Context(datetime_format=r"%Y-%m-%dT%H:%M:%S.%f%z")
+    assert cast(datetime, "1970-01-01T00:00:00.000000+0000", ctx=ctx) == aware_epoch
 
     # empty string
     with pytest.raises(ValueError):
-        cast(datetime, '')
+        cast(datetime, "")
     with pytest.raises(ValueError):
-        cast(datetime, ' ')
+        cast(datetime, " ")
 
     # None
     with pytest.raises(TypeError):
@@ -109,11 +110,9 @@ def test_datetime():
 
     assert cast(DT1, DT2.today()).__class__ is DT1
 
-    ctx = Context(datetime_format='http')
-    expected = DT1(2016, 3, 7, 0, 4, 24,
-                   tzinfo=timezone(timedelta(hours=9)))
-    assert cast(DT1, 'Mon, 07 Mar 2016 00:04:24 +0900',
-                ctx=ctx) == expected
+    ctx = Context(datetime_format="http")
+    expected = DT1(2016, 3, 7, 0, 4, 24, tzinfo=timezone(timedelta(hours=9)))
+    assert cast(DT1, "Mon, 07 Mar 2016 00:04:24 +0900", ctx=ctx) == expected
 
 
 def test_float_from_datetime():
@@ -150,29 +149,31 @@ def test_str_from_datetime():
 
     # iso
     assert cast(str, naive_epoch) == naive_epoch.isoformat()
-    assert cast(str, aware_epoch) == '1970-01-01T00:00:00Z'
+    assert cast(str, aware_epoch) == "1970-01-01T00:00:00Z"
 
     # http
     dt = datetime(2016, 3, 7, 0, 4, 24, tzinfo=timezone(timedelta(hours=9)))
-    ctx = Context(datetime_format='http')
-    assert cast(str, dt, ctx=ctx) == 'Sun, 06 Mar 2016 15:04:24 GMT'
-    assert cast(str, datetime(2016, 3, 7, 0, 4, 24), ctx=ctx) == 'Mon, 07 Mar 2016 00:04:24 GMT'
+    ctx = Context(datetime_format="http")
+    assert cast(str, dt, ctx=ctx) == "Sun, 06 Mar 2016 15:04:24 GMT"
+    assert (
+        cast(str, datetime(2016, 3, 7, 0, 4, 24), ctx=ctx)
+        == "Mon, 07 Mar 2016 00:04:24 GMT"
+    )
 
     # email
-    ctx = Context(datetime_format='email')
-    assert cast(str, dt, ctx=ctx) == 'Mon, 07 Mar 2016 00:04:24 +0900'
+    ctx = Context(datetime_format="email")
+    assert cast(str, dt, ctx=ctx) == "Mon, 07 Mar 2016 00:04:24 +0900"
 
     # timestamp
-    ctx = Context(datetime_format='timestamp')
+    ctx = Context(datetime_format="timestamp")
     assert cast(str, naive_epoch, ctx=ctx) == str(int(naive_epoch.timestamp()))
-    assert cast(str, aware_epoch, ctx=ctx) == '0'
+    assert cast(str, aware_epoch, ctx=ctx) == "0"
     oneus = naive_epoch.replace(microsecond=1)
     assert cast(str, oneus, ctx=ctx) == str(oneus.timestamp())
 
     # strftime
-    ctx = Context(datetime_format=r'=%Y-%m-%dT%H:%M:%S.%f%z=')
-    assert cast(str, aware_epoch,
-                ctx=ctx) == '=1970-01-01T00:00:00.000000+0000='
+    ctx = Context(datetime_format=r"=%Y-%m-%dT%H:%M:%S.%f%z=")
+    assert cast(str, aware_epoch, ctx=ctx) == "=1970-01-01T00:00:00.000000+0000="
 
 
 #
@@ -189,26 +190,26 @@ def test_date():
 
     # str - iso
     with pytest.raises(ValueError):
-        cast(date, '1970-01-01T00:00:00.000Z')
+        cast(date, "1970-01-01T00:00:00.000Z")
     with pytest.raises(ValueError):
-        cast(date, '1970-01-01T')
+        cast(date, "1970-01-01T")
 
-    assert cast(date, '1970-01-01') == date(1970, 1, 1)
-    assert cast(date, '1969-12-31') == date(1969, 12, 31)
-    assert cast(date, '1970-1-01') == date(1970, 1, 1)
-    assert cast(date, '1970-01-1') == date(1970, 1, 1)
-    assert cast(date, '1970-1-1') == date(1970, 1, 1)
-    assert cast(date, ' 1970-1-1 ') == date(1970, 1, 1)
+    assert cast(date, "1970-01-01") == date(1970, 1, 1)
+    assert cast(date, "1969-12-31") == date(1969, 12, 31)
+    assert cast(date, "1970-1-01") == date(1970, 1, 1)
+    assert cast(date, "1970-01-1") == date(1970, 1, 1)
+    assert cast(date, "1970-1-1") == date(1970, 1, 1)
+    assert cast(date, " 1970-1-1 ") == date(1970, 1, 1)
 
     # str - stptime
-    ctx = Context(date_format=r'%Y-%m-%d')
-    assert cast(date, '1970-01-01', ctx=ctx) == date(1970, 1, 1)
+    ctx = Context(date_format=r"%Y-%m-%d")
+    assert cast(date, "1970-01-01", ctx=ctx) == date(1970, 1, 1)
 
     # empty string
     with pytest.raises(ValueError):
-        cast(date, '')
+        cast(date, "")
     with pytest.raises(ValueError):
-        cast(date, ' ')
+        cast(date, " ")
 
     # None
     with pytest.raises(TypeError):
@@ -255,11 +256,11 @@ def test_str_from_date():
     d = date(1970, 1, 1)
 
     # iso
-    assert cast(str, d) == '1970-01-01'
+    assert cast(str, d) == "1970-01-01"
 
     # strftime
-    ctx = Context(date_format=r'=%Y-%m-%d=')
-    assert cast(str, d, ctx=ctx) == '=1970-01-01='
+    ctx = Context(date_format=r"=%Y-%m-%d=")
+    assert cast(str, d, ctx=ctx) == "=1970-01-01="
 
 
 #
@@ -279,31 +280,31 @@ def test_time():
 
     # str - iso
     with pytest.raises(ValueError):
-        cast(time, '1970-01-01T00:00:00.000Z')
+        cast(time, "1970-01-01T00:00:00.000Z")
     with pytest.raises(ValueError):
-        cast(time, '1970-01-01T')
+        cast(time, "1970-01-01T")
 
-    assert cast(time, '00:00:00.000Z') == aware_epoch.timetz()
-    assert cast(time, '00:00:00.000+00:00') == aware_epoch.timetz()
-    assert cast(time, '00:00:00.000-00:00') == aware_epoch.timetz()
-    assert cast(time, '09:00:00.000+09:00') == aware_epoch.timetz()
-    assert cast(time, '00:00:00.000') == naive_epoch.time()
-    assert cast(time, '0:00:00.000') == naive_epoch.time()
-    assert cast(time, '00:0:00.000') == naive_epoch.time()
-    assert cast(time, '00:00:0.000') == naive_epoch.time()
-    assert cast(time, '00:00:0.') == naive_epoch.time()
-    assert cast(time, '00:00:0') == naive_epoch.time()
-    assert cast(time, '0:0') == naive_epoch.time()
+    assert cast(time, "00:00:00.000Z") == aware_epoch.timetz()
+    assert cast(time, "00:00:00.000+00:00") == aware_epoch.timetz()
+    assert cast(time, "00:00:00.000-00:00") == aware_epoch.timetz()
+    assert cast(time, "09:00:00.000+09:00") == aware_epoch.timetz()
+    assert cast(time, "00:00:00.000") == naive_epoch.time()
+    assert cast(time, "0:00:00.000") == naive_epoch.time()
+    assert cast(time, "00:0:00.000") == naive_epoch.time()
+    assert cast(time, "00:00:0.000") == naive_epoch.time()
+    assert cast(time, "00:00:0.") == naive_epoch.time()
+    assert cast(time, "00:00:0") == naive_epoch.time()
+    assert cast(time, "0:0") == naive_epoch.time()
 
     # str - stptime
-    ctx = Context(time_format=r'%H:%M:%S.%f')
-    assert cast(time, '12:34:56.000789', ctx=ctx) == time(12, 34, 56, 789)
+    ctx = Context(time_format=r"%H:%M:%S.%f")
+    assert cast(time, "12:34:56.000789", ctx=ctx) == time(12, 34, 56, 789)
 
     # empty string
     with pytest.raises(ValueError):
-        cast(time, '')
+        cast(time, "")
     with pytest.raises(ValueError):
-        cast(time, ' ')
+        cast(time, " ")
 
     # None
     with pytest.raises(TypeError):
@@ -350,11 +351,11 @@ def test_str_from_time():
     t = time(12, 34, 56, 789)
 
     # iso
-    assert cast(str, t) == '12:34:56.000789'
+    assert cast(str, t) == "12:34:56.000789"
 
     # strftime
-    ctx = Context(time_format=r'=%H:%M:%S.%f%z=')
-    assert cast(str, t, ctx=ctx) == '=12:34:56.000789='
+    ctx = Context(time_format=r"=%H:%M:%S.%f%z=")
+    assert cast(str, t, ctx=ctx) == "=12:34:56.000789="
 
 
 #
@@ -370,40 +371,40 @@ def test_timedelta():
 
     # str
     td = timedelta(days=12, hours=9, minutes=36, seconds=7)
-    assert cast(timedelta, 'P12DT9H36M7S') == td
-    assert cast(timedelta, '+P12DT9H36M7S') == td
-    assert cast(timedelta, '-P12DT9H36M7S') == -td
-    assert cast(timedelta, 'P12DT34567S') == td
-    assert cast(timedelta, 'PT1071367S') == td
-    assert cast(timedelta, '-PT1071367S') == -td
+    assert cast(timedelta, "P12DT9H36M7S") == td
+    assert cast(timedelta, "+P12DT9H36M7S") == td
+    assert cast(timedelta, "-P12DT9H36M7S") == -td
+    assert cast(timedelta, "P12DT34567S") == td
+    assert cast(timedelta, "PT1071367S") == td
+    assert cast(timedelta, "-PT1071367S") == -td
 
-    assert cast(timedelta, '12DT9H36M7S') == td
-    assert cast(timedelta, '+12DT9H36M7S') == td
-    assert cast(timedelta, '-12DT9H36M7S') == -td
-    assert cast(timedelta, '12DT34567S') == td
-    assert cast(timedelta, 'T1071367S') == td
-    assert cast(timedelta, '-T1071367S') == -td
+    assert cast(timedelta, "12DT9H36M7S") == td
+    assert cast(timedelta, "+12DT9H36M7S") == td
+    assert cast(timedelta, "-12DT9H36M7S") == -td
+    assert cast(timedelta, "12DT34567S") == td
+    assert cast(timedelta, "T1071367S") == td
+    assert cast(timedelta, "-T1071367S") == -td
 
-    assert cast(timedelta, '12D9H36M7S') == td
-    assert cast(timedelta, '+12D9H36M7S') == td
-    assert cast(timedelta, '-12D9H36M7S') == -td
-    assert cast(timedelta, '12D34567S') == td
-    assert cast(timedelta, '1071367S') == td
-    assert cast(timedelta, '-1071367S') == -td
+    assert cast(timedelta, "12D9H36M7S") == td
+    assert cast(timedelta, "+12D9H36M7S") == td
+    assert cast(timedelta, "-12D9H36M7S") == -td
+    assert cast(timedelta, "12D34567S") == td
+    assert cast(timedelta, "1071367S") == td
+    assert cast(timedelta, "-1071367S") == -td
 
-    assert cast(timedelta, '12D9H36M7') == td
-    assert cast(timedelta, '+12D9H36M7') == td
-    assert cast(timedelta, '-12D9H36M7') == -td
-    assert cast(timedelta, '12D34567') == td
-    assert cast(timedelta, '1071367') == td
-    assert cast(timedelta, '-1071367') == -td
+    assert cast(timedelta, "12D9H36M7") == td
+    assert cast(timedelta, "+12D9H36M7") == td
+    assert cast(timedelta, "-12D9H36M7") == -td
+    assert cast(timedelta, "12D34567") == td
+    assert cast(timedelta, "1071367") == td
+    assert cast(timedelta, "-1071367") == -td
 
-    assert cast(timedelta, '12w') == timedelta(weeks=12)
+    assert cast(timedelta, "12w") == timedelta(weeks=12)
 
-    assert cast(timedelta, '') == timedelta()
+    assert cast(timedelta, "") == timedelta()
 
     with pytest.raises(ValueError):
-        cast(timedelta, 'x')
+        cast(timedelta, "x")
 
     # None
     with pytest.raises(TypeError):
@@ -449,21 +450,21 @@ def test_bool_from_timedelta():
 def test_str_from_timedelta():
     td = timedelta(days=12, hours=9, minutes=36, seconds=7)
 
-    assert cast(str, td) == 'P12DT9H36M7S'
-    assert cast(str, -td) == '-P12DT9H36M7S'
+    assert cast(str, td) == "P12DT9H36M7S"
+    assert cast(str, -td) == "-P12DT9H36M7S"
 
     td = timedelta(hours=9, seconds=7)
-    assert cast(str, td) == 'PT9H7S'
-    assert cast(str, -td) == '-PT9H7S'
+    assert cast(str, td) == "PT9H7S"
+    assert cast(str, -td) == "-PT9H7S"
 
     td = timedelta(days=12)
-    assert cast(str, td) == 'P12D'
-    assert cast(str, -td) == '-P12D'
+    assert cast(str, td) == "P12D"
+    assert cast(str, -td) == "-P12D"
 
     td = timedelta(days=12, seconds=7, microseconds=1)
-    assert cast(str, td) == 'P12DT7.000001S'
-    assert cast(str, -td) == '-P12DT7.000001S'
+    assert cast(str, td) == "P12DT7.000001S"
+    assert cast(str, -td) == "-P12DT7.000001S"
 
     td = timedelta(days=12, seconds=60)
-    assert cast(str, td) == 'P12DT1M'
-    assert cast(str, -td) == '-P12DT1M'
+    assert cast(str, td) == "P12DT1M"
+    assert cast(str, -td) == "-P12DT1M"

@@ -30,6 +30,7 @@ def test_polymorphic_with_explicit_dataclass():
 
 def test_polymorphic_requires_discriminator():
     with pytest.raises(TypeError):
+
         @polymorphic
         class Authenticator:
             pass
@@ -37,6 +38,7 @@ def test_polymorphic_requires_discriminator():
 
 def test_polymorphic_prohibit_ambiguity():
     with pytest.raises(TypeError):
+
         @polymorphic
         class Authenticator:
             type: str
@@ -56,9 +58,10 @@ def test_impl_requires_discriminator_redefinition():
         type: str
 
     with pytest.raises(TypeError):
+
         @dataclass
         class ApiKeyAuthenticator(Authenticator):
-            name: str = 'X-API-Key'
+            name: str = "X-API-Key"
 
 
 def test_impl_discriminator_is_literal():
@@ -69,11 +72,11 @@ def test_impl_discriminator_is_literal():
     @dataclass
     class ApiKeyAuthenticator(Authenticator):
         type: Literal["apiKey"]
-        name: str = 'X-API-Key'
+        name: str = "X-API-Key"
 
     data = dict(
-        type='apiKey',
-        name='x-api-key',
+        type="apiKey",
+        name="x-api-key",
     )
 
     x = cast(Authenticator, data)
@@ -81,10 +84,11 @@ def test_impl_discriminator_is_literal():
     assert cast(JsonValue, x) == data
 
     with pytest.raises(TypeError):
+
         @dataclass
         class ApiKeyAuthenticator2(Authenticator):
             type: str = "apiKey"
-            name: str = 'X-API-Key'
+            name: str = "X-API-Key"
 
 
 def test_impl_discriminator_conflict():
@@ -95,13 +99,14 @@ def test_impl_discriminator_conflict():
     @dataclass
     class ApiKeyAuthenticator(Authenticator):
         type: Literal["apiKey"]
-        name: str = 'X-API-Key'
+        name: str = "X-API-Key"
 
     with pytest.raises(TypeError):
+
         @dataclass
         class ApiKeyAuthenticator2(Authenticator):
             type: Literal["apiKey"]
-            name: str = 'X-API-Key'
+            name: str = "X-API-Key"
 
 
 def test_impl_discriminator_is_case_sensitive():
@@ -112,11 +117,11 @@ def test_impl_discriminator_is_case_sensitive():
     @dataclass
     class ApiKeyAuthenticator(Authenticator):
         type: Literal["apiKey"]
-        name: str = 'X-API-Key'
+        name: str = "X-API-Key"
 
     data = dict(
-        type='APIKEY',
-        name='x-api-key',
+        type="APIKEY",
+        name="x-api-key",
     )
 
     with pytest.raises(TypeError):
@@ -129,10 +134,11 @@ def test_impl_discriminator_type_mismatch():
         type: str
 
     with pytest.raises(TypeError):
+
         @dataclass
         class ApiKeyAuthenticator(Authenticator):
             type: Literal[1]
-            name: str = 'X-API-Key'
+            name: str = "X-API-Key"
 
 
 def test_impl_instanciation():
@@ -143,11 +149,11 @@ def test_impl_instanciation():
     @dataclass
     class ApiKeyAuthenticator(Authenticator):
         type: Literal["apiKey"]
-        name: str = 'X-API-Key'
+        name: str = "X-API-Key"
 
     data = dict(
-        type='apiKey',
-        name='x-api-key',
+        type="apiKey",
+        name="x-api-key",
     )
 
     x = cast(ApiKeyAuthenticator, data)
@@ -163,7 +169,7 @@ def test_impl_discriminator_mismatch():
     @dataclass
     class ApiKeyAuthenticator(Authenticator):
         type: Literal["apiKey"]
-        name: str = 'X-API-Key'
+        name: str = "X-API-Key"
 
     @dataclass
     class HttpAuthenticator(Authenticator):
@@ -171,7 +177,7 @@ def test_impl_discriminator_mismatch():
         scheme: str = "bearer"
 
     data = dict(
-        type='http',
+        type="http",
     )
 
     with pytest.raises(TypeError):
@@ -189,8 +195,8 @@ def test_impl_type_check():
         name: int
 
     data = dict(
-        type='apiKey',
-        name='X-API-Key',
+        type="apiKey",
+        name="X-API-Key",
     )
 
     ctx = Context()
@@ -212,8 +218,8 @@ def test_impl_type_conversion():
         name: int
 
     data = dict(
-        type='apiKey',
-        name='123',
+        type="apiKey",
+        name="123",
     )
 
     x = cast(Authenticator, data)
@@ -229,7 +235,7 @@ def test_multiple_discriptor():
     @dataclass
     class ApiKeyAuthenticator(Authenticator):
         type: Literal["apiKey"]
-        name: str = 'X-API-Key'
+        name: str = "X-API-Key"
 
     @polymorphic
     class HttpAuthenticator(Authenticator):
@@ -239,12 +245,12 @@ def test_multiple_discriptor():
     @dataclass
     class HttpBearerAuthenticator(HttpAuthenticator):
         scheme: Literal["bearer"]
-        format: str = 'jwt'
+        format: str = "jwt"
 
     data = dict(
-        type='http',
-        scheme='bearer',
-        format='JWT',
+        type="http",
+        scheme="bearer",
+        format="JWT",
     )
     x = cast(Authenticator, data)
     assert isinstance(x, HttpBearerAuthenticator)
@@ -259,7 +265,7 @@ def test_partially_polymorphic():
     @dataclass
     class ApiKeyAuthenticator(Authenticator):
         type: Literal["apiKey"]
-        name: str = 'X-API-Key'
+        name: str = "X-API-Key"
 
     @polymorphic
     class HttpAuthenticator(Authenticator):
@@ -269,12 +275,12 @@ def test_partially_polymorphic():
     @dataclass
     class HttpBearerAuthenticator(HttpAuthenticator):
         scheme: Literal["bearer"]
-        format: str = 'jwt'
+        format: str = "jwt"
 
     data = dict(
-        type='http',
-        scheme='bearer',
-        format='JWT',
+        type="http",
+        scheme="bearer",
+        format="JWT",
     )
     x = cast(HttpAuthenticator, data)
     assert isinstance(x, HttpBearerAuthenticator)
@@ -289,7 +295,7 @@ def test_is_polymorphic():
     @dataclass
     class ApiKeyAuthenticator(Authenticator):
         type: Literal["apiKey"]
-        name: str = 'X-API-Key'
+        name: str = "X-API-Key"
 
     @polymorphic
     class HttpAuthenticator(Authenticator):
