@@ -104,7 +104,10 @@ def test_JsonSchema_from_float():
 
 
 def test_JsonSchema_from_frozenset():
-    assert deepcast(dict, JsonSchema(frozenset)) == {"type": "array", "uniqueItems": True}
+    assert deepcast(dict, JsonSchema(frozenset)) == {
+        "type": "array",
+        "uniqueItems": True,
+    }
 
 
 def test_JsonSchema_from_int():
@@ -141,7 +144,10 @@ def test_JsonSchema_from_tuple():
 
 
 def test_JsonSchema_from_date():
-    assert deepcast(dict, JsonSchema(datetime.date)) == {"type": "string", "format": "date"}
+    assert deepcast(dict, JsonSchema(datetime.date)) == {
+        "type": "string",
+        "format": "date",
+    }
 
 
 def test_JsonSchema_from_datetime():
@@ -152,7 +158,10 @@ def test_JsonSchema_from_datetime():
 
 
 def test_JsonSchema_from_time():
-    assert deepcast(dict, JsonSchema(datetime.time)) == {"type": "string", "format": "time"}
+    assert deepcast(dict, JsonSchema(datetime.time)) == {
+        "type": "string",
+        "format": "time",
+    }
 
 
 def test_JsonSchema_from_timedelta():

@@ -56,7 +56,9 @@ def test_datetime():
     assert deepcast(datetime, " 1970-1-1 ") == naive_epoch
 
     # str - timestamp
-    assert deepcast(datetime, "0", ctx=Context(datetime_format="timestamp")) == aware_epoch
+    assert (
+        deepcast(datetime, "0", ctx=Context(datetime_format="timestamp")) == aware_epoch
+    )
     assert (
         deepcast(
             datetime,
@@ -70,7 +72,9 @@ def test_datetime():
     for format in ("http", "email"):
         ctx = Context(datetime_format=format)
         expected = datetime(2016, 3, 7, 0, 4, 24, tzinfo=timezone(timedelta(hours=9)))
-        assert deepcast(datetime, "Mon, 07 Mar 2016 00:04:24 +0900", ctx=ctx) == expected
+        assert (
+            deepcast(datetime, "Mon, 07 Mar 2016 00:04:24 +0900", ctx=ctx) == expected
+        )
 
     # str - stptime
     ctx = Context(datetime_format=r"%Y-%m-%dT%H:%M:%S.%f%z")
