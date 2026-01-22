@@ -7,13 +7,12 @@
 import cmath
 import math
 import re
-
-from ._cast import cast
-from ._json import JsonSchema
-from .typing import (
+from typing import (
     Annotated,
-    Type,
 )
+
+from ._deepcast import deepcast
+from ._json import JsonSchema
 
 
 #
@@ -21,9 +20,9 @@ from .typing import (
 #
 
 
-@cast.register
+@deepcast.register
 def _cast_Annotated_object(cls, val, ctx, T, *args) -> Annotated:
-    r = cast(T, val, ctx=ctx)
+    r = deepcast(T, val, ctx=ctx)
     for arg in args:
         if isinstance(arg, Constraint):
             if not arg(r):

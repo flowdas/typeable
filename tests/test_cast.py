@@ -6,13 +6,10 @@
 import asyncio
 import inspect
 import sys
-
-import pytest
-from typeable.typing import (
+from typing import (
     Annotated,
     Any,
     Dict,
-    ForwardRef,
     FrozenSet,
     List,
     Literal,
@@ -23,6 +20,9 @@ from typeable.typing import (
     get_args,
     get_origin,
 )
+
+import pytest
+
 from typeable import *
 
 
@@ -87,14 +87,14 @@ def test_declare():
     with declare("Integer") as Ref:
         T = List[Ref]
 
-    assert cast(T, [2]) == [2]
-    assert cast(T, ["2"]) == [2]
+    assert deepcast(T, [2]) == [2]
+    assert deepcast(T, ["2"]) == [2]
 
 
 def test_register():
     with pytest.raises(RuntimeError):
 
-        @cast.register
+        @deepcast.register
         def _(cls, val, ctx) -> Object:
             return cls(val)
 
@@ -102,19 +102,19 @@ def test_register():
 def test_invalid_register():
     with pytest.raises(TypeError):
 
-        @cast.register
+        @deepcast.register
         def _():
             pass
 
     with pytest.raises(TypeError):
 
-        @cast.register
+        @deepcast.register
         def _(cls, val, ctx):
             pass
 
     with pytest.raises(TypeError):
 
-        @cast.register
+        @deepcast.register
         def _(cls: Object, val, ctx) -> Object:
             pass
 
@@ -126,22 +126,22 @@ def test_double_dispatch():
     class Y(Object):
         pass
 
-    @cast.register
+    @deepcast.register
     def _(cls, val: X, ctx) -> Object:
         return 1
 
-    assert cast(Y, X()) == 1
-    assert isinstance(cast(Y, {}), Y)
+    assert deepcast(Y, X()) == 1
+    assert isinstance(deepcast(Y, {}), Y)
 
     with pytest.raises(RuntimeError):
 
-        @cast.register
+        @deepcast.register
         def _(cls, val: X, ctx) -> Object:
             return 1
 
 
 def test_function():
-    @cast.function
+    @deepcast.function
     def test(a: int):
         assert isinstance(a, int)
         return a
@@ -153,7 +153,7 @@ def test_function():
 
 
 def test_function_with_ctx():
-    @cast.function
+    @deepcast.function
     def test(a: int, *, ctx: Context = None):
         assert isinstance(a, int)
         assert ctx is not None
@@ -168,19 +168,19 @@ def test_function_with_ctx():
 def test_function_ctx_conflict():
     with pytest.raises(TypeError):
 
-        @cast.function
+        @deepcast.function
         def test(ctx: int):
             pass
 
     with pytest.raises(TypeError):
 
-        @cast.function
+        @deepcast.function
         def test(ctx):
             pass
 
 
 def test_function_args():
-    @cast.function
+    @deepcast.function
     def test(*args: int):
         for a in args:
             assert isinstance(a, int)
@@ -190,7 +190,7 @@ def test_function_args():
 
 
 def test_function_kwargs():
-    @cast.function
+    @deepcast.function
     def test(**kwargs: int):
         for k, v in kwargs.items():
             assert isinstance(v, int)
@@ -200,7 +200,7 @@ def test_function_kwargs():
 
 
 def test_function_cast_return():
-    @cast.function
+    @deepcast.function
     def test(a: int) -> str:
         assert isinstance(a, int)
         return a
@@ -208,7 +208,7 @@ def test_function_cast_return():
     assert test(123) == 123
     assert test("123") == 123
 
-    @cast.function(cast_return=True)
+    @deepcast.function(cast_return=True)
     def test(a: int):
         assert isinstance(a, int)
         return a
@@ -216,7 +216,7 @@ def test_function_cast_return():
     assert test(123) == 123
     assert test("123") == 123
 
-    @cast.function(cast_return=True)
+    @deepcast.function(cast_return=True)
     def test(a: int) -> str:
         assert isinstance(a, int)
         return a
@@ -226,7 +226,7 @@ def test_function_cast_return():
 
 
 def test_function_capture():
-    @cast.function(cast_return=True)
+    @deepcast.function(cast_return=True)
     def test(a: int) -> str:
         return None
 
@@ -244,21 +244,21 @@ def test_function_capture():
 
 def test_function_method():
     class X:
-        @cast.function
+        @deepcast.function
         def test1(self, a: int):
             assert isinstance(self, X)
             assert isinstance(a, int)
             return a
 
         @classmethod
-        @cast.function
+        @deepcast.function
         def test2(cls, a: int):
             assert cls is X
             assert isinstance(a, int)
             return a
 
         @staticmethod
-        @cast.function
+        @deepcast.function
         def test3(a: int):
             assert isinstance(a, int)
             return a
@@ -282,7 +282,7 @@ def test_function_method():
 
 
 def test_function_async():
-    @cast.function
+    @deepcast.function
     async def test(a: int):
         assert isinstance(a, int)
         return a

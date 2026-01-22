@@ -4,7 +4,7 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-from ._cast import cast, declare
+from ._deepcast import deepcast, declare
 from ._constraint import (
     Constraint,
     AllOf,
@@ -43,7 +43,7 @@ __all__ = [
     "JsonValue",
     "NoneOf",
     "Object",
-    "cast",
+    "deepcast",
     "declare",
     "dump",
     "dumps",

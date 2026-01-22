@@ -5,7 +5,7 @@ Developer Interface
 
 This package defines the following functions and decorators:
 
-.. function:: cast(typ: typing.Type[_T], val: object, *, ctx: Context = None) -> _T
+.. function:: deepcast(typ: typing.Type[_T], val: object, *, ctx: Context = None) -> _T
 
    Cast a value to a type.
 
@@ -19,8 +19,8 @@ This package defines the following functions and decorators:
    exceptions such as :exc:`TypeError` and :exc:`ValueError` can be thrown. 
    If you wish, you can use *ctx* to locate the error position on *val*.
 
-   .. decorator:: cast.function(user_function)
-                  cast.function(*, ctx_name: str = 'ctx', cast_return: bool = False, keep_async: bool = True)
+   .. decorator:: deepcast.function(user_function)
+                  deepcast.function(*, ctx_name: str = 'ctx', cast_return: bool = False, keep_async: bool = True)
 
       A decorator that types-casts the arguments of a function.
 
@@ -41,14 +41,14 @@ This package defines the following functions and decorators:
       In this case, when :const:`None` is passed to *ctx*, a new instance is created and passed.
 
       This decorator can also be used for methods.
-      When :func:`cast.function` is applied in combination with other method descriptors, it should be applied as the innermost decorator.
+      When :func:`deepcast.function` is applied in combination with other method descriptors, it should be applied as the innermost decorator.
 
       This decorator can also be used with :term:`coroutine function`.
       In this case, the decorated function is also :term:`coroutine function`.
       However, if the *keep_async* parameter is :const:`False`, the decorated function becomes a synchronous function that immediately calls the original function and returns :term:`awaitable`.
       It is used for the purpose of generating an error due to type casting early.
 
-   .. decorator:: typeable.cast.register(impl)
+   .. decorator:: typeable.deepcast.register(impl)
 
 .. function:: declare(name: str)
 
@@ -104,7 +104,7 @@ This package defines a number of classes, which are detailed in the sections bel
 
       Returns a callable that evaluates the constraint.
 
-      The callable takes the value after casting by :func:`cast`.
+      The callable takes the value after casting by :func:`deepcast`.
       If the callable's return value evaluates to true, it is interpreted as satisfying the constraint.
       Returning false or raising an exception is interpreted as not satisfying the constraint.
 
@@ -120,7 +120,7 @@ This package defines a number of classes, which are detailed in the sections bel
 
 .. class:: Context(**policies)
 
-   By passing the :class:`Context` object to the :func:`cast` you can change 
+   By passing the :class:`Context` object to the :func:`deepcast` you can change 
    the default conversion rules or find the location of the error that 
    occurred during conversion.
 
@@ -165,7 +165,7 @@ This package defines a number of classes, which are detailed in the sections bel
       :value: True
 
       If this attribute is :const:`False`, no conversion with information loss is performed.
-      For example, ``cast(int, 1.2)`` is not allowed.
+      For example, ``deepcast(int, 1.2)`` is not allowed.
 
    .. attribute:: naive_timestamp
       :type: bool 
@@ -201,7 +201,7 @@ This package defines a number of classes, which are detailed in the sections bel
    :class:`Context` instances are neither thread-safe nor :term:`coroutine`-safe. 
    Make sure that an instance is not used by multiple threads or coroutines 
    simultaneously. But it's safe to use it repeatedly for successive 
-   :func:`cast` calls.
+   :func:`deepcast` calls.
 
    .. method:: capture()
 
@@ -217,7 +217,7 @@ This package defines a number of classes, which are detailed in the sections bel
           >>> from typeable import *
           >>> ctx = Context()
           >>> with ctx.capture() as error:
-          ...     data = cast(Dict[str,List[int]], {"a":[], "b":[0,"1",None,3]}, ctx=ctx)
+          ...     data = deepcast(Dict[str,List[int]], {"a":[], "b":[0,"1",None,3]}, ctx=ctx)
           Traceback (most recent call last):
               ...
           TypeError: int() argument must be a string, a bytes-like object or a number, not 'NoneType'
@@ -299,7 +299,7 @@ This package defines a number of classes, which are detailed in the sections bel
 
    This is a type that represents a JSON value recursively.
 
-   You cannot create an instance, you can only type cast with :func:`cast`.
+   You cannot create an instance, you can only type cast with :func:`deepcast`.
 
    Values converted to this type can be passed directly to :func:`json.dumps` and :func:`json.dump` in the standard library. 
 
@@ -311,7 +311,7 @@ This package defines a number of classes, which are detailed in the sections bel
 
    Represents an object model with typed fields.
 
-   When a value is passed as *value*, ``Object(value, ctx=ctx)`` is equivalent to ``cast(Object, value, ctx=ctx)``.
+   When a value is passed as *value*, ``Object(value, ctx=ctx)`` is equivalent to ``deepcast(Object, value, ctx=ctx)``.
    
    If no value is passed as *value*, no type checking is performed, and only fields with *default_factory* are created as instance attributes.
 

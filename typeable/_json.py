@@ -9,20 +9,20 @@ import datetime
 import enum
 from functools import _find_impl
 import json
-
-from ._cast import cast, declare, _get_type_args
-from ._object import Object, fields, field, _META
-from .typing import (
+from typing import (
     Union,
     Dict,
     List,
     Tuple,
-    _GenericBases,
     get_origin,
     Type,
     Any,
     Literal,
 )
+
+from ._deepcast import deepcast, declare, _get_type_args
+from ._object import Object, fields, field, _META
+from .typing import _GenericBases
 
 with declare("_JsonValue") as _:
     _JsonValue = Union[
@@ -35,17 +35,17 @@ class JsonValue:
         raise TypeError(f"Can't instantiate JsonValue")
 
 
-@cast.register
+@deepcast.register
 def _cast_JsonValue_object(cls: Type[JsonValue], val, ctx):
-    return cast(_JsonValue, val, ctx=ctx)
+    return deepcast(_JsonValue, val, ctx=ctx)
 
 
-@cast.function
+@deepcast.function
 def dump(obj: JsonValue, fp, *, ensure_ascii=False, separators=(",", ":"), **kw):
     return json.dump(obj, fp, ensure_ascii=ensure_ascii, separators=separators, **kw)
 
 
-@cast.function
+@deepcast.function
 def dumps(obj: JsonValue, *, ensure_ascii=False, separators=(",", ":"), **kw):
     return json.dumps(obj, ensure_ascii=ensure_ascii, separators=separators, **kw)
 
@@ -305,7 +305,7 @@ def _jsonschema_Union(self, cls, *Ts):
     simple = True
     for T in Ts:
         schema = JsonSchema(T)
-        json = cast(JsonValue, schema)
+        json = deepcast(JsonValue, schema)
         if not json:  # {}
             return
         if "type" not in json or len(json) != 1:

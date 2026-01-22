@@ -2,11 +2,7 @@ import datetime
 import enum
 import json
 import io
-
-import pytest
-
-from typeable import cast, JsonSchema, JsonValue, dump, dumps, Object, field
-from typeable.typing import (
+from typing import (
     Any,
     Dict,
     FrozenSet,
@@ -19,15 +15,19 @@ from typeable.typing import (
     Union,
 )
 
+import pytest
+
+from typeable import deepcast, JsonSchema, JsonValue, dump, dumps, Object, field
+
 
 def test_JsonValue():
     data = {"a": ["0", True, 2, 3.14], "b": range(4)}
     expected = {"a": ["0", True, 2, 3.14], "b": [0, 1, 2, 3]}
-    assert cast(JsonValue, data) == expected
+    assert deepcast(JsonValue, data) == expected
 
-    assert cast(JsonValue, []) == []
-    assert cast(JsonValue, {}) == {}
-    assert cast(JsonValue, ()) == ()
+    assert deepcast(JsonValue, []) == []
+    assert deepcast(JsonValue, {}) == {}
+    assert deepcast(JsonValue, ()) == ()
 
     # JsonValue is abstract
     with pytest.raises(TypeError):
@@ -60,8 +60,8 @@ def test_dumps():
 
 
 def test_JsonSchema_instance():
-    assert cast(dict, JsonSchema()) == {}
-    assert cast(dict, JsonSchema({})) == {}
+    assert deepcast(dict, JsonSchema()) == {}
+    assert deepcast(dict, JsonSchema({})) == {}
 
 
 #
@@ -70,19 +70,19 @@ def test_JsonSchema_instance():
 
 
 def test_JsonSchema_from_bool():
-    assert cast(dict, JsonSchema(bool)) == {"type": "boolean"}
+    assert deepcast(dict, JsonSchema(bool)) == {"type": "boolean"}
 
 
 def test_JsonSchema_from_bytearray():
-    assert cast(dict, JsonSchema(bytearray)) == {"type": "string"}
+    assert deepcast(dict, JsonSchema(bytearray)) == {"type": "string"}
 
 
 def test_JsonSchema_from_bytes():
-    assert cast(dict, JsonSchema(bytes)) == {"type": "string"}
+    assert deepcast(dict, JsonSchema(bytes)) == {"type": "string"}
 
 
 def test_JsonSchema_from_complex():
-    assert cast(JsonValue, JsonSchema(complex)) == {
+    assert deepcast(JsonValue, JsonSchema(complex)) == {
         "type": "array",
         "items": [
             {
@@ -96,43 +96,43 @@ def test_JsonSchema_from_complex():
 
 
 def test_JsonSchema_from_dict():
-    assert cast(dict, JsonSchema(dict)) == {"type": "object"}
+    assert deepcast(dict, JsonSchema(dict)) == {"type": "object"}
 
 
 def test_JsonSchema_from_float():
-    assert cast(dict, JsonSchema(float)) == {"type": "number"}
+    assert deepcast(dict, JsonSchema(float)) == {"type": "number"}
 
 
 def test_JsonSchema_from_frozenset():
-    assert cast(dict, JsonSchema(frozenset)) == {"type": "array", "uniqueItems": True}
+    assert deepcast(dict, JsonSchema(frozenset)) == {"type": "array", "uniqueItems": True}
 
 
 def test_JsonSchema_from_int():
-    assert cast(dict, JsonSchema(int)) == {"type": "integer"}
+    assert deepcast(dict, JsonSchema(int)) == {"type": "integer"}
 
 
 def test_JsonSchema_from_list():
-    assert cast(dict, JsonSchema(list)) == {"type": "array"}
+    assert deepcast(dict, JsonSchema(list)) == {"type": "array"}
 
 
 def test_JsonSchema_from_None():
-    assert cast(dict, JsonSchema(type(None))) == {"type": "null"}
+    assert deepcast(dict, JsonSchema(type(None))) == {"type": "null"}
 
 
 def test_JsonSchema_from_object():
-    assert cast(dict, JsonSchema(object)) == {}
+    assert deepcast(dict, JsonSchema(object)) == {}
 
 
 def test_JsonSchema_from_set():
-    assert cast(dict, JsonSchema(set)) == {"type": "array", "uniqueItems": True}
+    assert deepcast(dict, JsonSchema(set)) == {"type": "array", "uniqueItems": True}
 
 
 def test_JsonSchema_from_str():
-    assert cast(dict, JsonSchema(str)) == {"type": "string"}
+    assert deepcast(dict, JsonSchema(str)) == {"type": "string"}
 
 
 def test_JsonSchema_from_tuple():
-    assert cast(dict, JsonSchema(tuple)) == {"type": "array"}
+    assert deepcast(dict, JsonSchema(tuple)) == {"type": "array"}
 
 
 #
@@ -141,22 +141,22 @@ def test_JsonSchema_from_tuple():
 
 
 def test_JsonSchema_from_date():
-    assert cast(dict, JsonSchema(datetime.date)) == {"type": "string", "format": "date"}
+    assert deepcast(dict, JsonSchema(datetime.date)) == {"type": "string", "format": "date"}
 
 
 def test_JsonSchema_from_datetime():
-    assert cast(dict, JsonSchema(datetime.datetime)) == {
+    assert deepcast(dict, JsonSchema(datetime.datetime)) == {
         "type": "string",
         "format": "date-time",
     }
 
 
 def test_JsonSchema_from_time():
-    assert cast(dict, JsonSchema(datetime.time)) == {"type": "string", "format": "time"}
+    assert deepcast(dict, JsonSchema(datetime.time)) == {"type": "string", "format": "time"}
 
 
 def test_JsonSchema_from_timedelta():
-    assert cast(dict, JsonSchema(datetime.timedelta)) == {
+    assert deepcast(dict, JsonSchema(datetime.timedelta)) == {
         "type": "string",
         "format": "duration",
     }
@@ -173,7 +173,7 @@ def test_JsonSchema_from_Enum():
         GREEN = 1
         BLUE = "blue"
 
-    assert cast(dict, JsonSchema(Color)) == {
+    assert deepcast(dict, JsonSchema(Color)) == {
         "type": "string",
         "enum": ["RED", "GREEN", "BLUE"],
     }
@@ -185,7 +185,7 @@ def test_JsonSchema_from_Flag():
         W = 2
         X = 1
 
-    assert cast(dict, JsonSchema(Perm)) == {
+    assert deepcast(dict, JsonSchema(Perm)) == {
         "type": "integer",
     }
 
@@ -195,7 +195,7 @@ def test_JsonSchema_from_IntEnum():
         CIRCLE = 1
         SQUARE = 2
 
-    assert cast(dict, JsonSchema(Shape)) == {
+    assert deepcast(dict, JsonSchema(Shape)) == {
         "type": "integer",
         "enum": [1, 2],
     }
@@ -207,7 +207,7 @@ def test_JsonSchema_from_IntFlag():
         W = 2
         X = 1
 
-    assert cast(dict, JsonSchema(Perm)) == {
+    assert deepcast(dict, JsonSchema(Perm)) == {
         "type": "integer",
     }
 
@@ -218,18 +218,18 @@ def test_JsonSchema_from_IntFlag():
 
 
 def test_JsonSchema_from_Any():
-    assert cast(dict, JsonSchema(Any)) == {}
+    assert deepcast(dict, JsonSchema(Any)) == {}
 
 
 def test_JsonSchema_from_Dict():
-    assert cast(JsonValue, JsonSchema(Dict[str, int])) == {
+    assert deepcast(JsonValue, JsonSchema(Dict[str, int])) == {
         "type": "object",
         "additionalProperties": {"type": "integer"},
     }
 
 
 def test_JsonSchema_from_FrozenSet():
-    assert cast(JsonValue, JsonSchema(FrozenSet[str])) == {
+    assert deepcast(JsonValue, JsonSchema(FrozenSet[str])) == {
         "type": "array",
         "uniqueItems": True,
         "items": {
@@ -239,7 +239,7 @@ def test_JsonSchema_from_FrozenSet():
 
 
 def test_JsonSchema_from_List():
-    assert cast(JsonValue, JsonSchema(List[str])) == {
+    assert deepcast(JsonValue, JsonSchema(List[str])) == {
         "type": "array",
         "items": {
             "type": "string",
@@ -248,19 +248,19 @@ def test_JsonSchema_from_List():
 
 
 def test_JsonSchema_from_Literal():
-    assert cast(JsonValue, JsonSchema(Literal[0, "1", 2.3])) == {
+    assert deepcast(JsonValue, JsonSchema(Literal[0, "1", 2.3])) == {
         "enum": [0, "1", 2.3],
     }
 
 
 def test_JsonSchema_from_Optional():
-    assert cast(JsonValue, JsonSchema(Optional[int])) == {
+    assert deepcast(JsonValue, JsonSchema(Optional[int])) == {
         "type": ["integer", "null"],
     }
 
 
 def test_JsonSchema_from_Set():
-    assert cast(JsonValue, JsonSchema(Set[str])) == {
+    assert deepcast(JsonValue, JsonSchema(Set[str])) == {
         "type": "array",
         "uniqueItems": True,
         "items": {
@@ -270,19 +270,19 @@ def test_JsonSchema_from_Set():
 
 
 def test_JsonSchema_from_Tuple():
-    assert cast(JsonValue, JsonSchema(Tuple[str, ...])) == {
+    assert deepcast(JsonValue, JsonSchema(Tuple[str, ...])) == {
         "type": "array",
         "items": {
             "type": "string",
         },
     }
 
-    assert cast(JsonValue, JsonSchema(Tuple[()])) == {
+    assert deepcast(JsonValue, JsonSchema(Tuple[()])) == {
         "type": "array",
         "items": [],
     }
 
-    assert cast(JsonValue, JsonSchema(Tuple[(str, int)])) == {
+    assert deepcast(JsonValue, JsonSchema(Tuple[(str, int)])) == {
         "type": "array",
         "items": [
             {
@@ -294,7 +294,7 @@ def test_JsonSchema_from_Tuple():
         ],
     }
 
-    assert cast(JsonValue, JsonSchema(Tuple[(float, float)])) == {
+    assert deepcast(JsonValue, JsonSchema(Tuple[(float, float)])) == {
         "type": "array",
         "items": [
             {
@@ -308,13 +308,13 @@ def test_JsonSchema_from_Tuple():
 
 
 def test_JsonSchema_from_Union():
-    assert cast(JsonValue, JsonSchema(Union[str, int, bool])) == {
+    assert deepcast(JsonValue, JsonSchema(Union[str, int, bool])) == {
         "type": ["string", "integer", "boolean"],
     }
 
-    assert cast(JsonValue, JsonSchema(Union[str, int, bool, Any])) == {}
+    assert deepcast(JsonValue, JsonSchema(Union[str, int, bool, Any])) == {}
 
-    assert cast(JsonValue, JsonSchema(Union[str, List[str]])) == {
+    assert deepcast(JsonValue, JsonSchema(Union[str, List[str]])) == {
         "anyOf": [
             {
                 "type": "string",
@@ -335,7 +335,7 @@ def test_JsonSchema_from_Union():
     def _(self, cls):
         self.type = ["integer", "number"]
 
-    assert cast(JsonValue, JsonSchema(Union[str, int, Number])) == {
+    assert deepcast(JsonValue, JsonSchema(Union[str, int, Number])) == {
         "type": ["string", "integer", "number"],
     }
 
@@ -346,7 +346,7 @@ def test_JsonSchema_from_Union():
 
 
 def test_JsonSchema_from_JsonValue():
-    assert cast(JsonValue, JsonSchema(JsonValue)) == {}
+    assert deepcast(JsonValue, JsonSchema(JsonValue)) == {}
 
 
 def test_JsonSchema_from_Object():
@@ -354,7 +354,7 @@ def test_JsonSchema_from_Object():
         a: int
         b: str = field(required=True)
 
-    assert cast(JsonValue, JsonSchema(X)) == {
+    assert deepcast(JsonValue, JsonSchema(X)) == {
         "type": "object",
         "properties": {
             "a": {
@@ -373,12 +373,12 @@ def test_JsonSchema_from_Object():
     class OpenRpcDoc(Object, jsonschema=uri):
         pass
 
-    assert cast(JsonValue, JsonSchema(OpenRpcDoc)) == {"$ref": uri}
+    assert deepcast(JsonValue, JsonSchema(OpenRpcDoc)) == {"$ref": uri}
 
     class Empty(Object):
         pass
 
-    assert cast(JsonValue, JsonSchema(Empty)) == {
+    assert deepcast(JsonValue, JsonSchema(Empty)) == {
         "type": "object",
         "additionalProperties": False,
     }
@@ -386,7 +386,7 @@ def test_JsonSchema_from_Object():
     class AllOptional(Object):
         a: int
 
-    assert cast(JsonValue, JsonSchema(AllOptional)) == {
+    assert deepcast(JsonValue, JsonSchema(AllOptional)) == {
         "type": "object",
         "properties": {
             "a": {

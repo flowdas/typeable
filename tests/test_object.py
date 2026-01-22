@@ -224,11 +224,11 @@ def test_nullable():
     for key in ("a", "d"):
         data = {key: None}
         with pytest.raises(TypeError):
-            cast(X, data)
+            deepcast(X, data)
 
     for key in ("b", "c"):
         data = {key: None}
-        x = cast(X, data)
+        x = deepcast(X, data)
         assert getattr(x, key) is None
 
     assert X.d is None
@@ -240,7 +240,7 @@ def test_cast():
 
     data = {"i": 0}
 
-    x = cast(X, data)
+    x = deepcast(X, data)
     assert x.i == data["i"]
 
 
@@ -250,14 +250,14 @@ def test_required():
         b: int = field(required=True)  # required
 
     data = {"b": 1}
-    x = cast(X, data)
+    x = deepcast(X, data)
     assert x.b == 1
     with pytest.raises(AttributeError):
         x.a
 
     data = {"a": 1}
     with pytest.raises(TypeError):
-        cast(X, data)
+        deepcast(X, data)
 
 
 def test_dict():
@@ -266,8 +266,8 @@ def test_dict():
 
     data = {"i": 0}
 
-    x = cast(X, data)
-    assert cast(dict, x) == data
+    x = deepcast(X, data)
+    assert deepcast(dict, x) == data
 
 
 def test_JsonValue():
@@ -276,10 +276,10 @@ def test_JsonValue():
 
     data = {"i": 0}
 
-    x = cast(X, data)
-    assert cast(JsonValue, x) == data
+    x = deepcast(X, data)
+    assert deepcast(JsonValue, x) == data
 
-    assert cast(JsonValue, {"result": X()}) == {"result": {}}
+    assert deepcast(JsonValue, {"result": X()}) == {"result": {}}
 
 
 def test_kind():
@@ -299,15 +299,15 @@ def test_kind():
         type="apiKey",
         name="x-api-key",
     )
-    x = cast(Authenticator, data)
+    x = deepcast(Authenticator, data)
     assert isinstance(x, ApiKeyAuthenticator)
-    assert cast(JsonValue, x) == data
+    assert deepcast(JsonValue, x) == data
 
     with pytest.raises(TypeError):  # no kind field
-        cast(Authenticator, {"name": "x-api-key"})
+        deepcast(Authenticator, {"name": "x-api-key"})
 
     with pytest.raises(TypeError):  # incompatible kind field
-        cast(
+        deepcast(
             HttpAuthenticator,
             dict(
                 type="apiKey",
@@ -319,18 +319,18 @@ def test_kind():
         type="http.bearer",
         format="JWT",
     )
-    x = cast(Authenticator, data)
+    x = deepcast(Authenticator, data)
     assert isinstance(x, HttpBearerAuthenticator)
-    assert cast(JsonValue, x) == data
+    assert deepcast(JsonValue, x) == data
 
-    x = cast(HttpAuthenticator, data)
+    x = deepcast(HttpAuthenticator, data)
     assert isinstance(x, HttpBearerAuthenticator)
-    assert cast(JsonValue, x) == data
+    assert deepcast(JsonValue, x) == data
 
     # For concrete classes, the kind field behaves as if default_factory was specified.
-    x = cast(HttpBearerAuthenticator, dict(format=data["format"]))
+    x = deepcast(HttpBearerAuthenticator, dict(format=data["format"]))
     assert isinstance(x, HttpBearerAuthenticator)
-    assert cast(JsonValue, x) == data
+    assert deepcast(JsonValue, x) == data
 
     # only one kind field allowed
     with pytest.raises(TypeError):

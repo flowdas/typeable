@@ -1,11 +1,14 @@
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, fields, Field, MISSING, _FIELDS
-from typing import Any, Literal, Optional, TypeVar, overload
-
-from .typing import (
+from typing import (
+    Any,
+    Literal,
+    Optional,
+    TypeVar,
     get_origin,
     get_args,
     get_type_hints,
+    overload,
 )
 
 _T = TypeVar("_T", bound=type)

@@ -13,10 +13,10 @@ Release v\ |version|. (:ref:`Installation <install>`)
 
    >>> data = {'a': ["0", True, 2, 3.14], 'b': range(4)}
    >>> DataType = dict[str,list[typing.Union[bool,float,int]]]
-   >>> typeable.cast(DataType, data)
+   >>> typeable.deepcast(DataType, data)
    {'a': [False, True, 2, 3.14], 'b': [0, 1, 2, 3]}
 
-   >>> @typeable.cast.function
+   >>> @typeable.deepcast.function
    ... def my_function(d: DataType):
    ...     return d
    >>> my_function(data)
@@ -24,7 +24,7 @@ Release v\ |version|. (:ref:`Installation <install>`)
    
    >>> with typeable.declare('Json') as _J:
    ...     Json = typing.Union[float, bool, int, str, None, dict[str, _J], list[_J]]
-   >>> json.dumps(typeable.cast(Json, data))
+   >>> json.dumps(typeable.deepcast(Json, data))
    '{"a": ["0", true, 2, 3.14], "b": [0, 1, 2, 3]}'
 
    >>> class X(typeable.Object):

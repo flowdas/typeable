@@ -1,0 +1,12 @@
+{
+    "python-envs.defaultEnvManager": "ms-python.python:system",
+    "python-envs.pythonProjects": [],
+    "[python]": {
+        "editor.defaultFormatter": "charliermarsh.ruff",
+        "editor.formatOnSave": true,
+        "editor.codeActionsOnSave": {
+            "source.fixAll": "explicit",
+            "source.organizeImports": "explicit"
+        }
+    }
+}

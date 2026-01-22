@@ -8,7 +8,7 @@ from typing import Literal
 
 import pytest
 
-from typeable import cast, JsonValue, Context
+from typeable import deepcast, JsonValue, Context
 
 
 def test_cast():
@@ -18,7 +18,7 @@ def test_cast():
 
     data = {"i": 0}
 
-    x = cast(X, data)
+    x = deepcast(X, data)
     assert isinstance(x, X)
     assert x.i == data["i"]
 
@@ -30,13 +30,13 @@ def test_required():
         b: int = 2
 
     data = {"a": 1}
-    x = cast(X, data)
+    x = deepcast(X, data)
     assert x.a == 1
     assert x.b == 2
 
     data = {"b": 1}
     with pytest.raises(TypeError):
-        cast(X, data)
+        deepcast(X, data)
 
 
 def test_dict():
@@ -46,8 +46,8 @@ def test_dict():
 
     data = {"i": 0}
 
-    x = cast(X, data)
-    assert cast(dict, x) == data
+    x = deepcast(X, data)
+    assert deepcast(dict, x) == data
 
 
 def test_JsonValue():
@@ -57,10 +57,10 @@ def test_JsonValue():
 
     data = {"i": 0}
 
-    x = cast(X, data)
-    assert cast(JsonValue, x) == data
+    x = deepcast(X, data)
+    assert deepcast(JsonValue, x) == data
 
-    assert cast(JsonValue, {"result": X(**data)}) == {"result": data}
+    assert deepcast(JsonValue, {"result": X(**data)}) == {"result": data}
 
 
 def test_Literal():
@@ -70,12 +70,12 @@ def test_Literal():
 
     data = {"i": 1}
 
-    x = cast(X, data)
-    assert cast(dict, x) == data
+    x = deepcast(X, data)
+    assert deepcast(dict, x) == data
 
     data = {"i": 0}
     with pytest.raises(TypeError):
-        cast(X, data)
+        deepcast(X, data)
 
 
 def test_context_with_type_mismatch():
@@ -87,7 +87,7 @@ def test_context_with_type_mismatch():
 
     with pytest.raises(TypeError):
         with ctx.capture() as error:
-            cast(X, {"i": 0}, ctx=ctx)
+            deepcast(X, {"i": 0}, ctx=ctx)
     assert error.location == ("i",)
 
 
@@ -100,12 +100,12 @@ def test_context_with_missing_field():
 
     with pytest.raises(TypeError):
         with ctx.capture() as error:
-            cast(X, {}, ctx=ctx)
+            deepcast(X, {}, ctx=ctx)
     assert error.location == ("i",)
 
     with pytest.raises(TypeError):
         with ctx.capture() as error:
-            cast(X, {"i": 1, "j": 0}, ctx=ctx)
+            deepcast(X, {"i": 1, "j": 0}, ctx=ctx)
     assert error.location == ("j",)
 
 
@@ -118,5 +118,5 @@ def test_context_with_extra_field():
 
     with pytest.raises(TypeError):
         with ctx.capture() as error:
-            cast(X, {"i": 1, "j": 0}, ctx=ctx)
+            deepcast(X, {"i": 1, "j": 0}, ctx=ctx)
     assert error.location == ("j",)

@@ -5,7 +5,7 @@
 
 이 패키지는 다음과 같은 함수와 데코레이터를 정의합니다:
 
-.. function:: cast(typ: typing.Type[_T], val: object, *, ctx: Context = None) -> _T
+.. function:: deepcast(typ: typing.Type[_T], val: object, *, ctx: Context = None) -> _T
 
    값을 형으로 캐스트합니다.
 
@@ -19,8 +19,8 @@
    예외가 발생할 수 있습니다. 원한다면, *ctx* 를 사용하여 에러가 발생한 *val* 에서의 위치를 얻을 수 
    있습니다. 
 
-   .. decorator:: cast.function(user_function)
-                  cast.function(*, ctx_name: str = 'ctx', cast_return: bool = False, keep_async: bool = True)
+   .. decorator:: deepcast.function(user_function)
+                  deepcast.function(*, ctx_name: str = 'ctx', cast_return: bool = False, keep_async: bool = True)
 
       함수의 인자를 타입 캐스팅하는 데코레이터.
 
@@ -41,14 +41,14 @@
       이 경우 *ctx* 에 :const:`None` 이 전달되면 새 인스턴스를 만들어 전달합니다.
 
       메서드에도 사용될 수 있습니다.
-      :func:`cast.function` 이 다른 메서드 디스크립터와 함께 적용될 때, 가장 안쪽의 데코레이터로 적용되어야 합니다.
+      :func:`deepcast.function` 이 다른 메서드 디스크립터와 함께 적용될 때, 가장 안쪽의 데코레이터로 적용되어야 합니다.
 
       :term:`코루틴 함수 <coroutine function>` 에도 사용될 수 있습니다.
       이 경우 데코레이트된 함수도 :term:`코루틴 함수 <coroutine function>` 입니다.
       하지만 *keep_async* 매개 변수가 :const:`False` 이면, 데코레이트된 함수는 원래 함수를 즉시 호출하여 :term:`어웨이터블 <awaitable>` 을 반환하는 동기 함수가 됩니다.
       타입 캐스팅으로 인한 에러를 일찍 발생시키려는 목적으로 사용합니다.
 
-   .. decorator:: cast.register(impl)
+   .. decorator:: deepcast.register(impl)
 
 .. function:: declare(name: str)
 
@@ -104,7 +104,7 @@
 
       제약 조건을 평가하는 콜러블을 반환합니다.
 
-      콜러블은 :func:`cast` 가 캐스팅한 후의 값을 인자로 취합니다.
+      콜러블은 :func:`deepcast` 가 캐스팅한 후의 값을 인자로 취합니다.
       콜러블의 반환값이 참으로 평가되면 제약 조건을 만족하는 것으로 해석합니다.
       거짓을 반환하거나 예외를 발생시키면 제약 조건을 만족하지 않는 것으로 해석합니다.
 
@@ -120,7 +120,7 @@
 
 .. class:: Context(**policies)
 
-   :class:`Context` 객체를 :func:`cast` 에 전달하여 기본 변환 규칙을 변경하거나 변환 중에 발생한
+   :class:`Context` 객체를 :func:`deepcast` 에 전달하여 기본 변환 규칙을 변경하거나 변환 중에 발생한
    에러의 위치를 찾을 수 있습니다. 
 
    *policies* 에 전달된 키워드 전용 파라미터는 변환 규칙을 변경하는데 사용됩니다. 이 파라미터는 
@@ -162,7 +162,7 @@
       :value: True
 
       이 어트리뷰트가 :const:`False` 면, 정보 손실을 수반하는 변환을 수행하지 않습니다. 
-      예를 들어, ``cast(int, 1.2)`` 를 허락하지 않습니다.
+      예를 들어, ``deepcast(int, 1.2)`` 를 허락하지 않습니다.
 
    .. attribute:: naive_timestamp
       :type: bool 
@@ -195,7 +195,7 @@
    변환 중에 발생한 에러의 위치는 :meth:`capture` 로 찾을 수 있습니다.
 
    :class:`Context` 인스턴스는 스레드 안전하지도 :term:`코루틴 <coroutine>` 안전하지도 않습니다.
-   같은 인스턴스를 여러 스레드나 코루틴에서 동시에 사용하지 않도록 주의하십시오. 하지만 순차적인 :func:`cast`
+   같은 인스턴스를 여러 스레드나 코루틴에서 동시에 사용하지 않도록 주의하십시오. 하지만 순차적인 :func:`deepcast`
    호출에서 반복적으로 사용하는 것은 안전합니다.
 
    .. method:: capture()
@@ -210,7 +210,7 @@
           >>> from typeable import *
           >>> ctx = Context()
           >>> with ctx.capture() as error:
-          ...     data = cast(Dict[str,List[int]], {"a":[], "b":[0,"1",None,3]}, ctx=ctx)
+          ...     data = deepcast(Dict[str,List[int]], {"a":[], "b":[0,"1",None,3]}, ctx=ctx)
           Traceback (most recent call last):
               ...
           TypeError: int() argument must be a string, a bytes-like object or a number, not 'NoneType'
@@ -292,7 +292,7 @@
 
    JSON 값을 재귀적으로 표현하는 형입니다.
 
-   인스턴스를 만들 수는 없고 :func:`cast` 로 타입 캐스팅할 수만 있습니다.
+   인스턴스를 만들 수는 없고 :func:`deepcast` 로 타입 캐스팅할 수만 있습니다.
 
    이 형으로 변환된 값은 표준 라이브러리의 :func:`json.dumps` 와 :func:`json.dump` 로 직접 전달할 수 있습니다. 
 
@@ -304,7 +304,7 @@
 
    형이 지정된 필드를 갖는 객체 모델을 표현합니다.
 
-   *value* 로 값이 전달되면, ``Object(value, ctx=ctx)`` 는 ``cast(Object, value, ctx=ctx)`` 와 동등합니다.
+   *value* 로 값이 전달되면, ``Object(value, ctx=ctx)`` 는 ``deepcast(Object, value, ctx=ctx)`` 와 동등합니다.
    
    *value* 로 값이 전달되지 않으면 형 검사를 수행하지 않고, *default_factory* 가 지정된 필드만 인스턴스 어트리뷰트로 만들어집니다.
 

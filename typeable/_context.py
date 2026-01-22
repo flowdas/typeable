@@ -3,9 +3,12 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
-
-import sys
 from contextlib import contextmanager
+import sys
+from typing import (
+    Dict,
+    get_type_hints,
+)
 
 try:
     from contextlib import nullcontext  # since 3.7
@@ -18,11 +21,6 @@ except ImportError:  # pragma: no cover
         def __exit__(self, *excinfo):
             pass
 
-
-from .typing import (
-    Dict,
-    get_type_hints,
-)
 
 _nulltraverse = nullcontext()
 
@@ -65,7 +63,7 @@ class Context:
     def __init__(self, **policies):
         self._stack = None
         if policies:
-            from ._cast import cast  # avoid partial import
+            from ._deepcast import deepcast  # avoid partial import
 
             hints = get_type_hints(self.__class__)
             ctx = Context()
@@ -76,7 +74,7 @@ class Context:
                     raise TypeError(
                         f"{self.__class__.__qualname__}() got an unexpected keyword argument '{key}'"
                     )
-                setattr(self, key, cast(cls, val, ctx=ctx))
+                setattr(self, key, deepcast(cls, val, ctx=ctx))
 
     @contextmanager
     def capture(self):
