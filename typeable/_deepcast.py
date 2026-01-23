@@ -40,6 +40,7 @@ from typing import (
 )
 
 from ._context import Context
+from ._error import traverse
 from ._polymorphic import _resolve_polymorphic
 
 #
@@ -222,7 +223,7 @@ def _function(
                 if key == ctx_name:
                     continue
                 if key in annons:
-                    with ctx.traverse(key):
+                    with traverse(key):
                         tp = annons[key]
                         if sig.parameters[key].kind == inspect.Parameter.VAR_POSITIONAL:
                             tp = Tuple[tp, ...]
@@ -233,7 +234,7 @@ def _function(
 
         def epilog(ctx, r):
             if cast_return:
-                with ctx.traverse("return"):
+                with traverse("return"):
                     r = deepcast(annons["return"], r, ctx=ctx)
             return r
 
@@ -301,7 +302,7 @@ def _cast_dataclass_Mapping(cls, val: Mapping, ctx):
     field_map: dict[str, Field] = {f.name: f for f in fields(cls)}
     kwargs = {}
     for k, v in val.items():
-        with ctx.traverse(k):
+        with traverse(k):
             if k in field_map and field_map[k].init:
                 kwargs[k] = deepcast(field_map[k].type, v, ctx=ctx)
             else:
@@ -314,7 +315,7 @@ def _cast_dataclass_Mapping(cls, val: Mapping, ctx):
         for k, f in field_map.items():
             if k not in val:
                 if f.init and f.default is MISSING and f.default_factory is MISSING:
-                    with ctx.traverse(k):
+                    with traverse(k):
                         raise TypeError(
                             f"{cls.__name__}.__init__() missing 1 required argument: '{k}'"
                         )
@@ -495,7 +496,7 @@ def _cast_bytearray_str(cls: Type[bytearray], val: str, ctx):
 
 def _copy_list_object(r, it, ctx, T, i):
     for v in it:
-        with ctx.traverse(i):
+        with traverse(i):
             r.append(deepcast(T, v, ctx=ctx))
         i += 1
     return r
@@ -515,7 +516,7 @@ def _cast_list_object(cls: Type[list], val, ctx, T=None):
         it = iter(val)
         i = 0
         for v in it:
-            with ctx.traverse(i):
+            with traverse(i):
                 cv = deepcast(T, v, ctx=ctx)
                 if cv is not v:
                     if i == 0:
@@ -540,7 +541,7 @@ def _cast_list_object(cls: Type[list], val, ctx, T=None):
 
 def _copy_dict_object(r, it, ctx, KT, VT):
     for k, v in it:
-        with ctx.traverse(k):
+        with traverse(k):
             r[deepcast(KT, k, ctx=ctx)] = deepcast(VT, v, ctx=ctx)
     return r
 
@@ -564,7 +565,7 @@ def _cast_dict_object(cls: Type[dict], val, ctx, K=None, V=None):
         it = val.items()
         i = 0
         for k, v in it:
-            with ctx.traverse(k):
+            with traverse(k):
                 ck = deepcast(K, k, ctx=ctx)
                 cv = deepcast(V, v, ctx=ctx)
                 if ck is not k or cv is not v:
@@ -592,7 +593,7 @@ def _cast_dict_object(cls: Type[dict], val, ctx, K=None, V=None):
 
 def _copy_set_object(r, it, ctx, T):
     for v in it:
-        with ctx.traverse(v):
+        with traverse(v):
             r.add(deepcast(T, v, ctx=ctx))
     return r
 
@@ -608,7 +609,7 @@ def _cast_set_object(cls: Type[set], val, ctx, T=None):
         it = iter(val)
         i = 0
         for v in it:
-            with ctx.traverse(v):
+            with traverse(v):
                 cv = deepcast(T, v, ctx=ctx)
                 if cv is not v:
                     if i == 0:
@@ -634,7 +635,7 @@ def _cast_set_object(cls: Type[set], val, ctx, T=None):
 
 def _copy_frozenset_object(r, cls, it, ctx, T):
     for v in it:
-        with ctx.traverse(v):
+        with traverse(v):
             r.add(deepcast(T, v, ctx=ctx))
     return cls(r)
 
@@ -650,7 +651,7 @@ def _cast_frozenset_object(cls: Type[frozenset], val, ctx, T=None):
         it = iter(val)
         i = 0
         for v in it:
-            with ctx.traverse(v):
+            with traverse(v):
                 cv = deepcast(T, v, ctx=ctx)
                 if cv is not v:
                     if i == 0:
@@ -676,7 +677,7 @@ def _cast_frozenset_object(cls: Type[frozenset], val, ctx, T=None):
 
 def _copy_homo_tuple_object(r, cls, it, ctx, T, i):
     for v in it:
-        with ctx.traverse(i):
+        with traverse(i):
             r.append(deepcast(T, v, ctx=ctx))
         i += 1
     return cls(r)
@@ -684,7 +685,7 @@ def _copy_homo_tuple_object(r, cls, it, ctx, T, i):
 
 def _copy_hetero_tuple_object(r, cls, it, ctx, i):
     for v, T in it:
-        with ctx.traverse(i):
+        with traverse(i):
             r.append(deepcast(T, v, ctx=ctx))
         i += 1
     return cls(r)
@@ -707,7 +708,7 @@ def _cast_tuple_object(cls: Type[tuple], val, ctx, *Ts):
             it = iter(val)
             i = 0
             for v in it:
-                with ctx.traverse(i):
+                with traverse(i):
                     cv = deepcast(T, v, ctx=ctx)
                     if cv is not v:
                         if i == 0:
@@ -733,7 +734,7 @@ def _cast_tuple_object(cls: Type[tuple], val, ctx, *Ts):
             it = zip(val, Ts)
             i = 0
             for v, T in it:
-                with ctx.traverse(i):
+                with traverse(i):
                     cv = deepcast(T, v, ctx=ctx)
                     if cv is not v:
                         if i == 0:
@@ -751,7 +752,7 @@ def _cast_tuple_object(cls: Type[tuple], val, ctx, *Ts):
             r = []
             it = iter(val)
             for i, T in enumerate(Ts):
-                with ctx.traverse(i):
+                with traverse(i):
                     try:
                         v = next(it)
                     except StopIteration:

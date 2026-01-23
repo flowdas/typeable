@@ -8,12 +8,7 @@ from typing import Literal
 
 import pytest
 
-from typeable import (
-    deepcast,
-    polymorphic,
-    Context,
-    is_polymorphic,
-)
+from typeable import Context, capture, deepcast, is_polymorphic, polymorphic
 
 
 def test_polymorphic_is_dataclass():
@@ -204,11 +199,9 @@ def test_impl_type_check():
         name="X-API-Key",
     )
 
-    ctx = Context()
-
     with pytest.raises(ValueError):
-        with ctx.capture() as error:
-            deepcast(Authenticator, data, ctx=ctx)
+        with capture() as error:
+            deepcast(Authenticator, data)
     assert error.location == ("name",)
 
 

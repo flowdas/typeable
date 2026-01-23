@@ -8,7 +8,7 @@ from typing import Literal
 
 import pytest
 
-from typeable import deepcast, Context
+from typeable import deepcast, capture
 
 
 def test_cast():
@@ -79,45 +79,39 @@ def test_Literal():
         deepcast(X, data)
 
 
-def test_context_with_type_mismatch():
+def test_capture_with_type_mismatch():
     @dataclass
     class X:
         i: Literal[1, 2, 3]
 
-    ctx = Context()
-
     with pytest.raises(TypeError):
-        with ctx.capture() as error:
-            deepcast(X, {"i": 0}, ctx=ctx)
+        with capture() as error:
+            deepcast(X, {"i": 0})
     assert error.location == ("i",)
 
 
-def test_context_with_missing_field():
+def test_capture_with_missing_field():
     @dataclass
     class X:
         i: Literal[1, 2, 3]
 
-    ctx = Context()
-
     with pytest.raises(TypeError):
-        with ctx.capture() as error:
-            deepcast(X, {}, ctx=ctx)
+        with capture() as error:
+            deepcast(X, {})
     assert error.location == ("i",)
 
     with pytest.raises(TypeError):
-        with ctx.capture() as error:
-            deepcast(X, {"i": 1, "j": 0}, ctx=ctx)
+        with capture() as error:
+            deepcast(X, {"i": 1, "j": 0})
     assert error.location == ("j",)
 
 
-def test_context_with_extra_field():
+def test_capture_with_extra_field():
     @dataclass
     class X:
         i: Literal[1, 2, 3]
 
-    ctx = Context()
-
     with pytest.raises(TypeError):
-        with ctx.capture() as error:
-            deepcast(X, {"i": 1, "j": 0}, ctx=ctx)
+        with capture() as error:
+            deepcast(X, {"i": 1, "j": 0})
     assert error.location == ("j",)
