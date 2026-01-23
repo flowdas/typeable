@@ -24,7 +24,7 @@ from typing import (
 
 import pytest
 
-from typeable import Context, declare, deepcast
+from typeable import Context, capture, declare, deepcast
 
 
 def test_get_origin():
@@ -238,15 +238,14 @@ def test_function_capture():
     def test(a: int) -> str:
         return None
 
-    ctx = Context()
     with pytest.raises(TypeError):
-        with ctx.capture() as error:
-            test(None, ctx=ctx)
+        with capture() as error:
+            test(None)
     assert error.location == ("a",)
 
     with pytest.raises(TypeError):
-        with ctx.capture() as error:
-            test("123", ctx=ctx)
+        with capture() as error:
+            test("123")
     assert error.location == ("return",)
 
 

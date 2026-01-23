@@ -18,6 +18,8 @@ from typing import (
     overload,
 )
 
+from ._error import traverse
+
 _T = TypeVar("_T", bound=type)
 
 # avoid name mangling
@@ -130,12 +132,12 @@ def _resolve_polymorphic(cls: _T, val: Mapping, ctx) -> _T:
             break
         value = val.get(mark.field.name, MISSING)
         if value is MISSING:
-            with ctx.traverse(mark.field.name):
+            with traverse(mark.field.name):
                 raise TypeError(
                     f"discriminator '{klass.__qualname__}.{mark.field.name}' is missing"
                 )
         if value not in mark.classes:
-            with ctx.traverse(mark.field.name):
+            with traverse(mark.field.name):
                 raise TypeError(f"unknown discriminator value '{value}'")
         klass = mark.classes[value]
     return klass

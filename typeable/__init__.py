@@ -5,13 +5,17 @@
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 from ._context import Context
+from ._error import ErrorInfo, capture, traverse
 from ._deepcast import deepcast, declare
 from ._polymorphic import is_polymorphic, polymorphic
 
 __all__ = [
     "Context",
+    "ErrorInfo",
+    "capture",
     "declare",
     "deepcast",
     "is_polymorphic",
     "polymorphic",
+    "traverse",
 ]

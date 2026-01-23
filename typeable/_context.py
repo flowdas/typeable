@@ -3,23 +3,10 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
-from contextlib import (
-    contextmanager,
-    nullcontext,
-)
-import sys
 from typing import (
     Dict,
     get_type_hints,
 )
-
-
-_nulltraverse = nullcontext()
-
-
-class Error:
-    exc_info = None
-    location = None
 
 
 class Context:
@@ -67,28 +54,3 @@ class Context:
                         f"{self.__class__.__qualname__}() got an unexpected keyword argument '{key}'"
                     )
                 setattr(self, key, deepcast(cls, val, ctx=ctx))
-
-    @contextmanager
-    def capture(self):
-        self._stack = []
-        error = Error()
-        try:
-            yield error
-        except:
-            error.exc_info = sys.exc_info()
-            error.location = tuple(self._stack)
-            raise
-        finally:  # pragma: no cover ; TODO: coverage's bug?
-            self._stack = None
-
-    @contextmanager
-    def _traverse(self, key):
-        self._stack.append(key)
-        yield None
-        self._stack.pop()
-
-    def traverse(self, key):
-        if self._stack is None:
-            return _nulltraverse
-        else:
-            return self._traverse(key)
