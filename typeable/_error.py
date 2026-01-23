@@ -1,9 +1,10 @@
+from collections.abc import Generator
 from contextlib import AbstractContextManager, contextmanager, nullcontext
 from contextvars import ContextVar
 from dataclasses import dataclass
 import sys
 from types import TracebackType
-from typing import Any, Generator
+from typing import Any
 
 _nullctx = nullcontext()
 

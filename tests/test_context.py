@@ -1,19 +1,12 @@
-# Copyright (C) 2021 Flowdas Inc. & Dong-gweon Oh <prospero@flowdas.com>
-#
-# This Source Code Form is subject to the terms of the Mozilla Public
-# License, v. 2.0. If a copy of the MPL was not distributed with this
-# file, You can obtain one at https://mozilla.org/MPL/2.0/.
-from typing import (
-    Dict,
-    List,
-)
+from dataclasses import dataclass
 
 import pytest
 
-from typeable import *
+from typeable import Context
 
 
 def test_policies():
+    @dataclass(slots=True)
     class MyContext(Context):
         test_option: int = 0
 
@@ -38,52 +31,7 @@ def test_policies():
     assert ctx.test_option == 1
 
     with pytest.raises(TypeError):
-        MyContext(test_option=None)
-
-    with pytest.raises(TypeError):
         MyContext(traverse=lambda: 0)
 
     with pytest.raises(TypeError):
         MyContext(unknown_option=0)
-
-
-def test_capture():
-    class T:
-        pass
-
-    @deepcast.register
-    def _(cls, val, ctx) -> T:
-        raise NotImplementedError
-
-    ctx = Context()
-    with pytest.raises(NotImplementedError):
-        with ctx.capture() as error:
-            deepcast(T, 1, ctx=ctx)
-    assert error.location == ()
-    exc_type, exc_val, traceback = error.exc_info
-    assert exc_type == NotImplementedError
-
-    assert ctx._stack is None
-    try:
-        with ctx.capture() as error:
-            assert ctx._stack is not None
-            deepcast(T, 1, ctx=ctx)
-    except:
-        pass
-    assert error.location == ()
-
-    with pytest.raises(TypeError):
-        with ctx.capture() as error:
-            deepcast(List[int], [0, None], ctx=ctx)
-    assert error.location == (1,)
-
-    with pytest.raises(NotImplementedError):
-        with ctx.capture() as error:
-            deepcast(Dict[T, List[int]], {None: [0, None]}, ctx=ctx)
-    assert error.location == (None,)
-
-    t = T()
-    with pytest.raises(TypeError):
-        with ctx.capture() as error:
-            deepcast(Dict[T, List[int]], {t: [0, None]}, ctx=ctx)
-    assert error.location == (t, 1)

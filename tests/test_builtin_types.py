@@ -1,9 +1,3 @@
-# Copyright (C) 2021 Flowdas Inc. & Dong-gweon Oh <prospero@flowdas.com>
-#
-# This Source Code Form is subject to the terms of the Mozilla Public
-# License, v. 2.0. If a copy of the MPL was not distributed with this
-# file, You can obtain one at https://mozilla.org/MPL/2.0/.
-
 import cmath
 import collections
 from dataclasses import dataclass
@@ -22,8 +16,8 @@ from typing import (
 import pytest
 
 from typeable import (
-    Context,
     deepcast,
+    localcontext,
 )
 
 
@@ -77,18 +71,20 @@ def test_bool():
     assert deepcast(bool, "tRuE") is True
     with pytest.raises(ValueError):
         deepcast(bool, "SUCCESS")
-    ctx = Context(bool_strings={})
-    with pytest.raises(TypeError):
-        deepcast(bool, "SUCCESS", ctx=ctx)
+    with localcontext(bool_strings={}):
+        with pytest.raises(TypeError):
+            deepcast(bool, "SUCCESS")
 
     # int
     assert deepcast(bool, 0) is False
     assert deepcast(bool, 1) is True
     assert deepcast(bool, 2) is True
-    with pytest.raises(ValueError):
-        deepcast(bool, 2, ctx=Context(lossy_conversion=False))
-    with pytest.raises(TypeError):
-        deepcast(bool, 0, ctx=Context(bool_is_int=False))
+    with localcontext(lossy_conversion=False):
+        with pytest.raises(ValueError):
+            deepcast(bool, 2)
+    with localcontext(bool_is_int=False):
+        with pytest.raises(TypeError):
+            deepcast(bool, 0)
 
     # bool
     assert deepcast(bool, False) is False
@@ -109,17 +105,20 @@ def test_bool():
 def test_int():
     # str
     assert deepcast(int, "123") == 123
-    assert deepcast(int, "123", ctx=Context(lossy_conversion=False)) == 123
+    with localcontext(lossy_conversion=False):
+        assert deepcast(int, "123") == 123
 
     # bool
     assert deepcast(int, True) == 1
-    with pytest.raises(TypeError):
-        deepcast(int, True, ctx=Context(bool_is_int=False))
+    with localcontext(bool_is_int=False):
+        with pytest.raises(TypeError):
+            deepcast(int, True)
 
     # float
     assert deepcast(int, 123.456) == 123
-    with pytest.raises(ValueError):
-        deepcast(int, 123.456, ctx=Context(lossy_conversion=False))
+    with localcontext(lossy_conversion=False):
+        with pytest.raises(ValueError):
+            deepcast(int, 123.456)
 
     # complex
     with pytest.raises(TypeError):
@@ -141,8 +140,9 @@ def test_float():
 
     # bool
     assert deepcast(float, True) == 1.0
-    with pytest.raises(TypeError):
-        deepcast(float, True, ctx=Context(bool_is_int=False))
+    with localcontext(bool_is_int=False):
+        with pytest.raises(TypeError):
+            deepcast(float, True)
 
     # int
     assert deepcast(float, 123) == 123
@@ -167,8 +167,9 @@ def test_complex():
 
     # bool
     assert deepcast(complex, True) == 1.0 + 0j
-    with pytest.raises(TypeError):
-        deepcast(complex, True, ctx=Context(bool_is_int=False))
+    with localcontext(bool_is_int=False):
+        with pytest.raises(TypeError):
+            deepcast(complex, True)
 
     # int
     assert deepcast(complex, 123) == 123 + 0j
@@ -217,7 +218,8 @@ def test_str():
     # object
     with pytest.raises(TypeError):
         deepcast(str, object())
-    deepcast(str, object(), ctx=Context(strict_str=False))
+    with localcontext(strict_str=False):
+        deepcast(str, object())
 
     # type
     assert deepcast(str, int) == "builtins.int"
@@ -231,8 +233,9 @@ def test_str():
     # None
     with pytest.raises(TypeError):
         deepcast(str, None)
-    with pytest.raises(TypeError):
-        deepcast(str, None, ctx=Context(strict_str=False))
+    with localcontext(strict_str=False):
+        with pytest.raises(TypeError):
+            deepcast(str, None)
 
     # str
     assert deepcast(str, "hello") == "hello"

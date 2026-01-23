@@ -1,9 +1,9 @@
 from enum import IntEnum, Enum, IntFlag, Flag
 import sys
 
-from typeable import *
-
 import pytest
+
+from typeable import deepcast, localcontext
 
 
 def test_Enum():
@@ -41,11 +41,10 @@ def test_str_from_Enum():
     assert deepcast(str, Color.GREEN) == "GREEN"
     assert deepcast(str, Color.BLUE) == "BLUE"
 
-    ctx = Context(strict_str=False)
-
-    assert deepcast(str, Color.RED, ctx=ctx) == "RED"
-    assert deepcast(str, Color.GREEN, ctx=ctx) == "GREEN"
-    assert deepcast(str, Color.BLUE, ctx=ctx) == "BLUE"
+    with localcontext(strict_str=False):
+        assert deepcast(str, Color.RED) == "RED"
+        assert deepcast(str, Color.GREEN) == "GREEN"
+        assert deepcast(str, Color.BLUE) == "BLUE"
 
 
 def test_IntEnum():
@@ -99,10 +98,9 @@ def test_str_from_IntEnum():
     assert deepcast(str, Shape.CIRCLE) == "CIRCLE"
     assert deepcast(str, Shape.SQUARE) == "SQUARE"
 
-    ctx = Context(strict_str=False)
-
-    assert deepcast(str, Shape.CIRCLE, ctx=ctx) == "CIRCLE"
-    assert deepcast(str, Shape.SQUARE, ctx=ctx) == "SQUARE"
+    with localcontext(strict_str=False):
+        assert deepcast(str, Shape.CIRCLE) == "CIRCLE"
+        assert deepcast(str, Shape.SQUARE) == "SQUARE"
 
 
 #

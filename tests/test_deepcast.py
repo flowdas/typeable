@@ -1,8 +1,3 @@
-# Copyright (C) 2021 Flowdas Inc. & Dong-gweon Oh <prospero@flowdas.com>
-#
-# This Source Code Form is subject to the terms of the Mozilla Public
-# License, v. 2.0. If a copy of the MPL was not distributed with this
-# file, You can obtain one at https://mozilla.org/MPL/2.0/.
 import asyncio
 from dataclasses import dataclass
 import inspect
@@ -97,7 +92,7 @@ def test_register():
     with pytest.raises(RuntimeError):
         # _cast_float_object 와 충돌
         @deepcast.register
-        def _(cls, val, ctx) -> float:
+        def _(cls, val) -> float:
             return cls(val)
 
 
@@ -115,13 +110,13 @@ def test_invalid_register():
     with pytest.raises(TypeError):
 
         @deepcast.register
-        def _(cls, val, ctx):
+        def _(cls, val):
             pass
 
     with pytest.raises(TypeError):
 
         @deepcast.register
-        def _(cls: X, val, ctx) -> X:
+        def _(cls: X, val) -> X:
             pass
 
 
@@ -135,7 +130,7 @@ def test_double_dispatch():
         pass
 
     @deepcast.register
-    def _(cls, val: X, ctx) -> Object:
+    def _(cls, val: X) -> Object:
         return 1
 
     assert deepcast(Y, X()) == 1
@@ -144,7 +139,7 @@ def test_double_dispatch():
     with pytest.raises(RuntimeError):
 
         @deepcast.register
-        def _(cls, val: X, ctx) -> Object:
+        def _(cls, val: X) -> Object:
             return 1
 
 

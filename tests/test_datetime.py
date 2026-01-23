@@ -1,21 +1,8 @@
-# Copyright (C) 2021 Flowdas Inc. & Dong-gweon Oh <prospero@flowdas.com>
-#
-# This Source Code Form is subject to the terms of the Mozilla Public
-# License, v. 2.0. If a copy of the MPL was not distributed with this
-# file, You can obtain one at https://mozilla.org/MPL/2.0/.
-
 from datetime import datetime, date, time, timedelta, timezone
-
-try:
-    from zoneinfo import ZoneInfo
-
-    skip_zoneinfo = False
-except ImportError:
-    skip_zoneinfo = True
 
 import pytest
 
-from typeable import *
+from typeable import deepcast, localcontext
 
 
 #
@@ -31,7 +18,8 @@ def test_datetime():
     for T in (int, float):
         t = T(0)
         assert deepcast(datetime, t) == aware_epoch
-        assert deepcast(datetime, t, ctx=Context(naive_timestamp=True)) == naive_epoch
+        with localcontext(naive_timestamp=True):
+            assert deepcast(datetime, t) == naive_epoch
 
     # str - iso
     with pytest.raises(ValueError):
@@ -56,29 +44,23 @@ def test_datetime():
     assert deepcast(datetime, " 1970-1-1 ") == naive_epoch
 
     # str - timestamp
-    assert (
-        deepcast(datetime, "0", ctx=Context(datetime_format="timestamp")) == aware_epoch
-    )
-    assert (
-        deepcast(
-            datetime,
-            "0",
-            ctx=Context(datetime_format="timestamp", naive_timestamp=True),
-        )
-        == naive_epoch
-    )
+    with localcontext(datetime_format="timestamp") as ctx:
+        assert deepcast(datetime, "0") == aware_epoch
+        ctx.naive_timestamp = True
+        assert deepcast(datetime, "0") == naive_epoch
 
     # str - http & email
-    for format in ("http", "email"):
-        ctx = Context(datetime_format=format)
-        expected = datetime(2016, 3, 7, 0, 4, 24, tzinfo=timezone(timedelta(hours=9)))
-        assert (
-            deepcast(datetime, "Mon, 07 Mar 2016 00:04:24 +0900", ctx=ctx) == expected
-        )
+    with localcontext() as ctx:
+        for format in ("http", "email"):
+            ctx.datetime_format = format
+            expected = datetime(
+                2016, 3, 7, 0, 4, 24, tzinfo=timezone(timedelta(hours=9))
+            )
+            assert deepcast(datetime, "Mon, 07 Mar 2016 00:04:24 +0900") == expected
 
     # str - stptime
-    ctx = Context(datetime_format=r"%Y-%m-%dT%H:%M:%S.%f%z")
-    assert deepcast(datetime, "1970-01-01T00:00:00.000000+0000", ctx=ctx) == aware_epoch
+    with localcontext(datetime_format=r"%Y-%m-%dT%H:%M:%S.%f%z"):
+        assert deepcast(datetime, "1970-01-01T00:00:00.000000+0000") == aware_epoch
 
     # empty string
     with pytest.raises(ValueError):
@@ -114,9 +96,9 @@ def test_datetime():
 
     assert deepcast(DT1, DT2.today()).__class__ is DT1
 
-    ctx = Context(datetime_format="http")
-    expected = DT1(2016, 3, 7, 0, 4, 24, tzinfo=timezone(timedelta(hours=9)))
-    assert deepcast(DT1, "Mon, 07 Mar 2016 00:04:24 +0900", ctx=ctx) == expected
+    with localcontext(datetime_format="http"):
+        expected = DT1(2016, 3, 7, 0, 4, 24, tzinfo=timezone(timedelta(hours=9)))
+        assert deepcast(DT1, "Mon, 07 Mar 2016 00:04:24 +0900") == expected
 
 
 def test_float_from_datetime():
@@ -134,10 +116,10 @@ def test_int_from_datetime():
     assert deepcast(int, naive_epoch) == naive_epoch.timestamp()
     assert deepcast(int, aware_epoch) == 0
 
-    ctx = Context(lossy_conversion=False)
-    assert deepcast(int, naive_epoch, ctx=ctx) == naive_epoch.timestamp()
-    with pytest.raises(ValueError):
-        deepcast(int, datetime(1970, 1, 1, 0, 0, 0, 1), ctx=ctx)
+    with localcontext(lossy_conversion=False):
+        assert deepcast(int, naive_epoch) == naive_epoch.timestamp()
+        with pytest.raises(ValueError):
+            deepcast(int, datetime(1970, 1, 1, 0, 0, 0, 1))
 
 
 def test_bool_from_datetime():
@@ -157,27 +139,27 @@ def test_str_from_datetime():
 
     # http
     dt = datetime(2016, 3, 7, 0, 4, 24, tzinfo=timezone(timedelta(hours=9)))
-    ctx = Context(datetime_format="http")
-    assert deepcast(str, dt, ctx=ctx) == "Sun, 06 Mar 2016 15:04:24 GMT"
-    assert (
-        deepcast(str, datetime(2016, 3, 7, 0, 4, 24), ctx=ctx)
-        == "Mon, 07 Mar 2016 00:04:24 GMT"
-    )
+    with localcontext(datetime_format="http"):
+        assert deepcast(str, dt) == "Sun, 06 Mar 2016 15:04:24 GMT"
+        assert (
+            deepcast(str, datetime(2016, 3, 7, 0, 4, 24))
+            == "Mon, 07 Mar 2016 00:04:24 GMT"
+        )
 
     # email
-    ctx = Context(datetime_format="email")
-    assert deepcast(str, dt, ctx=ctx) == "Mon, 07 Mar 2016 00:04:24 +0900"
+    with localcontext(datetime_format="email"):
+        assert deepcast(str, dt) == "Mon, 07 Mar 2016 00:04:24 +0900"
 
     # timestamp
-    ctx = Context(datetime_format="timestamp")
-    assert deepcast(str, naive_epoch, ctx=ctx) == str(int(naive_epoch.timestamp()))
-    assert deepcast(str, aware_epoch, ctx=ctx) == "0"
-    oneus = naive_epoch.replace(microsecond=1)
-    assert deepcast(str, oneus, ctx=ctx) == str(oneus.timestamp())
+    with localcontext(datetime_format="timestamp"):
+        assert deepcast(str, naive_epoch) == str(int(naive_epoch.timestamp()))
+        assert deepcast(str, aware_epoch) == "0"
+        oneus = naive_epoch.replace(microsecond=1)
+        assert deepcast(str, oneus) == str(oneus.timestamp())
 
     # strftime
-    ctx = Context(datetime_format=r"=%Y-%m-%dT%H:%M:%S.%f%z=")
-    assert deepcast(str, aware_epoch, ctx=ctx) == "=1970-01-01T00:00:00.000000+0000="
+    with localcontext(datetime_format="=%Y-%m-%dT%H:%M:%S.%f%z="):
+        assert deepcast(str, aware_epoch) == "=1970-01-01T00:00:00.000000+0000="
 
 
 #
@@ -206,8 +188,8 @@ def test_date():
     assert deepcast(date, " 1970-1-1 ") == date(1970, 1, 1)
 
     # str - stptime
-    ctx = Context(date_format=r"%Y-%m-%d")
-    assert deepcast(date, "1970-01-01", ctx=ctx) == date(1970, 1, 1)
+    with localcontext(datetime_format=r"%Y-%m-%d"):
+        assert deepcast(date, "1970-01-01") == date(1970, 1, 1)
 
     # empty string
     with pytest.raises(ValueError):
@@ -238,9 +220,9 @@ def test_date():
     dt = datetime.utcnow()
     assert deepcast(Date, dt) == dt.date()
 
-    ctx = Context(lossy_conversion=False)
-    with pytest.raises(ValueError):
-        deepcast(Date, dt.replace(tzinfo=timezone.utc), ctx=ctx)
+    with localcontext(lossy_conversion=False):
+        with pytest.raises(ValueError):
+            deepcast(Date, dt.replace(tzinfo=timezone.utc))
 
     class Date2(date):
         pass
@@ -263,8 +245,8 @@ def test_str_from_date():
     assert deepcast(str, d) == "1970-01-01"
 
     # strftime
-    ctx = Context(date_format=r"=%Y-%m-%d=")
-    assert deepcast(str, d, ctx=ctx) == "=1970-01-01="
+    with localcontext(date_format=r"=%Y-%m-%d="):
+        assert deepcast(str, d) == "=1970-01-01="
 
 
 #
@@ -301,8 +283,8 @@ def test_time():
     assert deepcast(time, "0:0") == naive_epoch.time()
 
     # str - stptime
-    ctx = Context(time_format=r"%H:%M:%S.%f")
-    assert deepcast(time, "12:34:56.000789", ctx=ctx) == time(12, 34, 56, 789)
+    with localcontext(time_format=r"%H:%M:%S.%f"):
+        assert deepcast(time, "12:34:56.000789") == time(12, 34, 56, 789)
 
     # empty string
     with pytest.raises(ValueError):
@@ -315,12 +297,11 @@ def test_time():
         deepcast(time, None)
 
     # datetime
-    ctx = Context(lossy_conversion=False)
-
     dt = datetime.utcnow()  # naive
     assert deepcast(time, dt) == dt.time()
-    with pytest.raises(ValueError):
-        deepcast(time, dt, ctx=ctx)
+    with localcontext(lossy_conversion=False):
+        with pytest.raises(ValueError):
+            deepcast(time, dt)
 
     dt = datetime.now(timezone.utc)  # aware
     assert deepcast(time, dt) == dt.timetz()
@@ -358,8 +339,8 @@ def test_str_from_time():
     assert deepcast(str, t) == "12:34:56.000789"
 
     # strftime
-    ctx = Context(time_format=r"=%H:%M:%S.%f%z=")
-    assert deepcast(str, t, ctx=ctx) == "=12:34:56.000789="
+    with localcontext(time_format=r"=%H:%M:%S.%f%z="):
+        assert deepcast(str, t) == "=12:34:56.000789="
 
 
 #
@@ -437,11 +418,11 @@ def test_int_from_timedelta():
 
     assert deepcast(int, td) == int(td.total_seconds())
 
-    ctx = Context(lossy_conversion=False)
-    assert deepcast(int, td, ctx=ctx) == int(td.total_seconds())
-    td = timedelta(days=12, hours=9, minutes=36, seconds=7, microseconds=1)
-    with pytest.raises(ValueError):
-        deepcast(int, td, ctx=ctx)
+    with localcontext(lossy_conversion=False):
+        assert deepcast(int, td) == int(td.total_seconds())
+        td = timedelta(days=12, hours=9, minutes=36, seconds=7, microseconds=1)
+        with pytest.raises(ValueError):
+            deepcast(int, td)
 
 
 def test_bool_from_timedelta():
