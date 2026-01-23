@@ -1,8 +1,3 @@
-# Copyright (C) 2021 Flowdas Inc. & Dong-gweon Oh <prospero@flowdas.com>
-#
-# This Source Code Form is subject to the terms of the Mozilla Public
-# License, v. 2.0. If a copy of the MPL was not distributed with this
-# file, You can obtain one at https://mozilla.org/MPL/2.0/.
 from abc import get_cache_token
 import asyncio
 from collections.abc import (
@@ -39,7 +34,7 @@ from typing import (
     get_type_hints,
 )
 
-from ._context import Context
+from ._context import Context, getcontext
 from ._error import traverse
 from ._polymorphic import _resolve_polymorphic
 
@@ -108,9 +103,9 @@ def _get_type_args(tp):
 def _register(func):
     global _cache_token
     sig = signature(func)
-    if len(sig.parameters) < 3:
+    if len(sig.parameters) < 2:
         raise TypeError(
-            f"{func!r}() takes {len(sig.parameters)} arguments but 3 required"
+            f"{func!r}() takes {len(sig.parameters)} arguments but 2 required"
         )
     it = iter(sig.parameters.items())
     argname, parameter = next(it)
@@ -229,29 +224,29 @@ def _function(
                             tp = Tuple[tp, ...]
                         elif sig.parameters[key].kind == inspect.Parameter.VAR_KEYWORD:
                             tp = Dict[Any, tp]
-                        ba.arguments[key] = deepcast(tp, val, ctx=ctx)
-            return ctx, ba
+                        ba.arguments[key] = deepcast(tp, val)
+            return ba
 
-        def epilog(ctx, r):
+        def epilog(r):
             if cast_return:
                 with traverse("return"):
-                    r = deepcast(annons["return"], r, ctx=ctx)
+                    r = deepcast(annons["return"], r)
             return r
 
         if asyncio.iscoroutinefunction(func) and keep_async:
 
             @functools.wraps(func)
             async def wrapper(*args, **kwargs):
-                ctx, ba = prolog(args, kwargs)
+                ba = prolog(args, kwargs)
                 r = await func(*ba.args, **ba.kwargs)
-                return epilog(ctx, r)
+                return epilog(r)
         else:
 
             @functools.wraps(func)
             def wrapper(*args, **kwargs):
-                ctx, ba = prolog(args, kwargs)
+                ba = prolog(args, kwargs)
                 r = func(*ba.args, **ba.kwargs)
-                return epilog(ctx, r)
+                return epilog(r)
 
         setattr(wrapper, "_ctx", ctx_name)
 
@@ -260,7 +255,7 @@ def _function(
     return deco if _ is None else deco(_)
 
 
-def deepcast(cls: Type[_T], val: Any, *, ctx: Context | None = None) -> _T:
+def deepcast(cls: Type[_T], val: Any) -> _T:
     origin = get_origin(cls) or cls
     Ts = _get_type_args(cls)
     tp = val.__class__
@@ -270,9 +265,7 @@ def deepcast(cls: Type[_T], val: Any, *, ctx: Context | None = None) -> _T:
     except TypeError:
         pass
     func = _dispatch(origin, tp)
-    if ctx is None:
-        ctx = Context()
-    return func(origin, val, ctx, *Ts)
+    return func(origin, val, *Ts)
 
 
 deepcast.register = _register
@@ -286,7 +279,7 @@ deepcast.function = _function
 
 
 @deepcast.register
-def _cast_Any_object(cls: Type[Any], val, ctx):
+def _cast_Any_object(cls: Type[Any], val):
     return val
 
 
@@ -295,16 +288,14 @@ def _cast_Any_object(cls: Type[Any], val, ctx):
 #
 
 
-def _cast_dataclass_Mapping(cls, val: Mapping, ctx):
-    if ctx is None:
-        ctx = Context()
-    cls = _resolve_polymorphic(cls, val, ctx)
+def _cast_dataclass_Mapping(cls, val: Mapping):
+    cls = _resolve_polymorphic(cls, val)
     field_map: dict[str, Field] = {f.name: f for f in fields(cls)}
     kwargs = {}
     for k, v in val.items():
         with traverse(k):
             if k in field_map and field_map[k].init:
-                kwargs[k] = deepcast(field_map[k].type, v, ctx=ctx)
+                kwargs[k] = deepcast(field_map[k].type, v)
             else:
                 raise TypeError(
                     f"{cls.__name__}.__init__() got an unexpected keyword argument '{k}'"
@@ -323,12 +314,12 @@ def _cast_dataclass_Mapping(cls, val: Mapping, ctx):
 
 
 @deepcast.register
-def _cast_object_object(cls: Type[object], val, ctx, *Ts):
+def _cast_object_object(cls: Type[object], val, *Ts):
     if Ts:
         raise NotImplementedError
     if is_dataclass(cls):
         if isinstance(val, Mapping):
-            return _cast_dataclass_Mapping(cls, val, ctx)
+            return _cast_dataclass_Mapping(cls, val)
         else:
             raise TypeError(
                 f"No implementation found for '{cls.__qualname__}' from {val.__class__.__qualname__}"
@@ -343,11 +334,12 @@ def _cast_object_object(cls: Type[object], val, ctx, *Ts):
 
 
 @deepcast.register
-def _cast_bool_int(cls: Type[bool], val: int, ctx):
+def _cast_bool_int(cls: Type[bool], val: int):
     # special: val can be bool
     if isinstance(val, cls):
         return val
 
+    ctx: Context = getcontext()
     if not ctx.bool_is_int:
         raise TypeError(f"ctx.bool_is_int={ctx.bool_is_int}")
     if not ctx.lossy_conversion and not (val == 0 or val == 1):
@@ -356,7 +348,8 @@ def _cast_bool_int(cls: Type[bool], val: int, ctx):
 
 
 @deepcast.register
-def _cast_bool_str(cls: Type[bool], val: str, ctx):
+def _cast_bool_str(cls: Type[bool], val: str):
+    ctx: Context = getcontext()
     if not ctx.bool_strings:
         raise TypeError
     try:
@@ -371,16 +364,18 @@ def _cast_bool_str(cls: Type[bool], val: str, ctx):
 
 
 @deepcast.register
-def _cast_int_object(cls: Type[int], val, ctx):
+def _cast_int_object(cls: Type[int], val):
     # assume not isinstance(val, cls)
     r = cls(val)
+    ctx: Context = getcontext()
     if not ctx.lossy_conversion and val.__class__(r) != val:
         raise ValueError(f"ctx.lossy_conversion={ctx.lossy_conversion}")
     return r
 
 
 @deepcast.register
-def _cast_int_bool(cls: Type[int], val: bool, ctx):
+def _cast_int_bool(cls: Type[int], val: bool):
+    ctx: Context = getcontext()
     if not ctx.bool_is_int:
         raise TypeError(f"ctx.bool_is_int={ctx.bool_is_int}")
     return val if cls is int else cls(val)
@@ -392,13 +387,14 @@ def _cast_int_bool(cls: Type[int], val: bool, ctx):
 
 
 @deepcast.register
-def _cast_float_object(cls: Type[float], val, ctx):
+def _cast_float_object(cls: Type[float], val):
     # assume not isinstance(val, cls)
     return cls(val)
 
 
 @deepcast.register
-def _cast_float_bool(cls: Type[float], val: bool, ctx):
+def _cast_float_bool(cls: Type[float], val: bool):
+    ctx: Context = getcontext()
     if not ctx.bool_is_int:
         raise TypeError(f"ctx.bool_is_int={ctx.bool_is_int}")
     return cls(val)
@@ -410,7 +406,7 @@ def _cast_float_bool(cls: Type[float], val: bool, ctx):
 
 
 @deepcast.register
-def _cast_complex_object(cls: Type[complex], val, ctx):
+def _cast_complex_object(cls: Type[complex], val):
     # assume not isinstance(val, cls)
     if isinstance(val, (tuple, list)):
         r = cls(*val)
@@ -420,7 +416,8 @@ def _cast_complex_object(cls: Type[complex], val, ctx):
 
 
 @deepcast.register
-def _cast_complex_bool(cls: Type[complex], val: bool, ctx):
+def _cast_complex_bool(cls: Type[complex], val: bool):
+    ctx: Context = getcontext()
     if not ctx.bool_is_int:
         raise TypeError(f"ctx.bool_is_int={ctx.bool_is_int}")
     return cls(val)
@@ -432,8 +429,9 @@ def _cast_complex_bool(cls: Type[complex], val: bool, ctx):
 
 
 @deepcast.register
-def _cast_str_object(cls: Type[str], val, ctx):
+def _cast_str_object(cls: Type[str], val):
     # assume not isinstance(val, cls)
+    ctx: Context = getcontext()
     if ctx.strict_str:
         if not isinstance(val, (str, Number)):
             raise TypeError(f"ctx.strict_str={ctx.strict_str}")
@@ -444,12 +442,14 @@ def _cast_str_object(cls: Type[str], val, ctx):
 
 
 @deepcast.register
-def _cast_str_bytes(cls: Type[str], val: bytes, ctx):
+def _cast_str_bytes(cls: Type[str], val: bytes):
+    ctx: Context = getcontext()
     return cls(val, encoding=ctx.bytes_encoding, errors=ctx.encoding_errors)
 
 
 @deepcast.register
-def _cast_str_bytearray(cls: Type[str], val: bytearray, ctx):
+def _cast_str_bytearray(cls: Type[str], val: bytearray):
+    ctx: Context = getcontext()
     return cls(val, encoding=ctx.bytes_encoding, errors=ctx.encoding_errors)
 
 
@@ -459,7 +459,7 @@ def _cast_str_bytearray(cls: Type[str], val: bytearray, ctx):
 
 
 @deepcast.register
-def _cast_bytes_object(cls: Type[bytes], val, ctx):
+def _cast_bytes_object(cls: Type[bytes], val):
     # assume not isinstance(val, cls)
     if isinstance(val, int):
         raise TypeError
@@ -467,7 +467,8 @@ def _cast_bytes_object(cls: Type[bytes], val, ctx):
 
 
 @deepcast.register
-def _cast_bytes_str(cls: Type[bytes], val: str, ctx):
+def _cast_bytes_str(cls: Type[bytes], val: str):
+    ctx: Context = getcontext()
     return cls(val, encoding=ctx.bytes_encoding, errors=ctx.encoding_errors)
 
 
@@ -477,7 +478,7 @@ def _cast_bytes_str(cls: Type[bytes], val: str, ctx):
 
 
 @deepcast.register
-def _cast_bytearray_object(cls: Type[bytearray], val, ctx):
+def _cast_bytearray_object(cls: Type[bytearray], val):
     # assume not isinstance(val, cls)
     if isinstance(val, int):
         raise TypeError
@@ -485,7 +486,8 @@ def _cast_bytearray_object(cls: Type[bytearray], val, ctx):
 
 
 @deepcast.register
-def _cast_bytearray_str(cls: Type[bytearray], val: str, ctx):
+def _cast_bytearray_str(cls: Type[bytearray], val: str):
+    ctx: Context = getcontext()
     return cls(val, encoding=ctx.bytes_encoding, errors=ctx.encoding_errors)
 
 
@@ -494,16 +496,16 @@ def _cast_bytearray_str(cls: Type[bytearray], val: str, ctx):
 #
 
 
-def _copy_list_object(r, it, ctx, T, i):
+def _copy_list_object(r, it, T, i):
     for v in it:
         with traverse(i):
-            r.append(deepcast(T, v, ctx=ctx))
+            r.append(deepcast(T, v))
         i += 1
     return r
 
 
 @deepcast.register
-def _cast_list_object(cls: Type[list], val, ctx, T=None):
+def _cast_list_object(cls: Type[list], val, T=None):
     # assume T is not None or not isinstance(val, cls)
     if isinstance(val, Mapping):
         val = val.items()
@@ -517,7 +519,7 @@ def _cast_list_object(cls: Type[list], val, ctx, T=None):
         i = 0
         for v in it:
             with traverse(i):
-                cv = deepcast(T, v, ctx=ctx)
+                cv = deepcast(T, v)
                 if cv is not v:
                     if i == 0:
                         r = cls()
@@ -529,9 +531,9 @@ def _cast_list_object(cls: Type[list], val, ctx, T=None):
         if r is None:
             return val
         else:
-            return _copy_list_object(r, it, ctx, T, i + 1)
+            return _copy_list_object(r, it, T, i + 1)
     else:
-        return _copy_list_object(cls(), iter(val), ctx, T, 0)
+        return _copy_list_object(cls(), iter(val), T, 0)
 
 
 #
@@ -539,10 +541,10 @@ def _cast_list_object(cls: Type[list], val, ctx, T=None):
 #
 
 
-def _copy_dict_object(r, it, ctx, KT, VT):
+def _copy_dict_object(r, it, KT, VT):
     for k, v in it:
         with traverse(k):
-            r[deepcast(KT, k, ctx=ctx)] = deepcast(VT, v, ctx=ctx)
+            r[deepcast(KT, k)] = deepcast(VT, v)
     return r
 
 
@@ -551,7 +553,7 @@ def _dataclass_items(obj):
 
 
 @deepcast.register
-def _cast_dict_object(cls: Type[dict], val, ctx, K=None, V=None):
+def _cast_dict_object(cls: Type[dict], val, K=None, V=None):
     if K is None:
         if is_dataclass(val):
             val = _dataclass_items(val)
@@ -566,8 +568,8 @@ def _cast_dict_object(cls: Type[dict], val, ctx, K=None, V=None):
         i = 0
         for k, v in it:
             with traverse(k):
-                ck = deepcast(K, k, ctx=ctx)
-                cv = deepcast(V, v, ctx=ctx)
+                ck = deepcast(K, k)
+                cv = deepcast(V, v)
                 if ck is not k or cv is not v:
                     if i == 0:
                         r = cls()
@@ -579,11 +581,11 @@ def _cast_dict_object(cls: Type[dict], val, ctx, K=None, V=None):
         if r is None:
             return val
         else:
-            return _copy_dict_object(r, it, ctx, K, V)
+            return _copy_dict_object(r, it, K, V)
     else:
         if isinstance(val, Mapping):
             val = val.items()
-        return _copy_dict_object(cls(), val, ctx, K, V)
+        return _copy_dict_object(cls(), val, K, V)
 
 
 #
@@ -591,15 +593,15 @@ def _cast_dict_object(cls: Type[dict], val, ctx, K=None, V=None):
 #
 
 
-def _copy_set_object(r, it, ctx, T):
+def _copy_set_object(r, it, T):
     for v in it:
         with traverse(v):
-            r.add(deepcast(T, v, ctx=ctx))
+            r.add(deepcast(T, v))
     return r
 
 
 @deepcast.register
-def _cast_set_object(cls: Type[set], val, ctx, T=None):
+def _cast_set_object(cls: Type[set], val, T=None):
     # assume T is not None or not isinstance(val, cls)
     if T is None:
         return cls(val)
@@ -610,7 +612,7 @@ def _cast_set_object(cls: Type[set], val, ctx, T=None):
         i = 0
         for v in it:
             with traverse(v):
-                cv = deepcast(T, v, ctx=ctx)
+                cv = deepcast(T, v)
                 if cv is not v:
                     if i == 0:
                         r = cls()
@@ -623,9 +625,9 @@ def _cast_set_object(cls: Type[set], val, ctx, T=None):
         if r is None:
             return val
         else:
-            return _copy_set_object(r, it, ctx, T)
+            return _copy_set_object(r, it, T)
     else:
-        return _copy_set_object(cls(), iter(val), ctx, T)
+        return _copy_set_object(cls(), iter(val), T)
 
 
 #
@@ -633,15 +635,15 @@ def _cast_set_object(cls: Type[set], val, ctx, T=None):
 #
 
 
-def _copy_frozenset_object(r, cls, it, ctx, T):
+def _copy_frozenset_object(r, cls, it, T):
     for v in it:
         with traverse(v):
-            r.add(deepcast(T, v, ctx=ctx))
+            r.add(deepcast(T, v))
     return cls(r)
 
 
 @deepcast.register
-def _cast_frozenset_object(cls: Type[frozenset], val, ctx, T=None):
+def _cast_frozenset_object(cls: Type[frozenset], val, T=None):
     # assume T is not None or not isinstance(val, cls)
     if T is None:
         return cls(val)
@@ -652,7 +654,7 @@ def _cast_frozenset_object(cls: Type[frozenset], val, ctx, T=None):
         i = 0
         for v in it:
             with traverse(v):
-                cv = deepcast(T, v, ctx=ctx)
+                cv = deepcast(T, v)
                 if cv is not v:
                     if i == 0:
                         r = {cv}
@@ -665,9 +667,9 @@ def _cast_frozenset_object(cls: Type[frozenset], val, ctx, T=None):
         if r is None:
             return val
         else:
-            return _copy_frozenset_object(r, cls, it, ctx, T)
+            return _copy_frozenset_object(r, cls, it, T)
     else:
-        return _copy_frozenset_object(set(), cls, iter(val), ctx, T)
+        return _copy_frozenset_object(set(), cls, iter(val), T)
 
 
 #
@@ -675,24 +677,24 @@ def _cast_frozenset_object(cls: Type[frozenset], val, ctx, T=None):
 #
 
 
-def _copy_homo_tuple_object(r, cls, it, ctx, T, i):
+def _copy_homo_tuple_object(r, cls, it, T, i):
     for v in it:
         with traverse(i):
-            r.append(deepcast(T, v, ctx=ctx))
+            r.append(deepcast(T, v))
         i += 1
     return cls(r)
 
 
-def _copy_hetero_tuple_object(r, cls, it, ctx, i):
+def _copy_hetero_tuple_object(r, cls, it, i):
     for v, T in it:
         with traverse(i):
-            r.append(deepcast(T, v, ctx=ctx))
+            r.append(deepcast(T, v))
         i += 1
     return cls(r)
 
 
 @deepcast.register
-def _cast_tuple_object(cls: Type[tuple], val, ctx, *Ts):
+def _cast_tuple_object(cls: Type[tuple], val, *Ts):
     # assume Ts or not isinstance(val, cls)
     if isinstance(val, Mapping):
         val = val.items()
@@ -709,7 +711,7 @@ def _cast_tuple_object(cls: Type[tuple], val, ctx, *Ts):
             i = 0
             for v in it:
                 with traverse(i):
-                    cv = deepcast(T, v, ctx=ctx)
+                    cv = deepcast(T, v)
                     if cv is not v:
                         if i == 0:
                             r = [cv]
@@ -721,9 +723,9 @@ def _cast_tuple_object(cls: Type[tuple], val, ctx, *Ts):
             if r is None:
                 return val
             else:
-                return _copy_homo_tuple_object(r, cls, it, ctx, T, i + 1)
+                return _copy_homo_tuple_object(r, cls, it, T, i + 1)
         else:
-            return _copy_homo_tuple_object([], cls, iter(val), ctx, T, 0)
+            return _copy_homo_tuple_object([], cls, iter(val), T, 0)
     else:
         if Ts[0] == ():
             Ts = ()
@@ -735,7 +737,7 @@ def _cast_tuple_object(cls: Type[tuple], val, ctx, *Ts):
             i = 0
             for v, T in it:
                 with traverse(i):
-                    cv = deepcast(T, v, ctx=ctx)
+                    cv = deepcast(T, v)
                     if cv is not v:
                         if i == 0:
                             r = [cv]
@@ -747,7 +749,7 @@ def _cast_tuple_object(cls: Type[tuple], val, ctx, *Ts):
             if r is None:
                 return val
             else:
-                return _copy_hetero_tuple_object(r, cls, it, ctx, i + 1)
+                return _copy_hetero_tuple_object(r, cls, it, i + 1)
         else:
             r = []
             it = iter(val)
@@ -757,7 +759,7 @@ def _cast_tuple_object(cls: Type[tuple], val, ctx, *Ts):
                         v = next(it)
                     except StopIteration:
                         raise TypeError("length mismatch")
-                    r.append(deepcast(T, v, ctx=ctx))
+                    r.append(deepcast(T, v))
             for _ in it:
                 raise TypeError("length mismatch")
             return cls(r)
@@ -786,9 +788,10 @@ def _type_distance(tp1, tp2):
 
 
 @deepcast.register
-def _cast_Union_object(cls, val, ctx, *Ts) -> Union:
+def _cast_Union_object(cls, val, *Ts) -> Union:
     vcls = val.__class__
     types = []  # [(kind, distance, index, type)]
+    ctx: Context = getcontext()
     for i, T in enumerate(Ts):
         origin = get_origin(T) or T
         try:
@@ -833,9 +836,10 @@ def _cast_Union_object(cls, val, ctx, *Ts) -> Union:
 
 
 @deepcast.register
-def _cast_datetime_object(cls: Type[datetime.datetime], val, ctx):
+def _cast_datetime_object(cls: Type[datetime.datetime], val):
     # assume not isinstance(val, cls)
     if isinstance(val, (int, float)):
+        ctx: Context = getcontext()
         if ctx.naive_timestamp:
             return cls.utcfromtimestamp(val)
         else:
@@ -903,7 +907,8 @@ def _parse_isoduration(cls, m):
 
 
 @deepcast.register
-def _cast_datetime_str(cls: Type[datetime.datetime], val: str, ctx):
+def _cast_datetime_str(cls: Type[datetime.datetime], val: str):
+    ctx: Context = getcontext()
     if ctx.datetime_format == "iso":
         m = ISO_PATTERN1.match(val.strip())
         if m is None:
@@ -918,7 +923,7 @@ def _cast_datetime_str(cls: Type[datetime.datetime], val: str, ctx):
 
         return cls.combine(date, time)
     elif ctx.datetime_format == "timestamp":
-        return deepcast(cls, float(val), ctx=ctx)
+        return deepcast(cls, float(val))
     elif ctx.datetime_format == "http" or ctx.datetime_format == "email":
         dt = parsedate_to_datetime(val.strip())
         if cls is not datetime.datetime:
@@ -929,14 +934,15 @@ def _cast_datetime_str(cls: Type[datetime.datetime], val: str, ctx):
 
 
 @deepcast.register
-def _cast_float_datetime(cls: Type[float], val: datetime.datetime, ctx):
+def _cast_float_datetime(cls: Type[float], val: datetime.datetime):
     return cls(val.timestamp())
 
 
 @deepcast.register
-def _cast_int_datetime(cls: Type[int], val: datetime.datetime, ctx):
+def _cast_int_datetime(cls: Type[int], val: datetime.datetime):
     ts = val.timestamp()
     r = cls(ts)
+    ctx: Context = getcontext()
     if not ctx.lossy_conversion and r != ts:
         raise ValueError(f"ctx.lossy_conversion={ctx.lossy_conversion}")
     return r
@@ -960,7 +966,8 @@ MON = (
 
 
 @deepcast.register
-def _cast_str_datetime(cls: Type[str], val: datetime.datetime, ctx):
+def _cast_str_datetime(cls: Type[str], val: datetime.datetime):
+    ctx: Context = getcontext()
     if ctx.datetime_format == "iso":
         r = val.isoformat()
         return cls(r[:-6] + "Z") if r.endswith("+00:00") else cls(r)
@@ -993,9 +1000,10 @@ def _cast_str_datetime(cls: Type[str], val: datetime.datetime, ctx):
 
 
 @deepcast.register
-def _cast_date_object(cls: Type[datetime.date], val, ctx):
+def _cast_date_object(cls: Type[datetime.date], val):
     # assume not isinstance(val, cls)
     if isinstance(val, datetime.datetime):  # datetime is subclass of date
+        ctx: Context = getcontext()
         if not ctx.lossy_conversion and (val.tzinfo or val.time() != datetime.time()):
             raise ValueError(f"ctx.lossy_conversion={ctx.lossy_conversion}")
         return cls(val.year, val.month, val.day)
@@ -1006,7 +1014,8 @@ def _cast_date_object(cls: Type[datetime.date], val, ctx):
 
 
 @deepcast.register
-def _cast_date_str(cls: Type[datetime.date], val: str, ctx):
+def _cast_date_str(cls: Type[datetime.date], val: str):
+    ctx: Context = getcontext()
     if ctx.date_format == "iso":
         m = ISO_PATTERN2.match(val.strip())
         if m is None:
@@ -1018,7 +1027,8 @@ def _cast_date_str(cls: Type[datetime.date], val: str, ctx):
 
 
 @deepcast.register
-def _cast_str_date(cls: Type[str], val: datetime.date, ctx):
+def _cast_str_date(cls: Type[str], val: datetime.date):
+    ctx: Context = getcontext()
     if ctx.date_format == "iso":
         return cls(val.isoformat())
     else:
@@ -1031,11 +1041,12 @@ def _cast_str_date(cls: Type[str], val: datetime.date, ctx):
 
 
 @deepcast.register
-def _cast_time_object(cls: Type[datetime.time], val, ctx):
+def _cast_time_object(cls: Type[datetime.time], val):
     # assume not isinstance(val, cls)
     if isinstance(val, datetime.time):
         return cls(val.hour, val.minute, val.second, val.microsecond, tzinfo=val.tzinfo)
     elif isinstance(val, datetime.datetime):
+        ctx: Context = getcontext()
         if not ctx.lossy_conversion:
             raise ValueError(f"ctx.lossy_conversion={ctx.lossy_conversion}")
         t = val.timetz()
@@ -1047,7 +1058,8 @@ def _cast_time_object(cls: Type[datetime.time], val, ctx):
 
 
 @deepcast.register
-def _cast_time_str(cls: Type[datetime.time], val: str, ctx):
+def _cast_time_str(cls: Type[datetime.time], val: str):
+    ctx: Context = getcontext()
     if ctx.time_format == "iso":
         m = ISO_PATTERN3.match(val.strip())
         if m is None:
@@ -1059,7 +1071,8 @@ def _cast_time_str(cls: Type[datetime.time], val: str, ctx):
 
 
 @deepcast.register
-def _cast_str_time(cls: Type[str], val: datetime.time, ctx):
+def _cast_str_time(cls: Type[str], val: datetime.time):
+    ctx: Context = getcontext()
     if ctx.time_format == "iso":
         return cls(val.isoformat())
     else:
@@ -1072,7 +1085,7 @@ def _cast_str_time(cls: Type[str], val: datetime.time, ctx):
 
 
 @deepcast.register
-def _cast_timedelta_object(cls: Type[datetime.timedelta], val, ctx):
+def _cast_timedelta_object(cls: Type[datetime.timedelta], val):
     # assume not isinstance(val, cls)
     if isinstance(val, datetime.timedelta):
         return cls(days=val.days, seconds=val.seconds, microseconds=val.microseconds)
@@ -1088,21 +1101,22 @@ def _cast_timedelta_object(cls: Type[datetime.timedelta], val, ctx):
 
 
 @deepcast.register
-def _cast_float_timedelta(cls: Type[float], val: datetime.timedelta, ctx):
+def _cast_float_timedelta(cls: Type[float], val: datetime.timedelta):
     return cls(val.total_seconds())
 
 
 @deepcast.register
-def _cast_int_timedelta(cls: Type[int], val: datetime.timedelta, ctx):
+def _cast_int_timedelta(cls: Type[int], val: datetime.timedelta):
     td = val.total_seconds()
     r = cls(td)
+    ctx: Context = getcontext()
     if not ctx.lossy_conversion and r != td:
         raise ValueError(f"ctx.lossy_conversion={ctx.lossy_conversion}")
     return r
 
 
 @deepcast.register
-def _cast_str_timedelta(cls: Type[str], val: datetime.timedelta, ctx):
+def _cast_str_timedelta(cls: Type[str], val: datetime.timedelta):
     r = []
     if val.days < 0:
         r.append("-P")
@@ -1132,18 +1146,18 @@ def _cast_str_timedelta(cls: Type[str], val: datetime.timedelta, ctx):
 
 
 @deepcast.register
-def _cast_Enum_object(cls: Type[enum.Enum], val, ctx):
+def _cast_Enum_object(cls: Type[enum.Enum], val):
     # assume not isinstance(val, cls)
     return cls(val)
 
 
 @deepcast.register
-def _cast_Enum_str(cls: Type[enum.Enum], val: str, ctx):
+def _cast_Enum_str(cls: Type[enum.Enum], val: str):
     return getattr(cls, val)
 
 
 @deepcast.register
-def _cast_str_Enum(cls: Type[str], val: enum.Enum, ctx):
+def _cast_str_Enum(cls: Type[str], val: enum.Enum):
     return val.name
 
 
@@ -1153,17 +1167,17 @@ def _cast_str_Enum(cls: Type[str], val: enum.Enum, ctx):
 
 
 @deepcast.register
-def _cast_IntEnum_int(cls: Type[enum.IntEnum], val: int, ctx):
+def _cast_IntEnum_int(cls: Type[enum.IntEnum], val: int):
     return cls(val)
 
 
 @deepcast.register
-def _cast_IntEnum_str(cls: Type[enum.IntEnum], val: str, ctx):
+def _cast_IntEnum_str(cls: Type[enum.IntEnum], val: str):
     return getattr(cls, val)
 
 
 @deepcast.register
-def _cast_str_IntEnum(cls: Type[str], val: enum.IntEnum, ctx):
+def _cast_str_IntEnum(cls: Type[str], val: enum.IntEnum):
     return val.name
 
 
@@ -1173,23 +1187,23 @@ def _cast_str_IntEnum(cls: Type[str], val: enum.IntEnum, ctx):
 
 
 @deepcast.register
-def _cast_Flag_Flag(cls: Type[enum.Flag], val: enum.Flag, ctx):
+def _cast_Flag_Flag(cls: Type[enum.Flag], val: enum.Flag):
     # assume not isinstance(val, cls)
     return cls(val)
 
 
 @deepcast.register
-def _cast_Flag_int(cls: Type[enum.Flag], val: int, ctx):
+def _cast_Flag_int(cls: Type[enum.Flag], val: int):
     return cls(val)
 
 
 @deepcast.register
-def _cast_int_Flag(cls: Type[int], val: enum.Flag, ctx):
+def _cast_int_Flag(cls: Type[int], val: enum.Flag):
     return cls(val.value)
 
 
 @deepcast.register
-def _cast_str_Flag(cls: Type[str], val: enum.Flag, ctx):
+def _cast_str_Flag(cls: Type[str], val: enum.Flag):
     raise TypeError
 
 
@@ -1199,12 +1213,12 @@ def _cast_str_Flag(cls: Type[str], val: enum.Flag, ctx):
 
 
 @deepcast.register
-def _cast_IntFlag_int(cls: Type[enum.IntFlag], val: int, ctx):
+def _cast_IntFlag_int(cls: Type[enum.IntFlag], val: int):
     return cls(val)
 
 
 @deepcast.register
-def _cast_str_IntFlag(cls: Type[str], val: enum.IntFlag, ctx):
+def _cast_str_IntFlag(cls: Type[str], val: enum.IntFlag):
     raise TypeError
 
 
@@ -1214,7 +1228,7 @@ def _cast_str_IntFlag(cls: Type[str], val: enum.IntFlag, ctx):
 
 
 @deepcast.register
-def _cast_Literal_object(cls, val, ctx, *literals) -> Literal:
+def _cast_Literal_object(cls, val, *literals) -> Literal:
     for literal in literals:
         if literal == val:
             return literal
@@ -1228,14 +1242,14 @@ def _cast_Literal_object(cls, val, ctx, *literals) -> Literal:
 
 
 @deepcast.register
-def _cast_type_type(cls, val: type, ctx, T=None) -> type:
+def _cast_type_type(cls, val: type, T=None) -> type:
     if T and T is not Any and not issubclass(val, T):
         raise TypeError
     return val
 
 
 @deepcast.register
-def _cast_type_str(cls, val: str, ctx, T=None) -> type:
+def _cast_type_str(cls, val: str, T=None) -> type:
     spec = val.rsplit(".", maxsplit=1)
     if len(spec) == 1:
         modname = "builtins"
@@ -1267,5 +1281,5 @@ def _cast_type_str(cls, val: str, ctx, T=None) -> type:
 
 
 @deepcast.register
-def _cast_str_type(cls: Type[str], val: type, ctx):
+def _cast_str_type(cls: Type[str], val: type):
     return f"{val.__module__}.{val.__qualname__}"

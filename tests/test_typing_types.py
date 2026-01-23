@@ -1,8 +1,3 @@
-# Copyright (C) 2021 Flowdas Inc. & Dong-gweon Oh <prospero@flowdas.com>
-#
-# This Source Code Form is subject to the terms of the Mozilla Public
-# License, v. 2.0. If a copy of the MPL was not distributed with this
-# file, You can obtain one at https://mozilla.org/MPL/2.0/.
 from datetime import date
 from typing import (
     Any,
@@ -16,7 +11,7 @@ from typing import (
 
 import pytest
 
-from typeable import *
+from typeable import Context, declare, deepcast, localcontext
 
 
 def test_Any():
@@ -72,43 +67,44 @@ def test_distance_based_Union():
 
     # union_prefers_same_type
     assert deepcast(Union[float, int, bool], True) is True
-    assert deepcast(Union[float, int, bool], True, ctx=ctx) is not True
-    ctx.union_prefers_same_type = True
-    assert deepcast(Union[float, int, bool], True, ctx=ctx) is True
-    ctx.union_prefers_same_type = False
+    with localcontext(ctx) as c:
+        assert deepcast(Union[float, int, bool], True) is not True
+        c.union_prefers_same_type = True
+        assert deepcast(Union[float, int, bool], True) is True
 
     # union_prefers_base_type
     x = deepcast(Union[str, int], True)
     assert x == 1
     assert type(x) is bool
-    assert deepcast(Union[str, int], True, ctx=ctx) == "True"
-    ctx.union_prefers_base_type = True
-    x = deepcast(Union[str, int], True, ctx=ctx)
-    assert x == 1
-    assert type(x) is bool
-    ctx.union_prefers_base_type = False
+    with localcontext(ctx) as c:
+        assert deepcast(Union[str, int], True) == "True"
+        c.union_prefers_base_type = True
+        x = deepcast(Union[str, int], True)
+        assert x == 1
+        assert type(x) is bool
 
     # union_prefers_super_type
     assert deepcast(Union[str, bool], 1) is True
-    assert deepcast(Union[str, bool], 1, ctx=ctx) == "1"
-    ctx.union_prefers_super_type = True
-    assert deepcast(Union[str, bool], 1, ctx=ctx) is True
-    ctx.union_prefers_super_type = False
+    with localcontext(ctx) as c:
+        assert deepcast(Union[str, bool], 1) == "1"
+        c.union_prefers_super_type = True
+        assert deepcast(Union[str, bool], 1) is True
 
-    # union_prefers_nearest_type
-    ctx.union_prefers_nearest_type = True
-    assert deepcast(Union[str, bool], 1, ctx=ctx) is True
-    assert deepcast(Union[str, bool], True, ctx=ctx) is True
-    assert deepcast(Union[str, bool], "true", ctx=ctx) == "true"
-    # bool has str specialization
-    assert deepcast(Union[bool, str], "true", ctx=ctx) is True
-    # bool conversion failure
-    assert deepcast(Union[bool, str], "XXX", ctx=ctx) == "XXX"
-    ctx.union_prefers_nearest_type = False
+    with localcontext(ctx) as c:
+        # union_prefers_nearest_type
+        c.union_prefers_nearest_type = True
+        assert deepcast(Union[str, bool], 1) is True
+        assert deepcast(Union[str, bool], True) is True
+        assert deepcast(Union[str, bool], "true") == "true"
+        # bool has str specialization
+        assert deepcast(Union[bool, str], "true") is True
+        # bool conversion failure
+        assert deepcast(Union[bool, str], "XXX") == "XXX"
 
     # no preference, sequential
-    assert deepcast(Union[str, bool], 1, ctx=ctx) == "1"
-    assert deepcast(Union[bool, str], 1, ctx=ctx) is True
+    with localcontext(ctx):
+        assert deepcast(Union[str, bool], 1) == "1"
+        assert deepcast(Union[bool, str], 1) is True
 
     # no match
     with pytest.raises(TypeError):

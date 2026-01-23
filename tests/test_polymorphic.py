@@ -1,14 +1,9 @@
-# Copyright (C) 2021 Flowdas Inc. & Dong-gweon Oh <prospero@flowdas.com>
-#
-# This Source Code Form is subject to the terms of the Mozilla Public
-# License, v. 2.0. If a copy of the MPL was not distributed with this
-# file, You can obtain one at https://mozilla.org/MPL/2.0/.
 from dataclasses import dataclass, is_dataclass
 from typing import Literal
 
 import pytest
 
-from typeable import Context, capture, deepcast, is_polymorphic, polymorphic
+from typeable import capture, deepcast, is_polymorphic, polymorphic
 
 
 def test_polymorphic_is_dataclass():

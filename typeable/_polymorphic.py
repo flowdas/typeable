@@ -124,7 +124,7 @@ def is_polymorphic(cls: type) -> bool:
     return _POLYMORPHIC in cls.__dict__
 
 
-def _resolve_polymorphic(cls: _T, val: Mapping, ctx) -> _T:
+def _resolve_polymorphic(cls: _T, val: Mapping) -> _T:
     klass = cls
     while True:
         mark: _Polymorphic | None = getattr(klass, _POLYMORPHIC, None)
