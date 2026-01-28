@@ -13,7 +13,7 @@ def test_capture():
         pass
 
     @deepcast.register
-    def _(cls, val) -> T:
+    def _(deepcast, cls, val) -> T:
         raise NotImplementedError
 
     with pytest.raises(NotImplementedError):

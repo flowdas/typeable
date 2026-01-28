@@ -87,7 +87,7 @@ def test_register():
     with pytest.raises(RuntimeError):
         # _cast_float_object 와 충돌
         @deepcast.register
-        def _(cls, val) -> float:
+        def _(deepcast, cls, val) -> float:
             return cls(val)
 
 
@@ -99,19 +99,19 @@ def test_invalid_register():
     with pytest.raises(TypeError):
 
         @deepcast.register
-        def _():
+        def _(deepcast):
             pass
 
     with pytest.raises(TypeError):
 
         @deepcast.register
-        def _(cls, val):
+        def _(deepcast, cls, val):
             pass
 
     with pytest.raises(TypeError):
 
         @deepcast.register
-        def _(cls: X, val) -> X:
+        def _(deepcast, cls: X, val) -> X:
             pass
 
 
@@ -125,7 +125,7 @@ def test_double_dispatch():
         pass
 
     @deepcast.register
-    def _(cls, val: X) -> Object:
+    def _(deepcast, cls, val: X) -> Object:
         return 1
 
     assert deepcast(Y, X()) == 1
@@ -134,7 +134,7 @@ def test_double_dispatch():
     with pytest.raises(RuntimeError):
 
         @deepcast.register
-        def _(cls, val: X) -> Object:
+        def _(deepcast, cls, val: X) -> Object:
             return 1
 
 
