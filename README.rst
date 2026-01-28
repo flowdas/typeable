@@ -18,6 +18,5 @@ Typeable requires Python 3.10+.
 
 Documentations:
 
-* English - https://typeable.readthedocs.io/
 * Korean - https://typeable.flowdas.com/
 
