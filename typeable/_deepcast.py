@@ -1,6 +1,7 @@
 from abc import get_cache_token
 import asyncio
 from collections.abc import (
+    Callable,
     Mapping,
 )
 from contextlib import contextmanager
@@ -26,7 +27,6 @@ from typing import (
     Literal,
     Optional,
     Tuple,
-    Type,
     TypeVar,
     Union,
     get_args,
@@ -75,9 +75,7 @@ else:
 
 _T = TypeVar("_T")
 
-_registry = {}
-_dispatch_cache = {}
-_cache_token = None
+_CasterType = Callable[[type[_T], Any], _T]
 
 _TYPES = "__types__"
 
@@ -100,178 +98,201 @@ def _get_type_args(tp):
     return tuple(evaled) if changed else args
 
 
-def _register(func):
-    global _cache_token
-    sig = signature(func)
-    if len(sig.parameters) < 2:
-        raise TypeError(
-            f"{func!r}() takes {len(sig.parameters)} arguments but 2 required"
-        )
-    it = iter(sig.parameters.items())
-    argname, parameter = next(it)
-    hints = get_type_hints(func)
-    typ = hints.get(argname)
-    if typ:
-        type_args = _get_type_args(typ)
-        if get_origin(typ) is not type or not type_args:
-            raise TypeError(
-                f"Invalid first argument to `deepcast.register()`: {typ!r}. "
-                f"Use either type[] annotation or return type annotation."
-            )
-        cls = type_args[0]
-    else:
-        cls = hints.get("return")
-        if cls is None:
-            raise TypeError(
-                "Invalid signature to `deepcast.register()`. "
-                "Use either type[] annotation or return type annotation."
-            )
+class DeepCast:
+    _registry: dict[type, dict[type, _CasterType]]
+    _dispatch_cache: dict[tuple[type, type], _CasterType]
+    _cache_token: Any = None
 
-    argname, parameter = next(it)
-    vcls = hints.get(argname)
-    if not vcls:
-        vcls = Any
-    if vcls == Any:
-        vcls = object
+    def __init__(self):
+        self._registry = {}
+        self._dispatch_cache = {}
 
-    if cls in _registry:
-        if vcls in _registry[cls]:
-            raise RuntimeError(f"Ambiguous `deepcast.register()`")
-        _registry[cls][vcls] = func
-    else:
-        _registry[cls] = {vcls: func}
-    setattr(func, _TYPES, (cls, vcls))
-
-    if _cache_token is None:
-        if hasattr(cls, "__abstractmethods__") or hasattr(vcls, "__abstractmethods__"):
-            _cache_token = get_cache_token()
-    _dispatch_cache.clear()
-
-    return func
-
-
-def _dispatch(cls, vcls):
-    global _cache_token
-    if _cache_token is not None:
-        current_token = get_cache_token()
-        if _cache_token != current_token:
-            _dispatch_cache.clear()
-            _cache_token = current_token
-
-    try:
-        func = _dispatch_cache[(cls, vcls)]
-    except KeyError:
+    def __call__(self, cls: type[_T], val: Any) -> _T:
+        origin = get_origin(cls) or cls
+        Ts = _get_type_args(cls)
+        tp = val.__class__
         try:
-            vreg = _registry[cls]
-        except KeyError:
-            vreg = _find_impl(cls, _registry)
-            if not vreg:
-                raise NotImplementedError(
-                    f"No implementation found for '{cls.__qualname__}'"
-                )
+            if not Ts and isinstance(val, origin) and tp is not bool:
+                return val
+        except TypeError:
+            pass
+        func = self.dispatch(origin, tp)
+        return func(origin, val, *Ts)
 
-        try:
-            return vreg[vcls]
-        except KeyError:
-            func = _find_impl(vcls, vreg)
-            if not func:
+    def register(self, func):
+        sig = signature(func)
+        if len(sig.parameters) < 2:
+            raise TypeError(
+                f"{func!r}() takes {len(sig.parameters)} arguments but 2 required"
+            )
+        it = iter(sig.parameters.items())
+        argname, _ = next(it)
+        hints = get_type_hints(func)
+        typ = hints.get(argname)
+        if typ:
+            type_args = _get_type_args(typ)
+            if get_origin(typ) is not type or not type_args:
                 raise TypeError(
-                    f"No implementation found for '{cls.__qualname__}' from {vcls.__qualname__}"
+                    f"Invalid first argument to `deepcast.register()`: {typ!r}. "
+                    f"Use either type[] annotation or return type annotation."
                 )
-        _dispatch_cache[(cls, vcls)] = func
-
-    return func
-
-
-def _function(
-    _=None, *, ctx_name: str = "ctx", cast_return: bool = False, keep_async: bool = True
-):
-    def deco(func):
-        nonlocal cast_return
-
-        sig = inspect.signature(func)
-        annons = get_type_hints(func)
-        if "return" not in annons:
-            cast_return = False
-        use_ctx = False
-        if ctx_name in sig.parameters:
-            ctx_type = annons.get(ctx_name)
-            if (ctx_type == Optional[Context] or ctx_type == Context) and (
-                sig.parameters[ctx_name].kind
-                not in (inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD)
-            ):
-                use_ctx = True
-            else:
-                raise TypeError(f"'{ctx_name}' argument conflict")
-
-        def prolog(args, kwargs):
-            if use_ctx:
-                ctx = kwargs.get(ctx_name)
-                if ctx is None:
-                    ctx = kwargs[ctx_name] = Context()
-            else:
-                ctx = kwargs.pop(ctx_name, None)
-                if ctx is None:
-                    ctx = Context()
-            ba = sig.bind(*args, **kwargs)
-            for key, val in ba.arguments.items():
-                if key == ctx_name:
-                    continue
-                if key in annons:
-                    with traverse(key):
-                        tp = annons[key]
-                        if sig.parameters[key].kind == inspect.Parameter.VAR_POSITIONAL:
-                            tp = Tuple[tp, ...]
-                        elif sig.parameters[key].kind == inspect.Parameter.VAR_KEYWORD:
-                            tp = Dict[Any, tp]
-                        ba.arguments[key] = deepcast(tp, val)
-            return ba
-
-        def epilog(r):
-            if cast_return:
-                with traverse("return"):
-                    r = deepcast(annons["return"], r)
-            return r
-
-        if asyncio.iscoroutinefunction(func) and keep_async:
-
-            @functools.wraps(func)
-            async def wrapper(*args, **kwargs):
-                ba = prolog(args, kwargs)
-                r = await func(*ba.args, **ba.kwargs)
-                return epilog(r)
+            cls = type_args[0]
+            _rcls = hints.get("return")
+            if _rcls not in {None, cls}:
+                raise TypeError(
+                    "The type annotation of the first argument does not match the return type annotation."
+                )
         else:
+            cls = hints.get("return")
+            if cls is None:
+                raise TypeError(
+                    "Invalid signature to `deepcast.register()`. "
+                    "Use either type[] annotation or return type annotation."
+                )
 
-            @functools.wraps(func)
-            def wrapper(*args, **kwargs):
-                ba = prolog(args, kwargs)
-                r = func(*ba.args, **ba.kwargs)
-                return epilog(r)
+        argname, _ = next(it)
+        vcls = hints.get(argname)
+        if not vcls:
+            vcls = Any
+        if vcls == Any:
+            vcls = object
 
-        setattr(wrapper, "_ctx", ctx_name)
+        if cls in self._registry:
+            if vcls in self._registry[cls]:
+                raise RuntimeError("Ambiguous `deepcast.register()`")
+            self._registry[cls][vcls] = func
+        else:
+            self._registry[cls] = {vcls: func}
+        setattr(func, _TYPES, (cls, vcls))
 
-        return wrapper
+        if self._cache_token is None:
+            if hasattr(cls, "__abstractmethods__") or hasattr(
+                vcls, "__abstractmethods__"
+            ):
+                self._cache_token = get_cache_token()
+        self._dispatch_cache.clear()
 
-    return deco if _ is None else deco(_)
+        return func
+
+    def dispatch(self, cls, vcls):
+        global _cache_token
+        if self._cache_token is not None:
+            current_token = get_cache_token()
+            if self._cache_token != current_token:
+                self._dispatch_cache.clear()
+                self._cache_token = current_token
+
+        try:
+            func = self._dispatch_cache[(cls, vcls)]
+        except KeyError:
+            try:
+                vreg = self._registry[cls]
+            except KeyError:
+                vreg = _find_impl(cls, self._registry)
+                if not vreg:
+                    raise NotImplementedError(
+                        f"No implementation found for '{cls.__qualname__}'"
+                    )
+
+            try:
+                return vreg[vcls]
+            except KeyError:
+                func = _find_impl(vcls, vreg)
+                if not func:
+                    raise TypeError(
+                        f"No implementation found for '{cls.__qualname__}' from {vcls.__qualname__}"
+                    )
+            self._dispatch_cache[(cls, vcls)] = func
+
+        return func
+
+    def function(
+        self,
+        _=None,
+        *,
+        ctx_name: str = "ctx",
+        cast_return: bool = False,
+        keep_async: bool = True,
+    ):
+        def deco(func):
+            nonlocal cast_return
+
+            sig = inspect.signature(func)
+            annons = get_type_hints(func)
+            if "return" not in annons:
+                cast_return = False
+            use_ctx = False
+            if ctx_name in sig.parameters:
+                ctx_type = annons.get(ctx_name)
+                if (ctx_type == Optional[Context] or ctx_type == Context) and (
+                    sig.parameters[ctx_name].kind
+                    not in (
+                        inspect.Parameter.VAR_POSITIONAL,
+                        inspect.Parameter.VAR_KEYWORD,
+                    )
+                ):
+                    use_ctx = True
+                else:
+                    raise TypeError(f"'{ctx_name}' argument conflict")
+
+            def prolog(args, kwargs):
+                if use_ctx:
+                    ctx = kwargs.get(ctx_name)
+                    if ctx is None:
+                        ctx = kwargs[ctx_name] = Context()
+                else:
+                    ctx = kwargs.pop(ctx_name, None)
+                    if ctx is None:
+                        ctx = Context()
+                ba = sig.bind(*args, **kwargs)
+                for key, val in ba.arguments.items():
+                    if key == ctx_name:
+                        continue
+                    if key in annons:
+                        with traverse(key):
+                            tp = annons[key]
+                            if (
+                                sig.parameters[key].kind
+                                == inspect.Parameter.VAR_POSITIONAL
+                            ):
+                                tp = Tuple[tp, ...]
+                            elif (
+                                sig.parameters[key].kind
+                                == inspect.Parameter.VAR_KEYWORD
+                            ):
+                                tp = Dict[Any, tp]
+                            ba.arguments[key] = self(tp, val)
+                return ba
+
+            def epilog(r):
+                if cast_return:
+                    with traverse("return"):
+                        r = self(annons["return"], r)
+                return r
+
+            if asyncio.iscoroutinefunction(func) and keep_async:
+
+                @functools.wraps(func)
+                async def wrapper(*args, **kwargs):
+                    ba = prolog(args, kwargs)
+                    r = await func(*ba.args, **ba.kwargs)
+                    return epilog(r)
+            else:
+
+                @functools.wraps(func)
+                def wrapper(*args, **kwargs):
+                    ba = prolog(args, kwargs)
+                    r = func(*ba.args, **ba.kwargs)
+                    return epilog(r)
+
+            setattr(wrapper, "_ctx", ctx_name)
+
+            return wrapper
+
+        return deco if _ is None else deco(_)
 
 
-def deepcast(cls: type[_T], val: Any) -> _T:
-    origin = get_origin(cls) or cls
-    Ts = _get_type_args(cls)
-    tp = val.__class__
-    try:
-        if not Ts and isinstance(val, origin) and tp is not bool:
-            return val
-    except TypeError:
-        pass
-    func = _dispatch(origin, tp)
-    return func(origin, val, *Ts)
-
-
-deepcast.register = _register
-deepcast.dispatch = _dispatch
-deepcast.function = _function
-
+deepcast = DeepCast()
 
 #
 # Any
@@ -795,7 +816,7 @@ def _cast_Union_object(cls, val, *Ts) -> Union:
     for i, T in enumerate(Ts):
         origin = get_origin(T) or T
         try:
-            func = _dispatch(origin, vcls)
+            func = deepcast.dispatch(origin, vcls)
         except:
             continue
         if ctx.union_prefers_same_type and vcls is origin:
