@@ -5,6 +5,7 @@
 scratch.py
 _build/
 dist/
+site/
 tmp/
 __pycache__/
 *.egg-info/

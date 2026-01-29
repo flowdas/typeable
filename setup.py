@@ -18,7 +18,7 @@ tests_require = [
 dev_requires = tests_require + [
     "build",
     "ruff",
-    "sphinx",
+    "mkdocs-material",
 ]
 
 setup(

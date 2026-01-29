@@ -1,3 +1,3 @@
 collect_ignore = [
-    "test_constraint.py",
+    "test_constraint_legacy.py",
 ]

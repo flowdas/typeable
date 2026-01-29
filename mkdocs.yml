@@ -1,0 +1,4 @@
+site_name: Typeable
+site_url: https://typeable.flowdas.com/
+theme:
+  name: material

@@ -153,9 +153,7 @@ class DeepCast:
 
         argname, _ = next(it)
         vcls = hints.get(argname)
-        if not vcls:
-            vcls = Any
-        if vcls == Any:
+        if not vcls or vcls is Any:
             vcls = object
 
         if cls in self._registry:
@@ -294,21 +292,13 @@ class DeepCast:
 deepcast = DeepCast()
 
 #
-# Any
-#
-
-
-@deepcast.register
-def _cast_Any_object(deepcast: DeepCast, cls: type[Any], val):
-    return val
-
-
-#
 # object (fallback)
 #
 
 
-def _cast_dataclass_Mapping(deepcast: DeepCast, cls, val: Mapping):
+def _dataclass_from_Mapping(deepcast: DeepCast, cls, val: Mapping, *Ts: type):
+    if Ts:
+        raise NotImplementedError
     cls = _resolve_polymorphic(cls, val)
     field_map: dict[str, Field] = {f.name: f for f in fields(cls)}
     kwargs = {}
@@ -334,18 +324,25 @@ def _cast_dataclass_Mapping(deepcast: DeepCast, cls, val: Mapping):
 
 
 @deepcast.register
-def _cast_object_object(deepcast: DeepCast, cls: type[object], val, *Ts):
-    if Ts:
-        raise NotImplementedError
+def _fallback(deepcast: DeepCast, cls: type[object], val: object, *Ts: type):
+    # 메타클래스를 사용하지 않는 타입에 대해 적용되는 폴백 캐스터.
+    # 타입 시스템으로 캐스터를 매핑할 수 없는 타입들을 다룬다.
     if is_dataclass(cls):
         if isinstance(val, Mapping):
-            return _cast_dataclass_Mapping(deepcast, cls, val)
-        else:
-            raise TypeError(
-                f"No implementation found for '{cls.__qualname__}' from {val.__class__.__qualname__}"
-            )
-    else:
-        return cls(val)
+            return _dataclass_from_Mapping(deepcast, cls, val, *Ts)
+    raise TypeError(
+        f"No implementation found for '{cls.__qualname__}' from {val.__class__.__qualname__}"
+    )
+
+
+#
+# Any
+#
+
+
+@deepcast.register
+def _cast_Any_object(deepcast: DeepCast, cls: type[Any], val):
+    return val
 
 
 #

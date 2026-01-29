@@ -224,10 +224,10 @@ def test_str():
     # type
     assert deepcast(str, int) == "builtins.int"
     assert deepcast(str, datetime) == "datetime.datetime"
-    assert deepcast(str, OuterClass) == "tests.test_builtin_types.OuterClass"
+    assert deepcast(str, OuterClass) == "tests.test_builtin_types_legacy.OuterClass"
     assert (
         deepcast(str, OuterClass.InnerClass)
-        == "tests.test_builtin_types.OuterClass.InnerClass"
+        == "tests.test_builtin_types_legacy.OuterClass.InnerClass"
     )
 
     # None
@@ -674,9 +674,9 @@ def test_type():
     assert deepcast(type, "collections.abc.Iterable") == Iterable
     assert deepcast(Type[int], "int") == int
     assert deepcast(Type[int], "bool") == bool
-    assert deepcast(type, "tests.test_builtin_types.OuterClass") is OuterClass
+    assert deepcast(type, "tests.test_builtin_types_legacy.OuterClass") is OuterClass
     assert (
-        deepcast(type, "tests.test_builtin_types.OuterClass.InnerClass")
+        deepcast(type, "tests.test_builtin_types_legacy.OuterClass.InnerClass")
         is OuterClass.InnerClass
     )
 
