@@ -166,17 +166,15 @@ class DeepCast:
             self._registry[cls] = {vcls: func}
         setattr(func, _TYPES, (cls, vcls))
 
-        if self._cache_token is None:
-            if hasattr(cls, "__abstractmethods__") or hasattr(
-                vcls, "__abstractmethods__"
-            ):
-                self._cache_token = get_cache_token()
+        if self._cache_token is None and any(
+            hasattr(T, "__abstractmethods__") for T in (cls, vcls)
+        ):
+            self._cache_token = get_cache_token()
         self._dispatch_cache.clear()
 
         return func
 
     def dispatch(self, cls, vcls):
-        global _cache_token
         if self._cache_token is not None:
             current_token = get_cache_token()
             if self._cache_token != current_token:
