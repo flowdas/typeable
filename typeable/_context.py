@@ -21,6 +21,8 @@ _default_bool_strings: dict[str, bool] = {
 
 @dataclass(slots=True)
 class Context:
+    cast_default: bool = True
+
     bool_is_int: bool = True
     bool_strings: dict[str, bool] = field(default_factory=_default_bool_strings.copy)
     bytes_encoding: str = "utf-8"

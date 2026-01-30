@@ -117,3 +117,27 @@ def test_exact_match(deepcast):
         return 123
 
     assert deepcast(int, X()) == 123
+
+
+def test_apply_class(deepcast):
+    """클래스에 dict 를 apply 하면 인스턴스를 반환한다."""
+
+    class X:
+        def __init__(self, i: int):
+            self.i = i
+
+    data = {"i": 3}
+    x = deepcast.apply(X, data)
+    assert isinstance(x, X)
+    assert x.i == data["i"]
+
+
+def test_apply_function(deepcast):
+    """함수에 dict 를 apply 하면 언패킹해서 호출한다."""
+
+    def f(i: int) -> int:
+        return i
+
+    data = {"i": 3}
+    x = deepcast.apply(f, data)
+    assert x == data["i"]

@@ -13,13 +13,11 @@ import functools
 from functools import _find_impl  # type: ignore
 import importlib
 import inspect
-from inspect import (
-    signature,
-)
 import itertools
 from numbers import Number
 import re
 import sys
+from types import NoneType
 from typing import (
     Any,
     Dict,
@@ -120,7 +118,7 @@ class DeepCast:
         return func(self, origin, val, *Ts)
 
     def register(self, func):
-        sig = signature(func)
+        sig = inspect.signature(func)
         if len(sig.parameters) < 3:
             raise TypeError(
                 f"{func!r}() takes {len(sig.parameters)} arguments but at least 3 required"
@@ -202,6 +200,83 @@ class DeepCast:
             self._dispatch_cache[(cls, vcls)] = func
 
         return func
+
+    def apply(self, func: Callable[..., _T], val: Any) -> _T:
+        if not callable(func):
+            raise TypeError(f"{func!r} is not callable.")
+
+        cast_default = getcontext().cast_default
+
+        # func 의 서명을 파싱한다.
+        aliases: dict[str, str] = {}  # val's name -> func's name mapping
+        omissibles: set[str] = set()
+        mandatories: set[str] = set()
+        args_keys: list[str] = []
+        kwargs_key: str | None = None
+        empty = inspect.Parameter.empty
+        sig = inspect.signature(func)
+        for key, p in sig.parameters.items():
+            if p.kind == p.POSITIONAL_ONLY:
+                args_keys.append(key)
+            if p.kind == p.VAR_KEYWORD:
+                kwargs_key = key
+            if p.default == empty:
+                mandatories.add(key)
+            elif cast_default and p.annotation != empty:
+                omissibles.add(key)
+
+        # val 에서 Mapping 인터페이스를 얻는다.
+        if not isinstance(val, Mapping):
+            val = self(dict, val)
+
+        # kwargs 를 만든다
+        kwargs = {}
+        for key in val:
+            with traverse(key):
+                value = val[key]
+                key = self(str, key)
+                if key in aliases:
+                    key = aliases[key]
+                if key in sig.parameters:
+                    if sig.parameters[key].kind in {
+                        inspect.Parameter.VAR_POSITIONAL,
+                        inspect.Parameter.VAR_KEYWORD,
+                    }:
+                        raise TypeError(f"Unknown field {key!r}")
+                    annotation = sig.parameters[key].annotation
+                else:
+                    if kwargs_key is None:
+                        raise TypeError(f"Unknown field {key!r}")
+                    annotation = sig.parameters[kwargs_key].annotation
+                kwargs[key] = value if annotation == empty else self(annotation, value)
+                omissibles.discard(key)
+                mandatories.discard(key)
+
+        # 기본 값들도 형검사한다.
+        for key in omissibles:
+            with traverse(key):
+                # omissibles 에는 어노테이션이 있는 것만 모아두었다.
+                kwargs[key] = self(
+                    sig.parameters[key].annotation, sig.parameters[key].default
+                )
+
+        # 필수 인자 중 빠진 것이 있는지 검사한다
+        # 미리 검사하는 대신 호출시 예외가 발생할 때 검사하는 대안도 있다.
+        for key in mandatories:
+            with traverse(key):
+                raise TypeError(f"Missing field {key!r}")
+
+        # 위치전용 인자를 추출한다
+        args = []
+        try:
+            for key in args_keys:
+                args.append(kwargs.pop(key))
+        except KeyError:
+            # 필수 인자 중 빠진 것은 없으므로 이 이후로 모두 default 가 있어야만 한다.
+            pass
+
+        # callable 을 호출한다.
+        return func(*args, **kwargs)
 
     def function(
         self,
@@ -324,15 +399,25 @@ def _dataclass_from_Mapping(deepcast: DeepCast, cls, val: Mapping, *Ts: type):
 
 
 @deepcast.register
-def _fallback(deepcast: DeepCast, cls: type[object], val: object, *Ts: type):
+def _type_fallback(deepcast: DeepCast, cls: type[object], val: object, *Ts: type):
     # 메타클래스를 사용하지 않는 타입에 대해 적용되는 폴백 캐스터.
     # 타입 시스템으로 캐스터를 매핑할 수 없는 타입들을 다룬다.
     if is_dataclass(cls):
         if isinstance(val, Mapping):
             return _dataclass_from_Mapping(deepcast, cls, val, *Ts)
-    raise TypeError(
-        f"No implementation found for '{cls.__qualname__}' from {val.__class__.__qualname__}"
-    )
+    return deepcast.apply(cls[Ts] if Ts else cls, val)
+
+
+#
+# None
+#
+
+
+@deepcast.register
+def _NoneType_from_object(deepcast: DeepCast, cls: type[NoneType], val: object) -> None:
+    if val is not None:
+        raise TypeError(f"{val!r} is not None")
+    return None
 
 
 #
@@ -556,6 +641,11 @@ def _cast_list_object(deepcast: DeepCast, cls: type[list], val, T=None):
 #
 # dict
 #
+
+
+@deepcast.register
+def _dict_from_str(deepcast: DeepCast, cls: type[dict], val: str, *Ts: type) -> dict:
+    raise TypeError("dict from str not supported")
 
 
 def _copy_dict_object(deepcast: DeepCast, r, it, KT, VT):

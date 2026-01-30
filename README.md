@@ -30,7 +30,9 @@ If a conversion is conditionally supported depending on the context, it is indic
 
 | `T` | `type(v)` | If | Note |
 | :--- | :--- | :--- | :--- |
-| `object` | `object` | | |
+| `None` | `NoneType` | | `None` is replaced with `types.NoneType`. |
+| `object` | `collections.abc.Mapping` | | |
+| | `object` | | |
 
 ### Standard Library Types
 
