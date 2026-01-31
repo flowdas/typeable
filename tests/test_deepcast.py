@@ -1,3 +1,4 @@
+from dataclasses import dataclass, field
 from typing import (
     Type,
 )
@@ -130,6 +131,27 @@ def test_apply_class(deepcast):
     x = deepcast.apply(X, data)
     assert isinstance(x, X)
     assert x.i == data["i"]
+
+
+def test_apply_dataclass(deepcast):
+    """alaias 가 포함된 dataclass에 dict 를 apply 하면 인스턴스를 반환한다."""
+
+    @dataclass
+    class X:
+        i: int = deepcast.field(alias="$i")
+
+    data = {"$i": 3}
+    x = deepcast.apply(X, data)
+    assert isinstance(x, X)
+    assert x.i == data["$i"]
+
+    @dataclass
+    class Y:
+        i: int = field(metadata={"alias": "$i"})
+
+    y = deepcast.apply(Y, data)
+    assert isinstance(y, Y)
+    assert y.i == data["$i"]
 
 
 def test_apply_function(deepcast):

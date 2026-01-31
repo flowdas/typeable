@@ -5,6 +5,7 @@ from collections.abc import (
     Mapping,
 )
 from contextlib import contextmanager
+import dataclasses
 from dataclasses import is_dataclass, fields, Field, MISSING
 import datetime
 from email.utils import parsedate_to_datetime
@@ -76,6 +77,10 @@ _T = TypeVar("_T")
 _CasterType = Callable[["DeepCast", type[_T], Any], _T]
 
 _TYPES = "__types__"
+
+_META_ALIAS = "alias"
+_META_RD_ONLY = "rd_only"
+_META_WR_ONLY = "wr_only"
 
 
 def _get_type_args(tp):
@@ -207,6 +212,13 @@ class DeepCast:
 
         cast_default = getcontext().cast_default
 
+        # val 에서 Mapping 인터페이스를 얻는다.
+        if not isinstance(val, Mapping):
+            val = self(dict, val)
+
+        # resolve interface
+        func = _resolve_polymorphic(func, val)
+
         # func 의 서명을 파싱한다.
         aliases: dict[str, str] = {}  # val's name -> func's name mapping
         omissibles: set[str] = set()
@@ -214,8 +226,15 @@ class DeepCast:
         args_keys: list[str] = []
         kwargs_key: str | None = None
         empty = inspect.Parameter.empty
+        dataclass_fields: dict[str, Field] = {}
+        if is_dataclass(func):
+            dataclass_fields = {f.name: f for f in fields(func)}
         sig = inspect.signature(func)
         for key, p in sig.parameters.items():
+            if key in dataclass_fields:
+                f = dataclass_fields[key]
+                if _META_ALIAS in (f.metadata or {}):
+                    aliases[self(str, f.metadata[_META_ALIAS])] = key
             if p.kind == p.POSITIONAL_ONLY:
                 args_keys.append(key)
             if p.kind == p.VAR_KEYWORD:
@@ -224,10 +243,6 @@ class DeepCast:
                 mandatories.add(key)
             elif cast_default and p.annotation != empty:
                 omissibles.add(key)
-
-        # val 에서 Mapping 인터페이스를 얻는다.
-        if not isinstance(val, Mapping):
-            val = self(dict, val)
 
         # kwargs 를 만든다
         kwargs = {}
@@ -255,10 +270,17 @@ class DeepCast:
         # 기본 값들도 형검사한다.
         for key in omissibles:
             with traverse(key):
+                value = sig.parameters[key].default
+                # defauly_factory 미리 호출하는 이유는 frozen 일 가능성 때문이다.
+                factory = MISSING
+                if key in dataclass_fields:
+                    factory = dataclass_fields[key].default_factory
+                if factory is not MISSING:
+                    value = factory()
+                else:
+                    value = sig.parameters[key].default
                 # omissibles 에는 어노테이션이 있는 것만 모아두었다.
-                kwargs[key] = self(
-                    sig.parameters[key].annotation, sig.parameters[key].default
-                )
+                kwargs[key] = self(sig.parameters[key].annotation, value)
 
         # 필수 인자 중 빠진 것이 있는지 검사한다
         # 미리 검사하는 대신 호출시 예외가 발생할 때 검사하는 대안도 있다.
@@ -277,6 +299,58 @@ class DeepCast:
 
         # callable 을 호출한다.
         return func(*args, **kwargs)
+
+    def field(
+        self,
+        *,
+        default=MISSING,
+        default_factory=MISSING,
+        init=True,
+        repr=True,
+        hash=None,
+        compare=True,
+        metadata=None,
+        kw_only=MISSING,
+        doc=None,
+        alias: str | None = None,
+        rd_only: bool = False,
+        wr_only: bool = False,
+    ):
+        kwargs = {}
+        if metadata is None:
+            metadata = {}
+        else:
+            metadata = metadata.copy()
+        if doc is not None:
+            if sys.version_info < (3, 14):
+                metadata["doc"] = doc
+            else:
+                kwargs["doc"] = doc
+        if alias is None:
+            alias = metadata.pop(_META_ALIAS, None)
+        if alias is not None:
+            if not isinstance(alias, str):
+                raise TypeError(f"The alias must be a str: {alias!r}")
+            metadata[_META_ALIAS] = alias
+        rd_only = rd_only or metadata.pop(_META_RD_ONLY, False)
+        wr_only = wr_only or metadata.pop(_META_WR_ONLY, False)
+        if rd_only:
+            if wr_only:
+                raise TypeError("cannot specify both rd_only and wr_only")
+            metadata[_META_RD_ONLY] = True
+        if wr_only:
+            metadata[_META_WR_ONLY] = True
+        return dataclasses.field(
+            default=default,
+            default_factory=default_factory,
+            init=init,
+            repr=repr,
+            hash=hash,
+            compare=compare,
+            metadata=(metadata or None),
+            kw_only=kw_only,
+            **kwargs,
+        )
 
     def function(
         self,
@@ -371,40 +445,10 @@ deepcast = DeepCast()
 #
 
 
-def _dataclass_from_Mapping(deepcast: DeepCast, cls, val: Mapping, *Ts: type):
-    if Ts:
-        raise NotImplementedError
-    cls = _resolve_polymorphic(cls, val)
-    field_map: dict[str, Field] = {f.name: f for f in fields(cls)}
-    kwargs = {}
-    for k, v in val.items():
-        with traverse(k):
-            if k in field_map and field_map[k].init:
-                kwargs[k] = deepcast(field_map[k].type, v)
-            else:
-                raise TypeError(
-                    f"{cls.__name__}.__init__() got an unexpected keyword argument '{k}'"
-                )
-    try:
-        return cls(**kwargs)
-    except TypeError:
-        for k, f in field_map.items():
-            if k not in val:
-                if f.init and f.default is MISSING and f.default_factory is MISSING:
-                    with traverse(k):
-                        raise TypeError(
-                            f"{cls.__name__}.__init__() missing 1 required argument: '{k}'"
-                        )
-        raise
-
-
 @deepcast.register
 def _type_fallback(deepcast: DeepCast, cls: type[object], val: object, *Ts: type):
     # 메타클래스를 사용하지 않는 타입에 대해 적용되는 폴백 캐스터.
     # 타입 시스템으로 캐스터를 매핑할 수 없는 타입들을 다룬다.
-    if is_dataclass(cls):
-        if isinstance(val, Mapping):
-            return _dataclass_from_Mapping(deepcast, cls, val, *Ts)
     return deepcast.apply(cls[Ts] if Ts else cls, val)
 
 
