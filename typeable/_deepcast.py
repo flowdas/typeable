@@ -75,7 +75,6 @@ _TYPES = "__types__"
 
 _META_ALIAS = "alias"
 _META_RD_ONLY = "rd_only"
-_META_WR_ONLY = "wr_only"
 
 
 def _get_type_args(tp):
@@ -322,7 +321,6 @@ class DeepCast:
         doc=None,
         alias: str | None = None,
         rd_only: bool = False,
-        wr_only: bool = False,
     ) -> Any:
         kwargs = {}
         if metadata is None:
@@ -341,13 +339,8 @@ class DeepCast:
                 raise TypeError(f"The alias must be a str: {alias!r}")
             metadata[_META_ALIAS] = alias
         rd_only = rd_only or metadata.pop(_META_RD_ONLY, False)
-        wr_only = wr_only or metadata.pop(_META_WR_ONLY, False)
         if rd_only:
-            if wr_only:
-                raise TypeError("cannot specify both rd_only and wr_only")
             metadata[_META_RD_ONLY] = True
-        if wr_only:
-            metadata[_META_WR_ONLY] = True
         return dataclasses.field(
             default=default,
             default_factory=default_factory,
