@@ -188,7 +188,10 @@ class DeepCast:
             try:
                 vreg = self._registry[cls]
             except KeyError:
-                vreg = _find_impl(cls, self._registry)
+                try:
+                    vreg = _find_impl(cls, self._registry)
+                except AttributeError:
+                    raise TypeError(f"{cls!r} is not a supported type.")
                 if not vreg:
                     raise NotImplementedError(
                         f"No implementation found for '{cls.__qualname__}'"
