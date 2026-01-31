@@ -212,34 +212,30 @@ def test_apply_validate_default():
         assert error.location == ("i",)
 
 
-# def test_apply_cast_return():
-#     @deepcast.function
-#     def test(a: int) -> str:
-#         assert isinstance(a, int)
-#         return a
+def test_apply_validate_return():
+    def test(a: int) -> str:  # type: ignore
+        assert isinstance(a, int)
+        return a  # type: ignore
 
-#     assert test(123) == 123
-#     assert test("123") == 123
+    assert deepcast.apply(test, dict(a=123)) == 123
+    assert deepcast.apply(test, dict(a="123")) == 123
 
-#     @deepcast.function(cast_return=True)
-#     def test(a: int):
-#         assert isinstance(a, int)
-#         return a
+    def test(a: int):  # type: ignore
+        assert isinstance(a, int)
+        return a
 
-#     assert test(123) == 123
-#     assert test("123") == 123
+    assert deepcast.apply(test, dict(a=123), validate_return=True) == 123
+    assert deepcast.apply(test, dict(a="123"), validate_return=True) == 123
 
-#     @deepcast.function(cast_return=True)
-#     def test(a: int) -> str:
-#         assert isinstance(a, int)
-#         return a
+    def test(a: int) -> str:
+        assert isinstance(a, int)
+        return a  # type: ignore
 
-#     assert test(123) == "123"
-#     assert test("123") == "123"
+    assert deepcast.apply(test, dict(a=123), validate_return=True) == "123"
+    assert deepcast.apply(test, dict(a="123"), validate_return=True) == "123"
 
 
 def test_apply_capture():
-    # @deepcast.function(cast_return=True)
     def test(a: int) -> str:
         return None  # type: ignore
 
@@ -248,10 +244,10 @@ def test_apply_capture():
             deepcast.apply(test, dict(a=None))
     assert error.location == ("a",)
 
-    # with pytest.raises(TypeError):
-    #     with capture() as error:
-    #         test("123")
-    # assert error.location == ("return",)
+    with pytest.raises(TypeError):
+        with capture() as error:
+            deepcast.apply(test, dict(a=123), validate_return=True)
+    assert error.location == ("return",)
 
 
 def test_apply_method():

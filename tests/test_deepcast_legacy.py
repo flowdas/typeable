@@ -14,9 +14,7 @@ from typing import (
     get_origin,
 )
 
-import pytest
-
-from typeable import capture, declare, deepcast
+from typeable import declare, deepcast
 
 
 def test_get_origin():
@@ -79,45 +77,3 @@ def test_declare():
 
     assert deepcast(T, [2]) == [2]
     assert deepcast(T, ["2"]) == [2]
-
-
-def test_function_cast_return():
-    @deepcast.function
-    def test(a: int) -> str:
-        assert isinstance(a, int)
-        return a
-
-    assert test(123) == 123
-    assert test("123") == 123
-
-    @deepcast.function(cast_return=True)
-    def test(a: int):
-        assert isinstance(a, int)
-        return a
-
-    assert test(123) == 123
-    assert test("123") == 123
-
-    @deepcast.function(cast_return=True)
-    def test(a: int) -> str:
-        assert isinstance(a, int)
-        return a
-
-    assert test(123) == "123"
-    assert test("123") == "123"
-
-
-def test_function_capture():
-    @deepcast.function(cast_return=True)
-    def test(a: int) -> str:
-        return None
-
-    with pytest.raises(TypeError):
-        with capture() as error:
-            test(None)
-    assert error.location == ("a",)
-
-    with pytest.raises(TypeError):
-        with capture() as error:
-            test("123")
-    assert error.location == ("return",)

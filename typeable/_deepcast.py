@@ -1,5 +1,4 @@
 from abc import get_cache_token
-import asyncio
 from collections.abc import (
     Callable,
     Mapping,
@@ -10,7 +9,6 @@ from dataclasses import is_dataclass, fields, Field, MISSING
 import datetime
 from email.utils import parsedate_to_datetime
 import enum
-import functools
 from functools import _find_impl  # type: ignore
 import importlib
 import inspect
@@ -21,11 +19,8 @@ import sys
 from types import NoneType
 from typing import (
     Any,
-    Dict,
     ForwardRef,
     Literal,
-    Optional,
-    Tuple,
     TypeVar,
     Union,
     get_args,
@@ -209,11 +204,11 @@ class DeepCast:
 
         return func
 
-    def apply(self, func: Callable[..., _T], val: Any) -> _T:
+    def apply(
+        self, func: Callable[..., _T], val: Any, *, validate_return: bool = False
+    ) -> _T:
         if not callable(func):
             raise TypeError(f"{func!r} is not callable.")
-
-        validate_default = getcontext().validate_default
 
         # val 에서 Mapping 인터페이스를 얻는다.
         if not isinstance(val, Mapping):
@@ -233,6 +228,7 @@ class DeepCast:
         if is_dataclass(func):
             dataclass_fields = {f.name: f for f in fields(func)}
         sig = inspect.signature(func)
+        validate_default = getcontext().validate_default
         for key, p in sig.parameters.items():
             if key in dataclass_fields:
                 f = dataclass_fields[key]
@@ -305,7 +301,12 @@ class DeepCast:
             pass
 
         # callable 을 호출한다.
-        return func(*args, **kwargs)
+        ret = func(*args, **kwargs)
+        if validate_return and sig.return_annotation != empty:
+            return_type = sig.return_annotation or NoneType
+            with traverse("return"):
+                ret = self(return_type, ret)
+        return ret
 
     def field(
         self,
@@ -358,91 +359,6 @@ class DeepCast:
             kw_only=kw_only,
             **kwargs,
         )
-
-    def function(
-        self,
-        _=None,
-        *,
-        ctx_name: str = "ctx",
-        cast_return: bool = False,
-        keep_async: bool = True,
-    ):
-        def deco(func):
-            nonlocal cast_return
-
-            sig = inspect.signature(func)
-            annons = get_type_hints(func)
-            if "return" not in annons:
-                cast_return = False
-            use_ctx = False
-            if ctx_name in sig.parameters:
-                ctx_type = annons.get(ctx_name)
-                if (ctx_type == Optional[Context] or ctx_type == Context) and (
-                    sig.parameters[ctx_name].kind
-                    not in (
-                        inspect.Parameter.VAR_POSITIONAL,
-                        inspect.Parameter.VAR_KEYWORD,
-                    )
-                ):
-                    use_ctx = True
-                else:
-                    raise TypeError(f"'{ctx_name}' argument conflict")
-
-            def prolog(args, kwargs):
-                if use_ctx:
-                    ctx = kwargs.get(ctx_name)
-                    if ctx is None:
-                        ctx = kwargs[ctx_name] = Context()
-                else:
-                    ctx = kwargs.pop(ctx_name, None)
-                    if ctx is None:
-                        ctx = Context()
-                ba = sig.bind(*args, **kwargs)
-                for key, val in ba.arguments.items():
-                    if key == ctx_name:
-                        continue
-                    if key in annons:
-                        with traverse(key):
-                            tp = annons[key]
-                            if (
-                                sig.parameters[key].kind
-                                == inspect.Parameter.VAR_POSITIONAL
-                            ):
-                                tp = Tuple[tp, ...]
-                            elif (
-                                sig.parameters[key].kind
-                                == inspect.Parameter.VAR_KEYWORD
-                            ):
-                                tp = Dict[Any, tp]
-                            ba.arguments[key] = self(tp, val)
-                return ba
-
-            def epilog(r):
-                if cast_return:
-                    with traverse("return"):
-                        r = self(annons["return"], r)
-                return r
-
-            if asyncio.iscoroutinefunction(func) and keep_async:
-
-                @functools.wraps(func)
-                async def wrapper(*args, **kwargs):
-                    ba = prolog(args, kwargs)
-                    r = await func(*ba.args, **ba.kwargs)
-                    return epilog(r)
-            else:
-
-                @functools.wraps(func)
-                def wrapper(*args, **kwargs):
-                    ba = prolog(args, kwargs)
-                    r = func(*ba.args, **ba.kwargs)
-                    return epilog(r)
-
-            setattr(wrapper, "_ctx", ctx_name)
-
-            return wrapper
-
-        return deco if _ is None else deco(_)
 
 
 deepcast = DeepCast()
