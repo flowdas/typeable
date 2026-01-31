@@ -1,9 +1,9 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Literal
 
 import pytest
 
-from typeable import deepcast, capture
+from typeable import deepcast, capture, localcontext
 
 
 def test_cast():
@@ -49,6 +49,46 @@ def test_dict():
 
     x = deepcast(X, data)
     assert deepcast(dict, x) == data
+
+
+@pytest.mark.parametrize(
+    "frozen",
+    [False, True],
+)
+def test_validate_default(frozen):
+    """잘못된 기본값에 대한 처리를 확인한다."""
+
+    @dataclass(frozen=frozen)
+    class X:
+        i: int = None  # type: ignore
+        j: int = field(default_factory=lambda: None)  # type: ignore
+
+    x = deepcast(X, dict(i=0, j=0))
+    assert x.i == 0
+    assert x.j == 0
+
+    with localcontext() as ctx:
+        ctx.validate_default = False
+        x = deepcast(X, {})
+        assert isinstance(x, X)
+        assert x.i is None
+        assert x.j is None
+
+        ctx.validate_default = True
+        with pytest.raises(TypeError):
+            with capture() as error:
+                deepcast(X, {})
+        assert error.location in {("i",), ("j",)}
+
+        with pytest.raises(TypeError):
+            with capture() as error:
+                deepcast(X, dict(i=0))
+        assert error.location == ("j",)
+
+        with pytest.raises(TypeError):
+            with capture() as error:
+                deepcast(X, dict(j=0))
+        assert error.location == ("i",)
 
 
 def test_Literal():

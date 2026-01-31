@@ -21,7 +21,7 @@ _default_bool_strings: dict[str, bool] = {
 
 @dataclass(slots=True)
 class Context:
-    cast_default: bool = True
+    validate_default: bool = False
 
     bool_is_int: bool = True
     bool_strings: dict[str, bool] = field(default_factory=_default_bool_strings.copy)

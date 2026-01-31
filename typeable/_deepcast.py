@@ -213,7 +213,7 @@ class DeepCast:
         if not callable(func):
             raise TypeError(f"{func!r} is not callable.")
 
-        cast_default = getcontext().cast_default
+        validate_default = getcontext().validate_default
 
         # val 에서 Mapping 인터페이스를 얻는다.
         if not isinstance(val, Mapping):
@@ -248,7 +248,7 @@ class DeepCast:
                     inspect.Parameter.VAR_KEYWORD,
                 }:
                     mandatories.add(key)
-            elif cast_default and p.annotation != empty:
+            elif validate_default and p.annotation != empty:
                 omissibles.add(key)
 
         # kwargs 를 만든다

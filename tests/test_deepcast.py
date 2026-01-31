@@ -7,8 +7,7 @@ from typing import (
 
 import pytest
 
-from typeable import capture, deepcast
-
+from typeable import capture, deepcast, localcontext
 
 #
 # deepcast.register
@@ -194,6 +193,23 @@ def test_apply_kwargs():
         return kwargs
 
     assert deepcast.apply(test, dict(a=1, b="2", c=3.14)) == {"a": 1, "b": 2, "c": 3}
+
+
+def test_apply_validate_default():
+    """잘못된 인자 기본값에 대한 처리를 확인한다."""
+
+    def f(i: int = None) -> int:  # type: ignore
+        return i
+
+    with localcontext() as ctx:
+        ctx.validate_default = False
+        assert deepcast.apply(f, {}) is None
+
+        ctx.validate_default = True
+        with pytest.raises(TypeError):
+            with capture() as error:
+                deepcast.apply(f, {})
+        assert error.location == ("i",)
 
 
 # def test_apply_cast_return():
