@@ -1,5 +1,3 @@
-import pytest
-
 from typeable import deepcast
 
 

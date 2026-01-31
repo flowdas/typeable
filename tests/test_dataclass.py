@@ -7,6 +7,8 @@ from typeable import deepcast, capture
 
 
 def test_cast():
+    """dict 를 dataclass 로 변환할 수 있다."""
+
     @dataclass
     class X:
         i: int
@@ -19,6 +21,8 @@ def test_cast():
 
 
 def test_required():
+    """기본값이 있는 필드는 생략할 수 있고, 없는 필드는 필수다."""
+
     @dataclass
     class X:
         a: int
@@ -35,6 +39,8 @@ def test_required():
 
 
 def test_dict():
+    """dataclass 는 dict 와 상호 변환되고, 그 과정에서 데이터 소실이 없다."""
+
     @dataclass
     class X:
         i: int
@@ -45,21 +51,9 @@ def test_dict():
     assert deepcast(dict, x) == data
 
 
-@pytest.mark.skip(reason="JsonValue 제거")
-def test_JsonValue():
-    @dataclass
-    class X:
-        i: int
-
-    data = {"i": 0}
-
-    x = deepcast(X, data)
-    assert deepcast(JsonValue, x) == data  # type: ignore  # noqa: F821
-
-    assert deepcast(JsonValue, {"result": X(**data)}) == {"result": data}  # type: ignore  # noqa: F821
-
-
 def test_Literal():
+    """dataclass 는 Literal 을 필드로 가질 수 있다."""
+
     @dataclass
     class X:
         i: Literal[1, 2, 3]
@@ -75,6 +69,8 @@ def test_Literal():
 
 
 def test_capture_with_type_mismatch():
+    """dict -> dataclass 변환은 형 불일치 위치를 보고한다."""
+
     @dataclass
     class X:
         i: Literal[1, 2, 3]
@@ -86,6 +82,8 @@ def test_capture_with_type_mismatch():
 
 
 def test_capture_with_missing_field():
+    """dict -> dataclass 변환은 누락 위치를 보고한다."""
+
     @dataclass
     class X:
         i: Literal[1, 2, 3]
@@ -102,6 +100,8 @@ def test_capture_with_missing_field():
 
 
 def test_capture_with_extra_field():
+    """dict -> dataclass 변환은 잉여 필드 위치를 보고한다."""
+
     @dataclass
     class X:
         i: Literal[1, 2, 3]
