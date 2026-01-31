@@ -1,16 +1,18 @@
+import asyncio
 from dataclasses import dataclass, field
+import inspect
 from typing import (
     Type,
 )
 
 import pytest
 
-from typeable._deepcast import DeepCast
+from typeable import capture, deepcast
 
 
-@pytest.fixture
-def deepcast():
-    return DeepCast()
+#
+# deepcast.register
+#
 
 
 @pytest.mark.parametrize(
@@ -120,7 +122,12 @@ def test_exact_match(deepcast):
     assert deepcast(int, X()) == 123
 
 
-def test_apply_class(deepcast):
+#
+# deepcast.apply
+#
+
+
+def test_apply_class():
     """클래스에 dict 를 apply 하면 인스턴스를 반환한다."""
 
     class X:
@@ -133,7 +140,7 @@ def test_apply_class(deepcast):
     assert x.i == data["i"]
 
 
-def test_apply_dataclass(deepcast):
+def test_apply_dataclass():
     """alaias 가 포함된 dataclass에 dict 를 apply 하면 인스턴스를 반환한다."""
 
     @dataclass
@@ -154,7 +161,7 @@ def test_apply_dataclass(deepcast):
     assert y.i == data["$i"]
 
 
-def test_apply_function(deepcast):
+def test_apply_function():
     """함수에 dict 를 apply 하면 언패킹해서 호출한다."""
 
     def f(i: int) -> int:
@@ -163,3 +170,119 @@ def test_apply_function(deepcast):
     data = {"i": 3}
     x = deepcast.apply(f, data)
     assert x == data["i"]
+
+
+def test_apply_function_validation():
+    """함수 인자형으로 형변환을 시도한다."""
+
+    def test(a: int):
+        assert isinstance(a, int)
+        return a
+
+    assert deepcast.apply(test, dict(a=123)) == 123
+    assert deepcast.apply(test, dict(a="123")) == 123
+    with pytest.raises(TypeError):
+        deepcast.apply(test, dict(a=None))
+
+
+def test_apply_kwargs():
+    """**kwargs 의 어노테이션도 처리된다."""
+
+    def test(**kwargs: int):
+        for k, v in kwargs.items():
+            assert isinstance(v, int)
+        return kwargs
+
+    assert deepcast.apply(test, dict(a=1, b="2", c=3.14)) == {"a": 1, "b": 2, "c": 3}
+
+
+# def test_apply_cast_return():
+#     @deepcast.function
+#     def test(a: int) -> str:
+#         assert isinstance(a, int)
+#         return a
+
+#     assert test(123) == 123
+#     assert test("123") == 123
+
+#     @deepcast.function(cast_return=True)
+#     def test(a: int):
+#         assert isinstance(a, int)
+#         return a
+
+#     assert test(123) == 123
+#     assert test("123") == 123
+
+#     @deepcast.function(cast_return=True)
+#     def test(a: int) -> str:
+#         assert isinstance(a, int)
+#         return a
+
+#     assert test(123) == "123"
+#     assert test("123") == "123"
+
+
+def test_apply_capture():
+    # @deepcast.function(cast_return=True)
+    def test(a: int) -> str:
+        return None  # type: ignore
+
+    with pytest.raises(TypeError):
+        with capture() as error:
+            deepcast.apply(test, dict(a=None))
+    assert error.location == ("a",)
+
+    # with pytest.raises(TypeError):
+    #     with capture() as error:
+    #         test("123")
+    # assert error.location == ("return",)
+
+
+def test_apply_method():
+    class X:
+        def test1(self, a: int):
+            assert isinstance(self, X)
+            assert isinstance(a, int)
+            return a
+
+        @classmethod
+        def test2(cls, a: int):
+            assert cls is X
+            assert isinstance(a, int)
+            return a
+
+        @staticmethod
+        def test3(a: int):
+            assert isinstance(a, int)
+            return a
+
+    x = X()
+
+    assert deepcast.apply(x.test1, dict(a=123)) == 123
+    assert deepcast.apply(x.test1, dict(a="123")) == 123
+
+    assert deepcast.apply(x.test2, dict(a=123)) == 123
+    assert deepcast.apply(x.test2, dict(a="123")) == 123
+
+    assert deepcast.apply(X.test2, dict(a=123)) == 123
+    assert deepcast.apply(X.test2, dict(a="123")) == 123
+
+    assert deepcast.apply(x.test3, dict(a=123)) == 123
+    assert deepcast.apply(x.test3, dict(a="123")) == 123
+
+    assert deepcast.apply(X.test3, dict(a=123)) == 123
+    assert deepcast.apply(X.test3, dict(a="123")) == 123
+
+
+def test_apply_async():
+    async def test(a: int):
+        assert isinstance(a, int)
+        return a
+
+    assert asyncio.iscoroutinefunction(test)
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+    assert loop.run_until_complete(deepcast.apply(test, dict(a=123))) == 123
+    assert loop.run_until_complete(deepcast.apply(test, dict(a="123"))) == 123

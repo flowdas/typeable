@@ -319,7 +319,7 @@ class DeepCast:
         alias: str | None = None,
         rd_only: bool = False,
         wr_only: bool = False,
-    ):
+    ) -> Any:
         kwargs = {}
         if metadata is None:
             metadata = {}
