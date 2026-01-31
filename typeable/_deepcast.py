@@ -240,7 +240,11 @@ class DeepCast:
             if p.kind == p.VAR_KEYWORD:
                 kwargs_key = key
             if p.default == empty:
-                mandatories.add(key)
+                if p.kind not in {
+                    inspect.Parameter.VAR_POSITIONAL,
+                    inspect.Parameter.VAR_KEYWORD,
+                }:
+                    mandatories.add(key)
             elif cast_default and p.annotation != empty:
                 omissibles.add(key)
 
