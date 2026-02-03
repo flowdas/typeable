@@ -192,7 +192,12 @@ def test_apply_kwargs():
             assert isinstance(v, int)
         return kwargs
 
-    assert deepcast.apply(test, dict(a=1, b="2", c=3.14)) == {"a": 1, "b": 2, "c": 3}
+    with localcontext(lossy_conversion=True):
+        assert deepcast.apply(test, dict(a=1, b="2", c=3.14)) == {
+            "a": 1,
+            "b": 2,
+            "c": 3,
+        }
 
 
 def test_apply_validate_default():

@@ -22,7 +22,7 @@ _default_bool_strings: dict[str, bool] = {
 @dataclass(slots=True)
 class Context:
     dict_from_empty_iterable: bool = False
-    lossy_conversion: bool = True
+    lossy_conversion: bool = False
     validate_default: bool = False
 
     bool_is_int: bool = True

@@ -51,7 +51,8 @@ def test_bool():
     # int
     assert deepcast(bool, 0) is False
     assert deepcast(bool, 1) is True
-    assert deepcast(bool, 2) is True
+    with localcontext(lossy_conversion=True):
+        assert deepcast(bool, 2) is True
     with localcontext(lossy_conversion=False):
         with pytest.raises(ValueError):
             deepcast(bool, 2)
@@ -88,7 +89,8 @@ def test_int():
             deepcast(int, True)
 
     # float
-    assert deepcast(int, 123.456) == 123
+    with localcontext(lossy_conversion=True):
+        assert deepcast(int, 123.456) == 123
     with localcontext(lossy_conversion=False):
         with pytest.raises(ValueError):
             deepcast(int, 123.456)
