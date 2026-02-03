@@ -21,6 +21,8 @@ _default_bool_strings: dict[str, bool] = {
 
 @dataclass(slots=True)
 class Context:
+    dict_from_empty_iterable: bool = False
+    lossy_conversion: bool = True
     validate_default: bool = False
 
     bool_is_int: bool = True
@@ -29,7 +31,6 @@ class Context:
     date_format: str = "iso"
     datetime_format: str = "iso"
     encoding_errors: str = "strict"
-    lossy_conversion: bool = True
     naive_timestamp: bool = False
     strict_str: bool = True
     time_format: str = "iso"

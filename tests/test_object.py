@@ -1,3 +1,4 @@
+import pytest
 from typeable import deepcast
 
 
@@ -5,6 +6,31 @@ def test_object():
     """isinstance(v, T) == True 일 때 deepcast(T, v) 는 보통 v 를 반환한다."""
     v = object()
     assert deepcast(object, v) is v
+
+
+def test_None():
+    """None 도 object 다."""
+    assert deepcast(object, None) is None
+
+
+def test_custom_class():
+    """isinstance(v, T) == True 조건은 커스텀 클래스에도 적용된다."""
+
+    class X:
+        pass
+
+    x = X()
+    assert deepcast(X, x) is x
+
+
+def test_X_from_str():
+    """str 에서 커스텀 클래스로의 변환은 실패해야 한다."""
+
+    class X:
+        pass
+
+    with pytest.raises(TypeError):
+        deepcast(X, "")
 
 
 def test_init_from_dict():

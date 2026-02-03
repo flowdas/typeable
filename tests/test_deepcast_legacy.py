@@ -3,7 +3,6 @@ import sys
 from typing import (
     Annotated,
     Any,
-    Dict,
     FrozenSet,
     List,
     Literal,
@@ -20,8 +19,6 @@ from typeable import declare, deepcast
 def test_get_origin():
     assert get_origin(List[int]) == list
     assert get_origin(List) == list
-    assert get_origin(Dict[str, str]) == dict
-    assert get_origin(Dict) == dict
     assert get_origin(Set[int]) == set
     assert get_origin(Set) == set
     assert get_origin(FrozenSet[int]) == frozenset
@@ -46,8 +43,6 @@ def test_get_args():
     assert get_args(List[int]) == (int,)
     assert get_args(List[X]) == (X,)
     assert get_args(List) == ()
-    assert get_args(Dict[str, X]) == (str, X)
-    assert get_args(Dict) == ()
     assert get_args(Set[int]) == (int,)
     assert get_args(Set) == ()
     assert get_args(FrozenSet[int]) == (int,)

@@ -116,6 +116,21 @@ class DeepCast:
         func = self.dispatch(origin, tp)
         return func(self, origin, val, *Ts)
 
+    def _register(self, cls, V, func):
+        if cls in self._registry:
+            if V in self._registry[cls]:
+                raise RuntimeError("Ambiguous `deepcast.register()`")
+            self._registry[cls][V] = func
+        else:
+            self._registry[cls] = {V: func}
+        setattr(func, _TYPES, (cls, V))
+
+        if self._cache_token is None and any(
+            hasattr(T, "__abstractmethods__") for T in (cls, V)
+        ):
+            self._cache_token = get_cache_token()
+        self._dispatch_cache.clear()
+
     def register(self, func):
         sig = inspect.signature(func)
         if len(sig.parameters) < 3:
@@ -153,21 +168,16 @@ class DeepCast:
         if not vcls or vcls is Any:
             vcls = object
 
-        if cls in self._registry:
-            if vcls in self._registry[cls]:
-                raise RuntimeError("Ambiguous `deepcast.register()`")
-            self._registry[cls][vcls] = func
-        else:
-            self._registry[cls] = {vcls: func}
-        setattr(func, _TYPES, (cls, vcls))
-
-        if self._cache_token is None and any(
-            hasattr(T, "__abstractmethods__") for T in (cls, vcls)
-        ):
-            self._cache_token = get_cache_token()
-        self._dispatch_cache.clear()
+        self._register(cls, vcls, func)
 
         return func
+
+    def forbid(self, cls, *Vs):
+        def forbid(*args):
+            raise TypeError(f"{cls.__qualname__} from {V.__qualname__} not supported")
+
+        for V in Vs:
+            self._register(cls, V, forbid)
 
     def dispatch(self, cls, vcls):
         if self._cache_token is not None:
@@ -355,30 +365,6 @@ class DeepCast:
 
 
 deepcast = DeepCast()
-
-#
-# object (fallback)
-#
-
-
-@deepcast.register
-def _type_fallback(deepcast: DeepCast, cls: type[object], val: object, *Ts: type):
-    # 메타클래스를 사용하지 않는 타입에 대해 적용되는 폴백 캐스터.
-    # 타입 시스템으로 캐스터를 매핑할 수 없는 타입들을 다룬다.
-    return deepcast.apply(cls[Ts] if Ts else cls, val)
-
-
-#
-# None
-#
-
-
-@deepcast.register
-def _NoneType_from_object(deepcast: DeepCast, cls: type[NoneType], val: object) -> None:
-    if val is not None:
-        raise TypeError(f"{val!r} is not None")
-    return None
-
 
 #
 # Any
@@ -596,63 +582,6 @@ def _cast_list_object(deepcast: DeepCast, cls: type[list], val, T=None):
             return _copy_list_object(deepcast, r, it, T, i + 1)
     else:
         return _copy_list_object(deepcast, cls(), iter(val), T, 0)
-
-
-#
-# dict
-#
-
-
-@deepcast.register
-def _dict_from_str(deepcast: DeepCast, cls: type[dict], val: str, *Ts: type) -> dict:
-    raise TypeError("dict from str not supported")
-
-
-def _copy_dict_object(deepcast: DeepCast, r, it, KT, VT):
-    for k, v in it:
-        with traverse(k):
-            r[deepcast(KT, k)] = deepcast(VT, v)
-    return r
-
-
-def _dataclass_items(obj):
-    return [(f.name, getattr(obj, f.name)) for f in fields(obj)]
-
-
-@deepcast.register
-def _cast_dict_object(deepcast: DeepCast, cls: type[dict], val, K=None, V=None):
-    if K is None:
-        if is_dataclass(val):
-            val = _dataclass_items(val)
-        return cls(val)
-
-    if is_dataclass(val):
-        val = cls(_dataclass_items(val))
-
-    if isinstance(val, cls):
-        r = None
-        it = val.items()
-        i = 0
-        for k, v in it:
-            with traverse(k):
-                ck = deepcast(K, k)
-                cv = deepcast(V, v)
-                if ck is not k or cv is not v:
-                    if i == 0:
-                        r = cls()
-                    else:
-                        r = cls(itertools.islice(val.items(), i))
-                    r[ck] = cv
-                    break
-                i += 1
-        if r is None:
-            return val
-        else:
-            return _copy_dict_object(deepcast, r, it, K, V)
-    else:
-        if isinstance(val, Mapping):
-            val = val.items()
-        return _copy_dict_object(deepcast, cls(), val, K, V)
 
 
 #

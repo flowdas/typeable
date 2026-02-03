@@ -34,7 +34,22 @@ Generic types are denoted by `[]`.
 `@` denotes types with the specified decoration applied.
 This list is non-exhaustive.
 
+- `dict`
+- `dict[]`
 - `object`
+- `collections.Counter`
+- `collections.Counter[]`
+- `collections.defaultdict`
+- `collections.defaultdict[]`
+- `collections.OrderedDict`
+- `collections.OrderedDict[]`
 - `@dataclasses.dataclass`
 - `types.NoneType`
-
+- `typing.Counter`
+- `typing.Counter[]`
+- `typing.DefaultDict`
+- `typing.DefaultDict[]`
+- `typing.Dict`
+- `typing.Dict[]`
+- `typing.OrderedDict`
+- `typing.OrderedDict[]`

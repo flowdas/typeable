@@ -1,10 +1,8 @@
 import cmath
-import collections
 from dataclasses import dataclass
 import math
 from typing import (
     Any,
-    Dict,
     FrozenSet,
     List,
     Optional,
@@ -22,36 +20,11 @@ from typeable import (
 
 
 #
-# object
-#
-
-
-def test_object():
-    # None
-    assert deepcast(object, None) is None
-
-    # object
-    assert deepcast(object, object()).__class__ is object
-
-    # custom class
-    class X:
-        pass
-
-    x = X()
-    assert deepcast(X, x) is x
-
-    with pytest.raises(TypeError):
-        deepcast(X, "")
-
-
-#
 # None
 #
 
 
 def test_None():
-    assert deepcast(type(None), None) is None
-    assert deepcast(object, None) is None
     assert deepcast(Any, None) is None
     assert deepcast(Optional[int], None) is None
     with pytest.raises(TypeError):
@@ -353,76 +326,6 @@ def test_list():
     assert deepcast(List, data) is data
     assert deepcast(List[int], data) == expected
     assert deepcast(List[int], tuple(data)) == expected
-
-
-#
-# dict
-#
-
-
-def test_dict():
-    # mapping
-    d = {"a": 1, "b": 2}
-    r = deepcast(dict, collections.OrderedDict(d))
-    assert r == {"a": 1, "b": 2}
-
-    # list
-    assert deepcast(dict, [("a", 1), ("b", 2)]) == {"a": 1, "b": 2}
-
-    # None
-    with pytest.raises(TypeError):
-        deepcast(dict, None)
-
-    # dict
-    @dataclass
-    class X:
-        i: int
-
-    data = {i: {"i": i} for i in range(10)}
-
-    r = deepcast(Dict, data)
-    assert isinstance(r, dict)
-    assert r == data
-
-    r = deepcast(dict, data)
-    assert isinstance(r, dict)
-    assert r == data
-
-    # generic dict
-    r = deepcast(Dict[str, X], data)
-
-    assert isinstance(r, dict)
-    assert len(r) == len(data)
-    for i, (k, v) in enumerate(r.items()):
-        assert k == str(i)
-        assert isinstance(v, X)
-        assert v.i == i
-
-    assert deepcast(Dict[str, int], [("a", 1), ("b", 2)]) == {"a": 1, "b": 2}
-
-    r = deepcast(dict[str, X], data)
-
-    assert isinstance(r, dict)
-    assert len(r) == len(data)
-    for i, (k, v) in enumerate(r.items()):
-        assert k == str(i)
-        assert isinstance(v, X)
-        assert v.i == i
-
-    # no copy
-    data = {str(i): i for i in range(10)}
-    assert deepcast(dict, data) is data
-    assert deepcast(Dict, data) is data
-    assert deepcast(Dict[str, int], data) is data
-
-    # copy
-    expected = data.copy()
-    data["9"] = "9"
-
-    assert deepcast(dict, data) is data
-    assert deepcast(Dict, data) is data
-    assert deepcast(Dict[str, int], data) == expected
-    assert deepcast(Dict[str, int], collections.UserDict(data)) == expected
 
 
 #
