@@ -9,7 +9,7 @@ from collections import (
     namedtuple,
 )
 from dataclasses import dataclass
-from typing import DefaultDict, Dict, NamedTuple, get_origin
+from typing import DefaultDict, Dict, NamedTuple, TypedDict, get_origin
 import typing
 
 import pytest
@@ -38,6 +38,48 @@ from typeable import deepcast, localcontext
     ]
 )
 def RT(request):
+    return request.param
+
+
+@pytest.fixture(
+    params=[
+        # dict
+        dict,
+        Counter,
+        OrderedDict,
+        defaultdict,
+        # Mapping
+        ChainMap,
+        UserDict,
+    ]
+)
+def VTMapping(request):
+    return request.param
+
+
+@pytest.fixture(
+    params=[
+        deque,
+        frozenset,
+        list,
+        set,
+        tuple,
+        UserList,
+    ]
+)
+def VTIterable(request):
+    return request.param
+
+
+@pytest.fixture(
+    params=[
+        ({"a": 1, "b": 2}, None),
+        ({"a": 1}, None),  # b 는 없어도 좋다.
+        ({"a": 1, "b": 2, "c": 3}, TypeError),  # c 가 더있다.
+        ({"b": 2}, TypeError),  # a 가 없다.
+    ]
+)
+def DSTypedDict(request):
     return request.param
 
 
@@ -109,23 +151,10 @@ def test_copy(T):
     assert not isinstance(deepcast(T[str, int], data2), UserDict)
 
 
-@pytest.mark.parametrize(
-    "VT",
-    [
-        # dict
-        dict,
-        Counter,
-        OrderedDict,
-        defaultdict,
-        # Mapping
-        ChainMap,
-        UserDict,
-    ],
-)
-def test_dict_from_Mapping(RT, VT):
+def test_dict_from_Mapping(RT, VTMapping):
     """여러 dict 형들로의 다양한 변환을 지원해야 한다."""
     data = {str(i): i for i in range(10)}
-    v = VT(None, data) if VT is defaultdict else VT(data)
+    v = VTMapping(None, data) if VTMapping is defaultdict else VTMapping(data)
     x = deepcast(RT, v)
     T = get_origin(RT) or RT
     if isinstance(v, T):
@@ -136,22 +165,11 @@ def test_dict_from_Mapping(RT, VT):
     assert v == x
 
 
-@pytest.mark.parametrize(
-    "VT",
-    [
-        deque,
-        frozenset,
-        list,
-        set,
-        tuple,
-        UserList,
-    ],
-)
-def test_dict_from_Iterable(RT, VT):
+def test_dict_from_Iterable(RT, VTIterable):
     """(키,값) 쌍의 이터러블은 dict 로 변환된다."""
     data = {"a": 1, "b": 2}
-    v = VT(data.items())
-    empty_v = VT([])
+    v = VTIterable(data.items())
+    empty_v = VTIterable([])
     with localcontext() as ctx:
         for C in (True, False):
             ctx.dict_from_empty_iterable = C
@@ -210,3 +228,59 @@ def test_dict_from_string(RT, v):
     with localcontext(dict_from_empty_iterable=True):
         with pytest.raises(TypeError):
             deepcast(RT, v)
+
+
+def test_TypedDict_from_Mapping(VTMapping, DSTypedDict):
+    """여러 dict 형들로부터 TypedDict 로의 변환을 지원해야 한다."""
+
+    # 3.10 호환성 때문에 Required, NotRequired 를 사용하지 않는다.
+    class Base(TypedDict):
+        a: int
+
+    class X(Base, total=False):
+        b: int
+
+    assert X.__required_keys__ == frozenset(["a"])
+    assert X.__optional_keys__ == frozenset(["b"])
+
+    data, Exc = DSTypedDict
+    v = VTMapping(None, data) if VTMapping is defaultdict else VTMapping(data)
+    if Exc is None:
+        x = deepcast(X, v)
+        if isinstance(v, dict):
+            assert x is v
+        else:
+            assert isinstance(x, dict)
+        assert x == v
+        assert v == x
+    else:
+        with pytest.raises(Exc):
+            deepcast(X, v)
+
+
+def test_TypedDict_from_Iterable(VTIterable, DSTypedDict):
+    """(키,값) 쌍의 이터러블은 TypedDict 로 변환된다."""
+
+    # 3.10 호환성 때문에 Required, NotRequired 를 사용하지 않는다.
+    class Base(TypedDict):
+        a: int
+
+    class X(Base, total=False):
+        b: int
+
+    assert X.__required_keys__ == frozenset(["a"])
+    assert X.__optional_keys__ == frozenset(["b"])
+
+    data, Exc = DSTypedDict
+    v = VTIterable(data.items())
+    if Exc is None:
+        x = deepcast(X, v)
+        if isinstance(v, dict):
+            assert x is v
+        else:
+            assert isinstance(x, dict)
+        assert x == data
+        assert data == x
+    else:
+        with pytest.raises(Exc):
+            deepcast(X, v)

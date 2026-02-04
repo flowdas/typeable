@@ -53,3 +53,4 @@ This list is non-exhaustive.
 - `typing.Dict[]`
 - `typing.OrderedDict`
 - `typing.OrderedDict[]`
+- `typing.TypedDict`
