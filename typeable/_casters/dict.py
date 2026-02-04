@@ -3,7 +3,7 @@ from collections.abc import Iterable, Mapping
 from dataclasses import fields, is_dataclass
 from typing import is_typeddict
 
-from .._deepcast import Context, DeepCast, deepcast, getcontext, traverse
+from .._deepcast import _META_ALIAS, Context, DeepCast, deepcast, getcontext, traverse
 
 
 @deepcast.register
@@ -152,8 +152,12 @@ def dict_from_object(
 ) -> dict:
     d: dict | None = None
     if is_dataclass(val):
-        # shallow copy 만 필요해서 asdict 를 쓰지 않는다.
-        d = {field.name: getattr(val, field.name) for field in fields(val)}
+        # 여기에서는 shallow copy 만 수행한다.
+        # 나머지는 dict_from_Mapping 에 위임한다.
+        d = {}
+        for f in fields(val):
+            m = f.metadata or {}
+            d[m.get(_META_ALIAS, f.name)] = getattr(val, f.name)
     else:
         try:
             d = val.__deepcast__()  # type: ignore

@@ -150,3 +150,16 @@ def test_capture_with_extra_field():
         with capture() as error:
             deepcast(X, {"i": 1, "j": 0})
     assert error.location == ("j",)
+
+
+def test_alias():
+    """필드에 alias 를 지정하면 dict 로 표현될 때는 필드면 대신 alias 를 사용해야 한다."""
+
+    @dataclass
+    class X:
+        _schema: str = deepcast.field(alias="$schema")
+
+    data = {"$schema": "https://json-schema.org/draft/2020-12/schema"}
+    x = deepcast(X, data)
+    assert x._schema == data["$schema"]
+    assert deepcast(dict, x) == data
