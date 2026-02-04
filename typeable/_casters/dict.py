@@ -3,7 +3,15 @@ from collections.abc import Iterable, Mapping
 from dataclasses import fields, is_dataclass
 from typing import is_typeddict
 
-from .._deepcast import _META_ALIAS, Context, DeepCast, deepcast, getcontext, traverse
+from .._deepcast import (
+    _META_ALIAS,
+    _META_HIDE,
+    Context,
+    DeepCast,
+    deepcast,
+    getcontext,
+    traverse,
+)
 
 
 @deepcast.register
@@ -157,7 +165,8 @@ def dict_from_object(
         d = {}
         for f in fields(val):
             m = f.metadata or {}
-            d[m.get(_META_ALIAS, f.name)] = getattr(val, f.name)
+            if not m.get(_META_HIDE):
+                d[m.get(_META_ALIAS, f.name)] = getattr(val, f.name)
     else:
         try:
             d = val.__deepcast__()  # type: ignore

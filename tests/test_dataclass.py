@@ -163,3 +163,17 @@ def test_alias():
     x = deepcast(X, data)
     assert x._schema == data["$schema"]
     assert deepcast(dict, x) == data
+
+
+def test_hide():
+    """필드에 hide=True 를 지정하면 dict 로 표현될 때 생략된다."""
+
+    @dataclass
+    class X:
+        id: str
+        password: str = deepcast.field(hide=True)
+
+    data = {"id": "id", "password": "password"}
+    x = deepcast(X, data)
+    assert x.password == "password"
+    assert deepcast(dict, x) == {"id": "id"}

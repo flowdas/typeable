@@ -74,7 +74,7 @@ _CasterType = Callable[["DeepCast", type[_T], Any], _T]
 _TYPES = "__types__"
 
 _META_ALIAS = "alias"
-_META_RD_ONLY = "rd_only"
+_META_HIDE = "hide"
 
 
 def _get_type_args(tp):
@@ -330,7 +330,7 @@ class DeepCast:
         kw_only=MISSING,
         doc=None,
         alias: str | None = None,
-        rd_only: bool = False,
+        hide: bool = False,
     ) -> Any:
         kwargs = {}
         if metadata is None:
@@ -348,9 +348,9 @@ class DeepCast:
             if not isinstance(alias, str):
                 raise TypeError(f"The alias must be a str: {alias!r}")
             metadata[_META_ALIAS] = alias
-        rd_only = rd_only or metadata.pop(_META_RD_ONLY, False)
-        if rd_only:
-            metadata[_META_RD_ONLY] = True
+        hide = hide or metadata.pop(_META_HIDE, False)
+        if hide:
+            metadata[_META_HIDE] = True
         return dataclasses.field(
             default=default,
             default_factory=default_factory,
