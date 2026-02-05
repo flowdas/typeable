@@ -6,8 +6,8 @@ from .._deepcast import DeepCast, deepcast, getcontext
 
 @deepcast.register
 def float_from_str(deepcast: DeepCast, cls: type[float], val: str) -> float:
-    if not getcontext().parse_float:
-        raise TypeError("parse_float is False")
+    if not getcontext().parse_number:
+        raise TypeError("parse_number is False")
     try:
         r = float(val)
     except Exception:

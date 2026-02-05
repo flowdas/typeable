@@ -24,8 +24,7 @@ class Context:
     bool_from_01: bool = True
     bool_strings: dict[str, bool] = field(default_factory=_default_bool_strings.copy)
     dict_from_empty_iterable: bool = False
-    parse_float: bool = True
-    parse_int: bool = True
+    parse_number: bool = True
     validate_default: bool = False
 
     # TODO: review

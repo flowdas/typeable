@@ -15,7 +15,7 @@ def test_float():
 
 
 def test_str():
-    with localcontext(parse_float=True):
+    with localcontext(parse_number=True):
         assert deepcast(float, "+123.456") == 123.456
         assert deepcast(float, "1.23456e2") == 123.456
         assert math.isnan(deepcast(float, "nan"))

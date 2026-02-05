@@ -6,8 +6,8 @@ from .._deepcast import DeepCast, deepcast, getcontext
 
 @deepcast.register
 def int_from_str(deepcast: DeepCast, cls: type[int], val: str) -> int:
-    if not getcontext().parse_int:
-        raise TypeError("parse_int is False")
+    if not getcontext().parse_number:
+        raise TypeError("parse_number is False")
     try:
         v = Decimal(val)
     except Exception:

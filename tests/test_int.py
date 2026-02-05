@@ -18,19 +18,19 @@ def test_bool():
 
 
 def test_str():
-    with localcontext(parse_int=True):
+    with localcontext(parse_number=True):
         assert deepcast(int, "123") == 123
 
-    with localcontext(parse_int=False):
+    with localcontext(parse_number=False):
         with pytest.raises(TypeError):
             deepcast(int, "123")
 
-    with localcontext(parse_int=True):
+    with localcontext(parse_number=True):
         assert deepcast(int, "123.0") == 123
         with pytest.raises(TypeError):
             deepcast(int, "123.456")
 
-    with localcontext(parse_int=False):
+    with localcontext(parse_number=False):
         with pytest.raises(TypeError):
             deepcast(int, "123.0")
 
