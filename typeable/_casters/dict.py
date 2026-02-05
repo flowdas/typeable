@@ -6,7 +6,6 @@ from typing import is_typeddict
 from .._deepcast import (
     _META_ALIAS,
     _META_HIDE,
-    Context,
     DeepCast,
     deepcast,
     getcontext,
@@ -22,7 +21,6 @@ def dict_from_Mapping(
     K: type | None = None,
     V: type | None = None,
 ) -> dict:
-    ctx: Context | None = None
     if K is not None:
         kpatch = {}
         vpatch = {}
@@ -30,11 +28,6 @@ def dict_from_Mapping(
             with traverse(k):
                 ck = deepcast(K, k)
                 if ck is not k:
-                    if ck != k and ck in val:
-                        if ctx is None:
-                            ctx = getcontext()
-                        if not ctx.lossy_conversion:
-                            raise TypeError("lossy_conversion is False: key collision")
                     kpatch[k] = ck
                 v = val[k]
                 if V is not None:  # Counter 에서 V 만 None 일 수 있다.
@@ -52,11 +45,6 @@ def dict_from_Mapping(
             with traverse(k):
                 ck = deepcast(str, k)
                 if ck is not k:
-                    if ck != k and ck in val:
-                        if ctx is None:
-                            ctx = getcontext()
-                        if not ctx.lossy_conversion:
-                            raise TypeError("lossy_conversion is False: key collision")
                     kpatch[k] = ck
                 v = val[k]
                 if ck not in annotations:
