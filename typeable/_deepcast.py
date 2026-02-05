@@ -108,7 +108,7 @@ class DeepCast:
         Ts = _get_type_args(cls)
         tp = val.__class__
         try:
-            if not Ts and isinstance(val, origin) and tp is not bool:
+            if not Ts and isinstance(val, origin) and not (tp is bool and cls is int):
                 return val
         except TypeError:
             pass
@@ -389,36 +389,6 @@ deepcast = DeepCast()
 @deepcast.register
 def _cast_Any_object(deepcast: DeepCast, cls: type[Any], val):
     return val
-
-
-#
-# bool
-#
-
-
-@deepcast.register
-def _cast_bool_int(deepcast: DeepCast, cls: type[bool], val: int):
-    # special: val can be bool
-    if isinstance(val, cls):
-        return val
-
-    ctx: Context = getcontext()
-    if not ctx.bool_is_int:
-        raise TypeError(f"ctx.bool_is_int={ctx.bool_is_int}")
-    if not ctx.lossy_conversion and not (val == 0 or val == 1):
-        raise ValueError(f"ctx.lossy_conversion={ctx.lossy_conversion}")
-    return cls(val)
-
-
-@deepcast.register
-def _cast_bool_str(deepcast: DeepCast, cls: type[bool], val: str):
-    ctx: Context = getcontext()
-    if not ctx.bool_strings:
-        raise TypeError
-    try:
-        return cls(ctx.bool_strings[val.lower()])
-    except KeyError:
-        raise ValueError
 
 
 #

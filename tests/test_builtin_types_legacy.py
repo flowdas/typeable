@@ -33,46 +33,6 @@ def test_None():
 
 
 #
-# bool
-#
-
-
-def test_bool():
-    # str
-    assert deepcast(bool, "false") is False
-    assert deepcast(bool, "true") is True
-    assert deepcast(bool, "fAlSe") is False
-    assert deepcast(bool, "tRuE") is True
-    with pytest.raises(ValueError):
-        deepcast(bool, "SUCCESS")
-    with localcontext(bool_strings={}):
-        with pytest.raises(TypeError):
-            deepcast(bool, "SUCCESS")
-
-    # int
-    assert deepcast(bool, 0) is False
-    assert deepcast(bool, 1) is True
-    with localcontext(lossy_conversion=True):
-        assert deepcast(bool, 2) is True
-    with localcontext(lossy_conversion=False):
-        with pytest.raises(ValueError):
-            deepcast(bool, 2)
-    with localcontext(bool_is_int=False):
-        with pytest.raises(TypeError):
-            deepcast(bool, 0)
-
-    # bool
-    assert deepcast(bool, False) is False
-    assert deepcast(bool, True) is True
-
-    # float
-    with pytest.raises(TypeError):
-        deepcast(bool, 0.0)
-    with pytest.raises(TypeError):
-        deepcast(bool, 1.0)
-
-
-#
 # complex
 #
 

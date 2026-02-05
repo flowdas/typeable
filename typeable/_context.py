@@ -21,13 +21,14 @@ _default_bool_strings: dict[str, bool] = {
 
 @dataclass(slots=True)
 class Context:
+    bool_from_01: bool = True
+    bool_strings: dict[str, bool] = field(default_factory=_default_bool_strings.copy)
     dict_from_empty_iterable: bool = False
     parse_float: bool = True
     parse_int: bool = True
     validate_default: bool = False
 
     # TODO: review
-    bool_strings: dict[str, bool] = field(default_factory=_default_bool_strings.copy)
     bytes_encoding: str = "utf-8"
     date_format: str = "iso"
     datetime_format: str = "iso"

@@ -34,6 +34,7 @@ Generic types are denoted by `[]`.
 `@` denotes types with the specified decoration applied.
 This list is non-exhaustive.
 
+- `bool`
 - `dict`
 - `dict[]`
 - `float`
