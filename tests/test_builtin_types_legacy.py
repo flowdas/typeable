@@ -73,33 +73,6 @@ def test_bool():
 
 
 #
-# float
-#
-
-
-def test_float():
-    # str
-    assert deepcast(float, "123.456") == 123.456
-    assert math.isnan(deepcast(float, "nan"))
-
-    # bool
-    assert deepcast(float, True) == 1.0
-    with localcontext(bool_is_int=False):
-        with pytest.raises(TypeError):
-            deepcast(float, True)
-
-    # int
-    assert deepcast(float, 123) == 123
-
-    # complex
-    with pytest.raises(TypeError):
-        deepcast(float, complex())
-
-    # float
-    assert deepcast(float, 123.456) == 123.456
-
-
-#
 # complex
 #
 
@@ -124,10 +97,6 @@ def test_complex():
     # tuple
     assert deepcast(complex, [123, 456]) == complex(123, 456)
     assert deepcast(complex, (123, 456)) == complex(123, 456)
-
-    # complex
-    with pytest.raises(TypeError):
-        deepcast(float, complex())
 
     # complex
     assert deepcast(complex, complex(123, 456)) == complex(123, 456)
