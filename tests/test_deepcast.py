@@ -192,8 +192,8 @@ def test_apply_kwargs():
             assert isinstance(v, int)
         return kwargs
 
-    with localcontext(lossy_conversion=True):
-        assert deepcast.apply(test, dict(a=1, b="2", c=3.14)) == {
+    with localcontext(parse_int=True):
+        assert deepcast.apply(test, dict(a=1, b="2", c=3)) == {
             "a": 1,
             "b": 2,
             "c": 3,

@@ -36,6 +36,7 @@ This list is non-exhaustive.
 
 - `dict`
 - `dict[]`
+- `int`
 - `object`
 - `str`
 - `collections.Counter`

@@ -73,38 +73,6 @@ def test_bool():
 
 
 #
-# int
-#
-
-
-def test_int():
-    # str
-    assert deepcast(int, "123") == 123
-    with localcontext(lossy_conversion=False):
-        assert deepcast(int, "123") == 123
-
-    # bool
-    assert deepcast(int, True) == 1
-    with localcontext(bool_is_int=False):
-        with pytest.raises(TypeError):
-            deepcast(int, True)
-
-    # float
-    with localcontext(lossy_conversion=True):
-        assert deepcast(int, 123.456) == 123
-    with localcontext(lossy_conversion=False):
-        with pytest.raises(ValueError):
-            deepcast(int, 123.456)
-
-    # complex
-    with pytest.raises(TypeError):
-        deepcast(int, complex())
-
-    # int
-    assert deepcast(int, 123) == 123
-
-
-#
 # float
 #
 

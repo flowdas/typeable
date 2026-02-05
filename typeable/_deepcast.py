@@ -422,29 +422,6 @@ def _cast_bool_str(deepcast: DeepCast, cls: type[bool], val: str):
 
 
 #
-# int
-#
-
-
-@deepcast.register
-def _cast_int_object(deepcast: DeepCast, cls: type[int], val):
-    # assume not isinstance(val, cls)
-    r = cls(val)
-    ctx: Context = getcontext()
-    if not ctx.lossy_conversion and val.__class__(r) != val:
-        raise ValueError(f"ctx.lossy_conversion={ctx.lossy_conversion}")
-    return r
-
-
-@deepcast.register
-def _cast_int_bool(deepcast: DeepCast, cls: type[int], val: bool):
-    ctx: Context = getcontext()
-    if not ctx.bool_is_int:
-        raise TypeError(f"ctx.bool_is_int={ctx.bool_is_int}")
-    return val if cls is int else cls(val)
-
-
-#
 # float
 #
 

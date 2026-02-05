@@ -194,7 +194,7 @@ def test_impl_type_check():
         name="X-API-Key",
     )
 
-    with pytest.raises(ValueError):
+    with pytest.raises(TypeError):
         with capture() as error:
             deepcast(Authenticator, data)
     assert error.location == ("name",)
