@@ -11,3 +11,7 @@ collect_ignore = [
 @pytest.fixture
 def deepcast():
     return DeepCast()
+
+
+def str_from_int(deepcast: DeepCast, cls: type[str], val: int) -> str:
+    return str(val)

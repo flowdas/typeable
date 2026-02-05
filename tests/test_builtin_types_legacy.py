@@ -11,12 +11,13 @@ from typing import (
     Type,
 )
 
-import pytest
-
 from typeable import (
     deepcast,
     localcontext,
 )
+
+import pytest
+from .conftest import str_from_int
 
 
 #
@@ -162,58 +163,6 @@ def test_complex():
 
     # complex
     assert deepcast(complex, complex(123, 456)) == complex(123, 456)
-
-
-#
-# str
-#
-
-
-def test_str():
-    from datetime import datetime
-
-    # bool
-    assert deepcast(str, True) == "True"
-
-    # int
-    assert deepcast(str, 123) == "123"
-
-    # float
-    assert deepcast(str, 123.456) == str(123.456)
-
-    # complex
-    assert deepcast(str, complex(1, 2)) == "(1+2j)"
-
-    # bytes
-    assert deepcast(str, b"hello") == "hello"
-
-    # bytearray
-    assert deepcast(str, bytearray(b"hello")) == "hello"
-
-    # object
-    with pytest.raises(TypeError):
-        deepcast(str, object())
-    with localcontext(strict_str=False):
-        deepcast(str, object())
-
-    # type
-    assert deepcast(str, int) == "builtins.int"
-    assert deepcast(str, datetime) == "datetime.datetime"
-    assert deepcast(str, OuterClass) == "tests.test_builtin_types_legacy.OuterClass"
-    assert (
-        deepcast(str, OuterClass.InnerClass)
-        == "tests.test_builtin_types_legacy.OuterClass.InnerClass"
-    )
-
-    # None
-    with pytest.raises(TypeError):
-        deepcast(str, None)
-    with localcontext(strict_str=False):
-        with pytest.raises(TypeError):
-            deepcast(str, None)
-
-    # str
-    assert deepcast(str, "hello") == "hello"
 
 
 #
@@ -495,23 +444,25 @@ def test_tuple():
     assert l == data
 
     # heterogeneous generic tuple
-    l = deepcast(Tuple[str, int, str], data)
+    with deepcast.localregister(str_from_int):
+        l = deepcast(Tuple[str, int, str], data)
 
-    assert isinstance(l, tuple)
-    assert l == expected
+        assert isinstance(l, tuple)
+        assert l == expected
 
-    l = deepcast(Tuple[str, int, str], list(data))
+        l = deepcast(Tuple[str, int, str], list(data))
 
-    assert isinstance(l, tuple)
-    assert l == expected
+        assert isinstance(l, tuple)
+        assert l == expected
 
     assert deepcast(Tuple[int, int, int], data) == (1, 2, 3)
     assert deepcast(Tuple[int, int, int], list(data)) == (1, 2, 3)
 
-    l = deepcast(tuple[str, int, str], data)
+    with deepcast.localregister(str_from_int):
+        l = deepcast(tuple[str, int, str], data)
 
-    assert isinstance(l, tuple)
-    assert l == expected
+        assert isinstance(l, tuple)
+        assert l == expected
 
     # empty tuple
     data = ()

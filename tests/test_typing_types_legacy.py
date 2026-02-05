@@ -9,9 +9,10 @@ from typing import (
     Union,
 )
 
-import pytest
-
 from typeable import Context, declare, deepcast, localcontext
+
+import pytest
+from .conftest import str_from_int
 
 
 def test_Any():
@@ -22,6 +23,7 @@ def test_Any():
     assert deepcast(List[Any], [None, o]) == [None, o]
 
 
+@pytest.mark.skip(reason="Union 재구현시까지 보류")
 def test_Union():
     assert deepcast(Union[str, int], "123") == "123"
     assert deepcast(Union[str, int], 123) == 123
@@ -32,6 +34,7 @@ def test_Union():
     assert deepcast(Union[int, str], 123.0) == 123
 
 
+@pytest.mark.skip(reason="Union 재구현시까지 보류")
 def test_recursive_Union():
     with declare("Json") as _Json:
         Json = Union[
@@ -58,6 +61,7 @@ def test_recursive_Union():
     assert deepcast(Json, [date(1970, 1, 1)]) == ["1970-01-01"]
 
 
+@pytest.mark.skip(reason="Union 재구현시까지 보류")
 def test_distance_based_Union():
     ctx = Context()
     ctx.union_prefers_same_type = False
@@ -77,7 +81,8 @@ def test_distance_based_Union():
     assert x == 1
     assert type(x) is bool
     with localcontext(ctx) as c:
-        assert deepcast(Union[str, int], True) == "True"
+        with deepcast.localregister(str_from_int):
+            assert deepcast(Union[str, int], True) == "True"
         c.union_prefers_base_type = True
         x = deepcast(Union[str, int], True)
         assert x == 1

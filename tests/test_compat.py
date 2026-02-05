@@ -53,12 +53,13 @@ def test_builtin_generics_double(T, GT):
         NoneType,
         dict,
         Dict,
+        str,
         Counter,
         typing.Counter,
-        OrderedDict,
-        typing.OrderedDict,
         defaultdict,
         DefaultDict,
+        OrderedDict,
+        typing.OrderedDict,
     ],
 )
 def test_valid_type_parameters(T):

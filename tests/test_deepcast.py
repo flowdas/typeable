@@ -1,13 +1,13 @@
 import asyncio
 from dataclasses import dataclass, field
-import inspect
 from typing import (
     Type,
 )
 
-import pytest
-
 from typeable import capture, deepcast, localcontext
+
+import pytest
+from .conftest import str_from_int
 
 #
 # deepcast.register
@@ -236,8 +236,9 @@ def test_apply_validate_return():
         assert isinstance(a, int)
         return a  # type: ignore
 
-    assert deepcast.apply(test, dict(a=123), validate_return=True) == "123"
-    assert deepcast.apply(test, dict(a="123"), validate_return=True) == "123"
+    with deepcast.localregister(str_from_int):
+        assert deepcast.apply(test, dict(a=123), validate_return=True) == "123"
+        assert deepcast.apply(test, dict(a="123"), validate_return=True) == "123"
 
 
 def test_apply_capture():

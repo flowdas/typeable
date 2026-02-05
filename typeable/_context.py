@@ -25,6 +25,7 @@ class Context:
     lossy_conversion: bool = False
     validate_default: bool = False
 
+    # TODO: review
     bool_is_int: bool = True
     bool_strings: dict[str, bool] = field(default_factory=_default_bool_strings.copy)
     bytes_encoding: str = "utf-8"
@@ -32,12 +33,14 @@ class Context:
     datetime_format: str = "iso"
     encoding_errors: str = "strict"
     naive_timestamp: bool = False
-    strict_str: bool = True
     time_format: str = "iso"
     union_prefers_same_type: bool = True
     union_prefers_base_type: bool = True
     union_prefers_super_type: bool = True
     union_prefers_nearest_type: bool = True
+
+    # TO REMOVE
+    strict_str: bool = True  # test_enum_legacy 정리 후 제거
 
 
 _default_context = Context()

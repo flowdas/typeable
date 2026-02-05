@@ -12,9 +12,10 @@ from dataclasses import dataclass
 from typing import DefaultDict, Dict, NamedTuple, TypedDict, get_origin
 import typing
 
-import pytest
-
 from typeable import deepcast, localcontext
+
+import pytest
+from .conftest import str_from_int
 
 
 @pytest.fixture(
@@ -116,7 +117,8 @@ def test_nested(T):
     assert r == data
 
     # generic dict
-    r = deepcast(T[str, X], data)
+    with deepcast.localregister(str_from_int):
+        r = deepcast(T[str, X], data)
 
     assert isinstance(r, dict)
     assert len(r) == len(data)

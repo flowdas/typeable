@@ -13,7 +13,6 @@ from functools import _find_impl  # type: ignore
 import importlib
 import inspect
 import itertools
-from numbers import Number
 import re
 import sys
 from types import NoneType
@@ -131,6 +130,14 @@ class DeepCast:
             self._cache_token = get_cache_token()
         self._dispatch_cache.clear()
 
+    def _deregister(self, func):
+        cls, V = getattr(func, _TYPES)
+        del self._registry[cls][V]
+        if not self._registry[cls]:
+            del self._registry[cls]
+        delattr(func, _TYPES)
+        self._dispatch_cache.clear()
+
     def register(self, func):
         sig = inspect.signature(func)
         if len(sig.parameters) < 3:
@@ -178,6 +185,14 @@ class DeepCast:
 
         for V in Vs:
             self._register(cls, V, forbid)
+
+    @contextmanager
+    def localregister(self, func):
+        self.register(func)
+        try:
+            yield
+        finally:
+            self._deregister(func)
 
     def dispatch(self, cls, vcls):
         if self._cache_token is not None:
@@ -469,36 +484,6 @@ def _cast_complex_bool(deepcast: DeepCast, cls: type[complex], val: bool):
     if not ctx.bool_is_int:
         raise TypeError(f"ctx.bool_is_int={ctx.bool_is_int}")
     return cls(val)
-
-
-#
-# str
-#
-
-
-@deepcast.register
-def _cast_str_object(deepcast: DeepCast, cls: type[str], val):
-    # assume not isinstance(val, cls)
-    ctx: Context = getcontext()
-    if ctx.strict_str:
-        if not isinstance(val, (str, Number)):
-            raise TypeError(f"ctx.strict_str={ctx.strict_str}")
-    else:
-        if val is None:
-            raise TypeError(f"{cls.__qualname__} is required, but {val!r} is given")
-    return cls(val)
-
-
-@deepcast.register
-def _cast_str_bytes(deepcast: DeepCast, cls: type[str], val: bytes):
-    ctx: Context = getcontext()
-    return cls(val, encoding=ctx.bytes_encoding, errors=ctx.encoding_errors)
-
-
-@deepcast.register
-def _cast_str_bytearray(deepcast: DeepCast, cls: type[str], val: bytearray):
-    ctx: Context = getcontext()
-    return cls(val, encoding=ctx.bytes_encoding, errors=ctx.encoding_errors)
 
 
 #
@@ -1276,8 +1261,3 @@ def _cast_type_str(deepcast: DeepCast, cls, val: str, T=None) -> type:
     if T and T is not Any and not issubclass(cls, T):
         raise TypeError
     return cls
-
-
-@deepcast.register
-def _cast_str_type(deepcast: DeepCast, cls: type[str], val: type):
-    return f"{val.__module__}.{val.__qualname__}"
