@@ -1,16 +1,9 @@
 from collections import defaultdict
-from collections.abc import Iterable, Mapping
+from collections.abc import Mapping
 from dataclasses import fields, is_dataclass
 from typing import is_typeddict
 
-from .._deepcast import (
-    _META_ALIAS,
-    _META_HIDE,
-    DeepCast,
-    deepcast,
-    getcontext,
-    traverse,
-)
+from .._deepcast import _META_ALIAS, _META_HIDE, DeepCast, deepcast, traverse
 
 
 @deepcast.register
@@ -71,59 +64,6 @@ def dict_from_Mapping(
 
 
 @deepcast.register
-def dict_from_Iterable(
-    deepcast: DeepCast,
-    cls: type[dict],
-    val: Iterable,
-    K: type | None = None,
-    V: type | None = None,
-) -> dict:
-    kpatch = {}
-    vpatch = {}
-    if K is not None:
-        for k, v in val:
-            with traverse(k):
-                ck = deepcast(K, k)
-                if ck is not k:
-                    kpatch[k] = ck
-                if V is not None:  # Counter 에서 V 만 None 일 수 있다.
-                    cv = deepcast(V, v)
-                    if cv is not v:
-                        vpatch[k] = cv
-    elif is_typeddict(cls):
-        annotations: dict[str, type] = cls.__annotations__
-        required = set(cls.__required_keys__)  # type: ignore
-        for k, v in val:
-            with traverse(k):
-                ck = deepcast(str, k)
-                if ck is not k:
-                    kpatch[k] = ck
-                if ck not in annotations:
-                    raise TypeError(f"got an unexpected key '{k}'")
-                cv = deepcast(annotations[ck], v)
-                if cv is not v:
-                    vpatch[k] = cv
-            required.discard(k)
-        if required:
-            k = list(required)[0]
-            with traverse(k):
-                raise TypeError(f"missing required key: '{k}'")
-        # TypedDict 는 isinstance 에 사용될 수 없고,
-        # 이제 타입 정보를 다 활용했으니 dict 로 취급해도 좋다.
-        cls = dict
-    val = {kpatch.get(k, k): vpatch.get(k, v) for k, v in val}
-    if not val and not getcontext().dict_from_empty_iterable:
-        raise TypeError("dict_from_empty_iterable is False")
-
-    if not isinstance(val, cls):
-        if cls is defaultdict:
-            val = defaultdict(None, val)
-        else:
-            val = cls(val)
-    return val
-
-
-@deepcast.register
 def dict_from_NamedTuple(
     deepcast: DeepCast,
     cls: type[dict],
@@ -134,7 +74,7 @@ def dict_from_NamedTuple(
     try:
         d = val._asdict()
     except Exception:
-        return dict_from_Iterable(deepcast, cls, val, K, V)
+        raise TypeError(f"dict from {type(val)!r} not supported")
     return dict_from_Mapping(deepcast, cls, d, K, V)
 
 

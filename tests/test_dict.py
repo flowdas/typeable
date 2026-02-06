@@ -12,7 +12,7 @@ from dataclasses import dataclass
 from typing import DefaultDict, Dict, NamedTuple, TypedDict, get_origin
 import typing
 
-from typeable import deepcast, localcontext
+from typeable import deepcast
 
 import pytest
 from .conftest import str_from_int
@@ -167,27 +167,6 @@ def test_dict_from_Mapping(RT, VTMapping):
     assert v == x
 
 
-def test_dict_from_Iterable(RT, VTIterable):
-    """(키,값) 쌍의 이터러블은 dict 로 변환된다."""
-    data = {"a": 1, "b": 2}
-    v = VTIterable(data.items())
-    empty_v = VTIterable([])
-    with localcontext() as ctx:
-        for C in (True, False):
-            ctx.dict_from_empty_iterable = C
-            x = deepcast(RT, v)
-            T = get_origin(RT) or RT
-            assert isinstance(x, T)
-            assert x == data
-            assert data == x
-
-            if C:
-                assert deepcast(RT, empty_v) == {}
-            else:
-                with pytest.raises(TypeError):
-                    deepcast(RT, empty_v)
-
-
 def test_dict_from_NamedTuple(RT):
     """NamedTuple 도 dict 로 변환된다."""
     data = {"a": 1, "b": 2}
@@ -227,9 +206,8 @@ def test_dict_from_namedtuple(RT):
 )
 def test_dict_from_string(RT, v):
     """str, bytes, bytearray 는 dict 로 변환할 수 없다."""
-    with localcontext(dict_from_empty_iterable=True):
-        with pytest.raises(TypeError):
-            deepcast(RT, v)
+    with pytest.raises(TypeError):
+        deepcast(RT, v)
 
 
 def test_TypedDict_from_Mapping(VTMapping, DSTypedDict):
@@ -255,34 +233,6 @@ def test_TypedDict_from_Mapping(VTMapping, DSTypedDict):
             assert isinstance(x, dict)
         assert x == v
         assert v == x
-    else:
-        with pytest.raises(Exc):
-            deepcast(X, v)
-
-
-def test_TypedDict_from_Iterable(VTIterable, DSTypedDict):
-    """(키,값) 쌍의 이터러블은 TypedDict 로 변환된다."""
-
-    # 3.10 호환성 때문에 Required, NotRequired 를 사용하지 않는다.
-    class Base(TypedDict):
-        a: int
-
-    class X(Base, total=False):
-        b: int
-
-    assert X.__required_keys__ == frozenset(["a"])
-    assert X.__optional_keys__ == frozenset(["b"])
-
-    data, Exc = DSTypedDict
-    v = VTIterable(data.items())
-    if Exc is None:
-        x = deepcast(X, v)
-        if isinstance(v, dict):
-            assert x is v
-        else:
-            assert isinstance(x, dict)
-        assert x == data
-        assert data == x
     else:
         with pytest.raises(Exc):
             deepcast(X, v)
