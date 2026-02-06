@@ -1,8 +1,7 @@
 import asyncio
+from collections import namedtuple
 from dataclasses import dataclass, field
-from typing import (
-    Type,
-)
+from typing import NamedTuple, Type
 
 from typeable import capture, deepcast, localcontext
 
@@ -158,6 +157,45 @@ def test_apply_dataclass():
     y = deepcast.apply(Y, data)
     assert isinstance(y, Y)
     assert y.i == data["$i"]
+
+
+def test_apply_namedtuple():
+    """namedtuple 에 dict 를 apply 하면 인스턴스를 반환한다."""
+
+    X = namedtuple("X", ["i", "j"], defaults=[9])
+
+    data = {"i": 3}
+    x = deepcast.apply(X, data)
+    assert isinstance(x, X)
+    assert x.i == data["i"]
+    assert x.j == 9
+
+    data["j"] = 7
+    x = deepcast.apply(X, data)
+    assert isinstance(x, X)
+    assert x.i == data["i"]
+    assert x.j == 7
+
+
+def test_apply_NamedTuple():
+    """NamedTuple 에 dict 를 apply 하면 인스턴스를 반환한다."""
+
+    class X(NamedTuple):
+        i: int
+        j: int = 9
+
+    data = {"i": 3}
+    x = deepcast.apply(X, data)
+    assert isinstance(x, X)
+    assert x.i == data["i"]
+    assert x.j == 9
+
+    data["j"] = "7"  # type: ignore
+    with localcontext(parse_number=True):
+        x = deepcast.apply(X, data)
+        assert isinstance(x, X)
+        assert x.i == data["i"]
+        assert x.j == 7
 
 
 def test_apply_function():
