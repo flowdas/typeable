@@ -12,7 +12,6 @@ import enum
 from functools import _find_impl  # type: ignore
 import importlib
 import inspect
-import itertools
 import re
 import sys
 from types import NoneType
@@ -450,48 +449,6 @@ def _cast_bytearray_object(deepcast: DeepCast, cls: type[bytearray], val):
 def _cast_bytearray_str(deepcast: DeepCast, cls: type[bytearray], val: str):
     ctx: Context = getcontext()
     return cls(val, encoding=ctx.bytes_encoding, errors=ctx.encoding_errors)
-
-
-#
-# frozenset
-#
-
-
-def _copy_frozenset_object(deepcast: DeepCast, r, cls, it, T):
-    for v in it:
-        with traverse(v):
-            r.add(deepcast(T, v))
-    return cls(r)
-
-
-@deepcast.register
-def _cast_frozenset_object(deepcast: DeepCast, cls: type[frozenset], val, T=None):
-    # assume T is not None or not isinstance(val, cls)
-    if T is None:
-        return cls(val)
-
-    if isinstance(val, cls):
-        r = None
-        it = iter(val)
-        i = 0
-        for v in it:
-            with traverse(v):
-                cv = deepcast(T, v)
-                if cv is not v:
-                    if i == 0:
-                        r = {cv}
-                    else:
-                        # assume repeatable order
-                        r = set(itertools.islice(val, i))
-                        r.add(cv)
-                    break
-                i += 1
-        if r is None:
-            return val
-        else:
-            return _copy_frozenset_object(deepcast, r, cls, it, T)
-    else:
-        return _copy_frozenset_object(deepcast, set(), cls, iter(val), T)
 
 
 #

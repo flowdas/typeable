@@ -38,6 +38,8 @@ This list is non-exhaustive.
 - `dict`
 - `dict[]`
 - `float`
+- `frozenset`
+- `frozenset[]`
 - `int`
 - `list`
 - `list[]`
@@ -62,6 +64,8 @@ This list is non-exhaustive.
 - `typing.DefaultDict[]`
 - `typing.Dict`
 - `typing.Dict[]`
+- `typing.FrozenSet`
+- `typing.FrozenSet[]`
 - `typing.List`
 - `typing.List[]`
 - `typing.NamedTuple`

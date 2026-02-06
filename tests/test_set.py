@@ -1,6 +1,6 @@
 from collections import UserList, deque
 from dataclasses import dataclass
-from typing import Set, get_origin
+from typing import FrozenSet, Set, get_origin
 
 from typeable import deepcast, localcontext
 
@@ -9,6 +9,10 @@ import pytest
 
 @pytest.fixture(
     params=[
+        frozenset,
+        frozenset[int],
+        FrozenSet,
+        FrozenSet[int],
         set,
         set[int],
         Set,
@@ -33,7 +37,7 @@ def VT(request):
     return request.param
 
 
-@pytest.mark.parametrize("T", [set, Set])
+@pytest.mark.parametrize("T", [frozenset, FrozenSet, set, Set])
 def test_None(T):
     """None 은 set 으로 변환될 수 없다."""
     with pytest.raises(TypeError):
@@ -54,7 +58,7 @@ def test_Iterable(RT, VT):
     assert set(v) == x
 
 
-@pytest.mark.parametrize("T", [set, Set])
+@pytest.mark.parametrize("T", [frozenset, FrozenSet, set, Set])
 def test_nested(T):
     """dataclass 를 값으로 품은 set[] 변환."""
 
@@ -62,8 +66,10 @@ def test_nested(T):
     class X:
         i: int
 
+    OT = get_origin(T) or T
+
     # non-generic
-    data = set(X(i=i) for i in range(10))
+    data = OT(X(i=i) for i in range(10))
 
     l = deepcast(T, data)
     assert l is data
@@ -72,27 +78,30 @@ def test_nested(T):
     data = [{"i": i} for i in range(10)]
 
     l = deepcast(T[X], data)
-    assert isinstance(l, set)
+    assert isinstance(l, OT)
     for v in l:
         assert isinstance(v, X)
     for i in range(len(data)):
         assert X(i=i) in l
 
 
-@pytest.mark.parametrize("T", [set, Set])
+@pytest.mark.parametrize("T", [frozenset, FrozenSet, set, Set])
 def test_no_copy(T):
     """isinstance 이면 복사가 일어나지 말아야 한다."""
-    data = set(range(10))
+    OT = get_origin(T) or T
+    data = OT(range(10))
     assert deepcast(T, data) is data
     assert deepcast(T[int], data) is data
 
 
-@pytest.mark.parametrize("T", [set, Set])
+@pytest.mark.parametrize("T", [frozenset, FrozenSet, set, Set])
 def test_copy(T):
     """형이 정확히 일치하지 않으면 복사가 일어나야 한다."""
+    OT = get_origin(T) or T
     data = set(range(9))
     data.add("9")  # type: ignore
-    expected = set(range(10))
+    data = OT(data)
+    expected = OT(range(10))
 
     with localcontext(parse_number=True):
         assert deepcast(T, data) is data

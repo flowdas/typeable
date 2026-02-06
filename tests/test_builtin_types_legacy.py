@@ -1,5 +1,5 @@
 import cmath
-from typing import Any, FrozenSet, Optional, Set, Type
+from typing import Any, Optional, Type
 
 from typeable import deepcast, localcontext
 
@@ -98,60 +98,6 @@ def test_bytearray():
 
     # bytearray
     assert deepcast(bytearray, bytearray(b"hello")) == bytearray(b"hello")
-
-
-#
-# frozenset
-#
-
-
-def test_frozenset():
-    # dict
-    assert deepcast(frozenset, {"a": 1, "b": 2}) == frozenset({"a", "b"})
-
-    # None
-    with pytest.raises(TypeError):
-        deepcast(frozenset, None)
-
-    # frozenset
-    expected = frozenset(range(10))
-    data = frozenset(str(v) for v in expected)
-
-    l = deepcast(FrozenSet, data)
-    assert isinstance(l, frozenset)
-    assert l == data
-
-    l = deepcast(frozenset, data)
-    assert isinstance(l, frozenset)
-    assert l == data
-
-    # generic set
-    l = deepcast(FrozenSet[int], data)
-
-    assert isinstance(l, frozenset)
-    assert l == expected
-
-    l = deepcast(frozenset[int], data)
-
-    assert isinstance(l, frozenset)
-    assert l == expected
-
-    # no copy
-    data = frozenset(range(10))
-    assert deepcast(frozenset, data) is data
-    assert deepcast(FrozenSet, data) is data
-    assert deepcast(FrozenSet[int], data) is data
-
-    # copy
-    data = set(range(9))
-    data.add("9")
-    data = frozenset(data)
-    expected = frozenset(range(10))
-
-    assert deepcast(frozenset, data) is data
-    assert deepcast(FrozenSet, data) is data
-    assert deepcast(FrozenSet[int], data) == expected
-    assert deepcast(FrozenSet[int], set(data)) == expected
 
 
 #

@@ -4,6 +4,7 @@ from types import NoneType
 from typing import (
     DefaultDict,
     Dict,
+    FrozenSet,
     List,
     NamedTuple,
     Set,
@@ -20,6 +21,7 @@ import pytest
 @pytest.mark.parametrize(
     "T, GT",
     [
+        (frozenset, FrozenSet),
         (list, List),
         (set, Set),
         (tuple, Tuple),
@@ -68,6 +70,7 @@ def test_builtin_generics_double(T, GT):
         bool,
         dict,
         float,
+        frozenset,
         int,
         list,
         set,
@@ -81,6 +84,7 @@ def test_builtin_generics_double(T, GT):
         typing.Counter,
         Dict,
         DefaultDict,
+        FrozenSet,
         List,
         NamedTuple,
         typing.OrderedDict,
