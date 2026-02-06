@@ -1,22 +1,10 @@
 from dataclasses import dataclass
-from typing import (
-    Annotated,
-    Any,
-    FrozenSet,
-    List,
-    Literal,
-    Set,
-    Union,
-    get_args,
-    get_origin,
-)
+from typing import Annotated, Any, FrozenSet, List, Literal, Union, get_args, get_origin
 
 from typeable import declare, deepcast
 
 
 def test_get_origin():
-    assert get_origin(Set[int]) == set
-    assert get_origin(Set) == set
     assert get_origin(FrozenSet[int]) == frozenset
     assert get_origin(FrozenSet) == frozenset
     assert get_origin(Union[int, None]) == Union
@@ -31,8 +19,6 @@ def test_get_args():
     class X:
         i: int
 
-    assert get_args(Set[int]) == (int,)
-    assert get_args(Set) == ()
     assert get_args(FrozenSet[int]) == (int,)
     assert get_args(FrozenSet) == ()
     assert get_args(Union[int, None]) == (int, type(None))

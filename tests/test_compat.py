@@ -1,7 +1,17 @@
-from collections import Counter, OrderedDict, defaultdict
+from collections import Counter, OrderedDict, defaultdict, namedtuple
 import sys
 from types import NoneType
-from typing import DefaultDict, Dict, List, Tuple, Type, get_args, get_origin
+from typing import (
+    DefaultDict,
+    Dict,
+    List,
+    NamedTuple,
+    Set,
+    Tuple,
+    Type,
+    get_args,
+    get_origin,
+)
 import typing
 
 import pytest
@@ -11,6 +21,7 @@ import pytest
     "T, GT",
     [
         (list, List),
+        (set, Set),
         (tuple, Tuple),
         (type, Type),
         (Counter, typing.Counter),
@@ -59,17 +70,21 @@ def test_builtin_generics_double(T, GT):
         float,
         int,
         list,
+        set,
         str,
         tuple,
         Counter,
         defaultdict,
+        namedtuple,
         OrderedDict,
         NoneType,
         typing.Counter,
         Dict,
         DefaultDict,
         List,
+        NamedTuple,
         typing.OrderedDict,
+        Set,
         Tuple,
     ],
 )

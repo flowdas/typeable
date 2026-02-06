@@ -453,48 +453,6 @@ def _cast_bytearray_str(deepcast: DeepCast, cls: type[bytearray], val: str):
 
 
 #
-# set
-#
-
-
-def _copy_set_object(deepcast: DeepCast, r, it, T):
-    for v in it:
-        with traverse(v):
-            r.add(deepcast(T, v))
-    return r
-
-
-@deepcast.register
-def _cast_set_object(deepcast: DeepCast, cls: type[set], val, T=None):
-    # assume T is not None or not isinstance(val, cls)
-    if T is None:
-        return cls(val)
-
-    if isinstance(val, cls):
-        r = None
-        it = iter(val)
-        i = 0
-        for v in it:
-            with traverse(v):
-                cv = deepcast(T, v)
-                if cv is not v:
-                    if i == 0:
-                        r = cls()
-                    else:
-                        # assume repeatable order
-                        r = cls(itertools.islice(val, i))
-                    r.add(cv)
-                    break
-                i += 1
-        if r is None:
-            return val
-        else:
-            return _copy_set_object(deepcast, r, it, T)
-    else:
-        return _copy_set_object(deepcast, cls(), iter(val), T)
-
-
-#
 # frozenset
 #
 

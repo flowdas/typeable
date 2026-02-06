@@ -1,0 +1,114 @@
+from collections import UserList, deque
+from dataclasses import dataclass
+from typing import Set, get_origin
+
+from typeable import deepcast, localcontext
+
+import pytest
+
+
+@pytest.fixture(
+    params=[
+        set,
+        set[int],
+        Set,
+        Set[int],
+    ]
+)
+def RT(request):
+    return request.param
+
+
+@pytest.fixture(
+    params=[
+        deque,
+        frozenset,
+        list,
+        set,
+        tuple,
+        UserList,
+    ]
+)
+def VT(request):
+    return request.param
+
+
+@pytest.mark.parametrize("T", [set, Set])
+def test_None(T):
+    """None 은 set 으로 변환될 수 없다."""
+    with pytest.raises(TypeError):
+        deepcast(T, None)
+
+
+def test_Iterable(RT, VT):
+    """여러 iterable 을 set 으로 변환할 수 있어야 한다."""
+    data = range(10)
+    v = VT(data)
+    x = deepcast(RT, v)
+    T = get_origin(RT) or RT
+    if isinstance(v, T):
+        assert x is v
+    else:
+        assert isinstance(x, T)
+    assert x == set(v)
+    assert set(v) == x
+
+
+@pytest.mark.parametrize("T", [set, Set])
+def test_nested(T):
+    """dataclass 를 값으로 품은 set[] 변환."""
+
+    @dataclass(frozen=True)
+    class X:
+        i: int
+
+    # non-generic
+    data = set(X(i=i) for i in range(10))
+
+    l = deepcast(T, data)
+    assert l is data
+
+    # generic
+    data = [{"i": i} for i in range(10)]
+
+    l = deepcast(T[X], data)
+    assert isinstance(l, set)
+    for v in l:
+        assert isinstance(v, X)
+    for i in range(len(data)):
+        assert X(i=i) in l
+
+
+@pytest.mark.parametrize("T", [set, Set])
+def test_no_copy(T):
+    """isinstance 이면 복사가 일어나지 말아야 한다."""
+    data = set(range(10))
+    assert deepcast(T, data) is data
+    assert deepcast(T[int], data) is data
+
+
+@pytest.mark.parametrize("T", [set, Set])
+def test_copy(T):
+    """형이 정확히 일치하지 않으면 복사가 일어나야 한다."""
+    data = set(range(9))
+    data.add("9")  # type: ignore
+    expected = set(range(10))
+
+    with localcontext(parse_number=True):
+        assert deepcast(T, data) is data
+        assert deepcast(T[int], data) == expected
+        assert deepcast(T[int], list(data)) == expected
+
+
+@pytest.mark.parametrize(
+    "v",
+    [
+        "",
+        b"",
+        bytearray(),
+    ],
+)
+def test_string(RT, v):
+    """str, bytes, bytearray 는 set 으로 변환할 수 없다."""
+    with pytest.raises(TypeError):
+        deepcast(RT, v)

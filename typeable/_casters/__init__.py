@@ -6,5 +6,6 @@ from . import (  # noqa: F401
     list,
     nonetype,
     object,
+    set,
     tuple,
 )

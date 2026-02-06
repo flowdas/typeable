@@ -101,56 +101,8 @@ def test_bytearray():
 
 
 #
-# set
+# frozenset
 #
-
-
-def test_set():
-    # dict
-    assert deepcast(set, {"a": 1, "b": 2}) == {"a", "b"}
-
-    # None
-    with pytest.raises(TypeError):
-        deepcast(set, None)
-
-    # set
-    expected = set(range(10))
-    data = set(str(v) for v in expected)
-
-    l = deepcast(Set, data)
-    assert isinstance(l, set)
-    assert l == data
-
-    l = deepcast(set, data)
-    assert isinstance(l, set)
-    assert l == data
-
-    # generic set
-    l = deepcast(Set[int], data)
-
-    assert isinstance(l, set)
-    assert l == expected
-
-    l = deepcast(set[int], data)
-
-    assert isinstance(l, set)
-    assert l == expected
-
-    # no copy
-    data = set(range(10))
-    assert deepcast(set, data) is data
-    assert deepcast(Set, data) is data
-    assert deepcast(Set[int], data) is data
-
-    # copy
-    data = set(range(9))
-    data.add("9")
-    expected = set(range(10))
-
-    assert deepcast(set, data) is data
-    assert deepcast(Set, data) is data
-    assert deepcast(Set[int], data) == expected
-    assert deepcast(Set[int], frozenset(data)) == expected
 
 
 def test_frozenset():

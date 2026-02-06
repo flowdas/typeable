@@ -42,6 +42,8 @@ This list is non-exhaustive.
 - `list`
 - `list[]`
 - `object`
+- `set`
+- `set[]`
 - `str`
 - `tuple`
 - `tuple[]`
@@ -65,6 +67,8 @@ This list is non-exhaustive.
 - `typing.NamedTuple`
 - `typing.OrderedDict`
 - `typing.OrderedDict[]`
+- `typing.Set`
+- `typing.Set[]`
 - `typing.Tuple`
 - `typing.Tuple[]`
 - `typing.TypedDict`
