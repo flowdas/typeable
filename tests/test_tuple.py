@@ -1,11 +1,10 @@
-from collections import UserList, deque
+from collections import UserList, deque, namedtuple
 from dataclasses import dataclass
-from typing import Tuple, get_origin
-from typeable import deepcast
+from typing import NamedTuple, Tuple, get_origin
+from typeable import deepcast, localcontext
 
 import pytest
 
-from typeable._context import localcontext
 from .conftest import str_from_int
 
 
@@ -196,3 +195,140 @@ def test_complex(RT):
     """complex 는 tuple 로 변환할 수 없다."""
     with pytest.raises(TypeError):
         deepcast(RT, complex(1, 2))
+
+
+def test_namedtuple_from_Iterable(VT):
+    """Iterable 을 namedtuple 로 변환할 수 있다."""
+
+    X = namedtuple("X", ["i", "j"], defaults=[9])
+
+    data = [3]
+    v = VT(data)
+    x = deepcast(X, v)
+    assert isinstance(x, X)
+    assert x.i == data[0]
+    assert x.j == 9
+
+    data.append(7)
+    v = VT(data)
+    x = deepcast(X, v)
+    assert isinstance(x, X)
+    assert x.i == data[0]
+    assert x.j == 7
+
+
+def test_namedtuple_from_dict():
+    """dict 를 namedtuple 로 변환할 수 있다."""
+
+    X = namedtuple("X", ["i", "j"], defaults=[9])
+
+    data = {"i": 3}
+    x = deepcast(X, data)
+    assert isinstance(x, X)
+    assert x.i == data["i"]
+    assert x.j == 9
+
+    data["j"] = 7
+    x = deepcast(X, data)
+    assert isinstance(x, X)
+    assert x.i == data["i"]
+    assert x.j == 7
+
+
+def test_namedtuple_from_dataclass():
+    """dataclass 를 namedtuple 로 변환할 수 있다."""
+
+    X = namedtuple("X", ["i", "j"], defaults=[9])
+
+    @dataclass
+    class V:
+        i: int
+
+    v = V(i=3)
+    x = deepcast(X, v)
+    assert isinstance(x, X)
+    assert x.i == v.i
+    assert x.j == 9
+
+    @dataclass
+    class VV:
+        i: int
+        j: int
+
+    v = VV(i=3, j=7)
+    x = deepcast(X, v)
+    assert isinstance(x, X)
+    assert x.i == v.i
+    assert x.j == v.j
+
+
+def test_NamedTuple_from_Iterable(VT):
+    """Iterable 을 NamedTuple 로 변환할 수 있다."""
+
+    class X(NamedTuple):
+        i: int
+        j: int = 9
+
+    data = [3]
+    v = VT(data)
+    x = deepcast(X, v)
+    assert isinstance(x, X)
+    assert x.i == data[0]
+    assert x.j == 9
+
+    data.append(7)
+    v = VT(data)
+    x = deepcast(X, v)
+    assert isinstance(x, X)
+    assert x.i == data[0]
+    assert x.j == 7
+
+
+def test_NamedTuple_from_dict():
+    """dict 를 NamedTuple 로 변환할 수 있다."""
+
+    class X(NamedTuple):
+        i: int
+        j: int = 9
+
+    data = {"i": 3}
+    x = deepcast(X, data)
+    assert isinstance(x, X)
+    assert x.i == data["i"]
+    assert x.j == 9
+
+    data["j"] = "7"  # type: ignore
+    with localcontext(parse_number=True):
+        x = deepcast(X, data)
+        assert isinstance(x, X)
+        assert x.i == data["i"]
+        assert x.j == 7
+
+
+def test_NamedTuple_from_dataclass():
+    """dataclass 를 NamedTuple 로 변환할 수 있다."""
+
+    class X(NamedTuple):
+        i: int
+        j: int = 9
+
+    @dataclass
+    class V:
+        i: int
+
+    v = V(i=3)
+    x = deepcast(X, v)
+    assert isinstance(x, X)
+    assert x.i == v.i
+    assert x.j == 9
+
+    @dataclass
+    class VV:
+        i: int
+        j: int
+
+    v = VV(i=3, j=7)
+    x = deepcast(X, v)
+    assert isinstance(x, X)
+    assert x.i == v.i
+    assert x.j == v.j

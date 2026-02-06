@@ -49,6 +49,7 @@ This list is non-exhaustive.
 - `collections.Counter[]`
 - `collections.defaultdict`
 - `collections.defaultdict[]`
+- `collections.namedtuple`
 - `collections.OrderedDict`
 - `collections.OrderedDict[]`
 - `@dataclasses.dataclass`
@@ -61,6 +62,7 @@ This list is non-exhaustive.
 - `typing.Dict[]`
 - `typing.List`
 - `typing.List[]`
+- `typing.NamedTuple`
 - `typing.OrderedDict`
 - `typing.OrderedDict[]`
 - `typing.Tuple`
