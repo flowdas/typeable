@@ -1,20 +1,9 @@
 import cmath
-from typing import (
-    Any,
-    FrozenSet,
-    Optional,
-    Set,
-    Tuple,
-    Type,
-)
+from typing import Any, FrozenSet, Optional, Set, Type
 
-from typeable import (
-    deepcast,
-    localcontext,
-)
+from typeable import deepcast, localcontext
 
 import pytest
-from .conftest import str_from_int
 
 
 #
@@ -211,132 +200,6 @@ def test_frozenset():
     assert deepcast(FrozenSet, data) is data
     assert deepcast(FrozenSet[int], data) == expected
     assert deepcast(FrozenSet[int], set(data)) == expected
-
-
-#
-# tuple
-#
-
-
-def test_tuple():
-    # dict
-    assert deepcast(tuple, {"a": 1, "b": 2}) == (("a", 1), ("b", 2))
-
-    # None
-    with pytest.raises(TypeError):
-        deepcast(tuple, None)
-
-    # homogeneous tuple
-    expected = tuple(range(10))
-    data = tuple(str(i) for i in range(10))
-
-    l = deepcast(Tuple, data)
-    assert isinstance(l, tuple)
-    assert l == data
-
-    l = deepcast(tuple, data)
-    assert isinstance(l, tuple)
-    assert l == data
-
-    # homogeneous generic tuple
-    l = deepcast(Tuple[int, ...], data)
-
-    assert isinstance(l, tuple)
-    assert l == expected
-
-    l = deepcast(tuple[int, ...], data)
-
-    assert isinstance(l, tuple)
-    assert l == expected
-
-    # homogeneous no copy
-    data = tuple(range(10))
-    assert deepcast(tuple, data) is data
-    assert deepcast(Tuple, data) is data
-    assert deepcast(Tuple[int, ...], data) is data
-
-    # homogeneous copy
-    data = tuple(range(9)) + ("9",)
-    expected = tuple(range(10))
-    assert deepcast(tuple, data) is data
-    assert deepcast(Tuple, data) is data
-    assert deepcast(Tuple[int, ...], data) == expected
-    assert deepcast(Tuple[int, ...], list(range(9)) + ["9"]) == expected
-
-    # heterogeneous tuple
-    data = (1, "2", "3")
-    expected = ("1", 2, "3")
-
-    l = deepcast(Tuple, data)
-    assert isinstance(l, tuple)
-    assert l == data
-
-    l = deepcast(tuple, data)
-    assert isinstance(l, tuple)
-    assert l == data
-
-    # heterogeneous generic tuple
-    with deepcast.localregister(str_from_int):
-        l = deepcast(Tuple[str, int, str], data)
-
-        assert isinstance(l, tuple)
-        assert l == expected
-
-        l = deepcast(Tuple[str, int, str], list(data))
-
-        assert isinstance(l, tuple)
-        assert l == expected
-
-    assert deepcast(Tuple[int, int, int], data) == (1, 2, 3)
-    assert deepcast(Tuple[int, int, int], list(data)) == (1, 2, 3)
-
-    with deepcast.localregister(str_from_int):
-        l = deepcast(tuple[str, int, str], data)
-
-        assert isinstance(l, tuple)
-        assert l == expected
-
-    # empty tuple
-    data = ()
-
-    l = deepcast(Tuple, data)
-    assert isinstance(l, tuple)
-    assert l == data
-
-    l = deepcast(tuple, data)
-    assert isinstance(l, tuple)
-    assert l == data
-
-    # empty generic tuple
-    l = deepcast(Tuple[()], data)
-
-    assert isinstance(l, tuple)
-    assert l == data
-
-    l = deepcast(tuple[()], data)
-
-    assert isinstance(l, tuple)
-    assert l == data
-
-    # length mismatch
-    with pytest.raises(TypeError):
-        deepcast(Tuple[()], (1,))
-
-    with pytest.raises(TypeError):
-        deepcast(Tuple[int], (1, 2))
-
-    with pytest.raises(TypeError):
-        deepcast(Tuple[int], [1, 2])
-
-    with pytest.raises(TypeError):
-        deepcast(Tuple[int], ())
-
-    with pytest.raises(TypeError):
-        deepcast(Tuple[int], [])
-
-    # complex
-    assert deepcast(tuple, complex(1, 2)) == (1, 2)
-    assert deepcast(Tuple[float, float], complex(1, 2)) == (1, 2)
 
 
 #

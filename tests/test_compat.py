@@ -1,6 +1,7 @@
 from collections import Counter, OrderedDict, defaultdict
+import sys
 from types import NoneType
-from typing import DefaultDict, Dict, List, Type, get_args, get_origin
+from typing import DefaultDict, Dict, List, Tuple, Type, get_args, get_origin
 import typing
 
 import pytest
@@ -10,6 +11,7 @@ import pytest
     "T, GT",
     [
         (list, List),
+        (tuple, Tuple),
         (type, Type),
         (Counter, typing.Counter),
     ],
@@ -33,6 +35,7 @@ def test_builtin_generics_single(T, GT):
         (defaultdict, DefaultDict),
         (dict, Dict),
         (OrderedDict, typing.OrderedDict),
+        (tuple, Tuple),
     ],
 )
 def test_builtin_generics_double(T, GT):
@@ -51,16 +54,23 @@ def test_builtin_generics_double(T, GT):
 @pytest.mark.parametrize(
     "T",
     [
-        NoneType,
+        bool,
         dict,
-        Dict,
+        float,
+        int,
+        list,
         str,
+        tuple,
         Counter,
-        typing.Counter,
         defaultdict,
-        DefaultDict,
         OrderedDict,
+        NoneType,
+        typing.Counter,
+        Dict,
+        DefaultDict,
+        List,
         typing.OrderedDict,
+        Tuple,
     ],
 )
 def test_valid_type_parameters(T):
@@ -83,3 +93,25 @@ def test_partially_valid_type_parameters(T, CT):
     assert get_origin(type[T]) is type
     assert get_args(Type[T]) == (CT,)
     assert get_args(type[T]) == (T,)
+
+
+@pytest.mark.parametrize("T", [tuple, Tuple])
+def test_tuple(T):
+    assert get_origin(T[int]) is tuple
+    assert get_origin(T[int, str]) is tuple
+    assert get_origin(T[int, ...]) is tuple
+    assert get_origin(T[()]) is tuple
+
+    assert get_args(T[int]) == (int,)
+    assert get_args(T[int, str]) == (int, str)
+    assert get_args(T[int, ...]) == (int, ...)
+    assert get_args(T) == ()
+
+
+def test_empty_tuple_args():
+    assert get_args(tuple[()]) == ()
+
+    if sys.version_info < (3, 11):
+        assert get_args(Tuple[()]) == ((),)
+    else:
+        assert get_args(Tuple[()]) == ()

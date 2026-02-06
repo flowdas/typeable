@@ -43,6 +43,8 @@ This list is non-exhaustive.
 - `list[]`
 - `object`
 - `str`
+- `tuple`
+- `tuple[]`
 - `collections.Counter`
 - `collections.Counter[]`
 - `collections.defaultdict`
@@ -61,4 +63,6 @@ This list is non-exhaustive.
 - `typing.List[]`
 - `typing.OrderedDict`
 - `typing.OrderedDict[]`
+- `typing.Tuple`
+- `typing.Tuple[]`
 - `typing.TypedDict`
