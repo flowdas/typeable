@@ -39,6 +39,8 @@ This list is non-exhaustive.
 - `dict[]`
 - `float`
 - `int`
+- `list`
+- `list[]`
 - `object`
 - `str`
 - `collections.Counter`
@@ -55,6 +57,8 @@ This list is non-exhaustive.
 - `typing.DefaultDict[]`
 - `typing.Dict`
 - `typing.Dict[]`
+- `typing.List`
+- `typing.List[]`
 - `typing.OrderedDict`
 - `typing.OrderedDict[]`
 - `typing.TypedDict`

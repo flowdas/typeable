@@ -1,10 +1,7 @@
 import cmath
-from dataclasses import dataclass
-import math
 from typing import (
     Any,
     FrozenSet,
-    List,
     Optional,
     Set,
     Tuple,
@@ -28,8 +25,6 @@ from .conftest import str_from_int
 def test_None():
     assert deepcast(Any, None) is None
     assert deepcast(Optional[int], None) is None
-    with pytest.raises(TypeError):
-        deepcast(type(None), object())
 
 
 #
@@ -114,66 +109,6 @@ def test_bytearray():
 
     # bytearray
     assert deepcast(bytearray, bytearray(b"hello")) == bytearray(b"hello")
-
-
-#
-# list
-#
-
-
-def test_list():
-    # dict
-    assert deepcast(list, {"a": 1, "b": 2}) == [("a", 1), ("b", 2)]
-
-    # None
-    with pytest.raises(TypeError):
-        deepcast(list, None)
-
-    # list
-    @dataclass
-    class X:
-        i: int
-
-    data = [{"i": i} for i in range(10)]
-
-    l = deepcast(List, data)
-    assert isinstance(l, list)
-    assert l == data
-
-    l = deepcast(list, data)
-    assert isinstance(l, list)
-    assert l == data
-
-    # generic list
-    l = deepcast(List[X], data)
-
-    assert isinstance(l, list)
-    for i in range(len(data)):
-        assert isinstance(l[i], X)
-        assert l[i].i == i
-
-    l = deepcast(list[X], data)
-
-    assert isinstance(l, list)
-    for i in range(len(data)):
-        assert isinstance(l[i], X)
-        assert l[i].i == i
-
-    # no copy
-    data = list(range(10))
-    assert deepcast(list, data) is data
-    assert deepcast(List, data) is data
-    assert deepcast(List[int], data) is data
-
-    # copy
-    data = list(range(9))
-    data.append("9")
-    expected = list(range(10))
-
-    assert deepcast(list, data) is data
-    assert deepcast(List, data) is data
-    assert deepcast(List[int], data) == expected
-    assert deepcast(List[int], tuple(data)) == expected
 
 
 #

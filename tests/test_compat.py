@@ -1,6 +1,6 @@
 from collections import Counter, OrderedDict, defaultdict
 from types import NoneType
-from typing import DefaultDict, Dict, Type, get_args, get_origin
+from typing import DefaultDict, Dict, List, Type, get_args, get_origin
 import typing
 
 import pytest
@@ -9,6 +9,7 @@ import pytest
 @pytest.mark.parametrize(
     "T, GT",
     [
+        (list, List),
         (type, Type),
         (Counter, typing.Counter),
     ],

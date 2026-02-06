@@ -453,51 +453,6 @@ def _cast_bytearray_str(deepcast: DeepCast, cls: type[bytearray], val: str):
 
 
 #
-# list
-#
-
-
-def _copy_list_object(deepcast: DeepCast, r, it, T, i):
-    for v in it:
-        with traverse(i):
-            r.append(deepcast(T, v))
-        i += 1
-    return r
-
-
-@deepcast.register
-def _cast_list_object(deepcast: DeepCast, cls: type[list], val, T=None):
-    # assume T is not None or not isinstance(val, cls)
-    if isinstance(val, Mapping):
-        val = val.items()
-
-    if T is None:
-        return cls(val)
-
-    if isinstance(val, cls):
-        r = None
-        it = iter(val)
-        i = 0
-        for v in it:
-            with traverse(i):
-                cv = deepcast(T, v)
-                if cv is not v:
-                    if i == 0:
-                        r = cls()
-                    else:
-                        r = cls(itertools.islice(val, i))
-                    r.append(cv)
-                    break
-                i += 1
-        if r is None:
-            return val
-        else:
-            return _copy_list_object(deepcast, r, it, T, i + 1)
-    else:
-        return _copy_list_object(deepcast, cls(), iter(val), T, 0)
-
-
-#
 # set
 #
 
