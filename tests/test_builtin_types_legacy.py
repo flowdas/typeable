@@ -47,60 +47,6 @@ def test_complex():
 
 
 #
-# bytes
-#
-
-
-def test_bytes():
-    # str
-    assert deepcast(bytes, "hello") == b"hello"
-
-    # list[int]
-    assert deepcast(bytes, [0, 1, 2, 3, 4]) == b"\x00\x01\x02\x03\x04"
-
-    # int
-    with pytest.raises(TypeError):
-        deepcast(bytes, 5)
-
-    # None
-    with pytest.raises(TypeError):
-        deepcast(bytes, None)
-
-    # bytearray
-    assert deepcast(bytes, bytearray(b"hello")) == b"hello"
-
-    # bytes
-    assert deepcast(bytes, b"hello") == b"hello"
-
-
-#
-# bytearray
-#
-
-
-def test_bytearray():
-    # str
-    assert deepcast(bytearray, "hello") == bytearray(b"hello")
-
-    # list[int]
-    assert deepcast(bytearray, [0, 1, 2, 3, 4]) == bytearray(b"\x00\x01\x02\x03\x04")
-
-    # int
-    with pytest.raises(TypeError):
-        deepcast(bytearray, 5)
-
-    # None
-    with pytest.raises(TypeError):
-        deepcast(bytearray, None)
-
-    # bytes
-    assert deepcast(bytearray, b"hello") == bytearray(b"hello")
-
-    # bytearray
-    assert deepcast(bytearray, bytearray(b"hello")) == bytearray(b"hello")
-
-
-#
 # type
 #
 

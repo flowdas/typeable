@@ -414,44 +414,6 @@ def _cast_complex_bool(deepcast: DeepCast, cls: type[complex], val: bool):
 
 
 #
-# bytes
-#
-
-
-@deepcast.register
-def _cast_bytes_object(deepcast: DeepCast, cls: type[bytes], val):
-    # assume not isinstance(val, cls)
-    if isinstance(val, int):
-        raise TypeError
-    return cls(val)
-
-
-@deepcast.register
-def _cast_bytes_str(deepcast: DeepCast, cls: type[bytes], val: str):
-    ctx: Context = getcontext()
-    return cls(val, encoding=ctx.bytes_encoding, errors=ctx.encoding_errors)
-
-
-#
-# bytearray
-#
-
-
-@deepcast.register
-def _cast_bytearray_object(deepcast: DeepCast, cls: type[bytearray], val):
-    # assume not isinstance(val, cls)
-    if isinstance(val, int):
-        raise TypeError
-    return cls(val)
-
-
-@deepcast.register
-def _cast_bytearray_str(deepcast: DeepCast, cls: type[bytearray], val: str):
-    ctx: Context = getcontext()
-    return cls(val, encoding=ctx.bytes_encoding, errors=ctx.encoding_errors)
-
-
-#
 # Union
 #
 

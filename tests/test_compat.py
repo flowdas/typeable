@@ -68,6 +68,8 @@ def test_builtin_generics_double(T, GT):
     "T",
     [
         bool,
+        bytearray,
+        bytes,
         dict,
         float,
         frozenset,

@@ -35,6 +35,8 @@ Generic types are denoted by `[]`.
 This list is non-exhaustive.
 
 - `bool`
+- `bytearray`
+- `bytes`
 - `dict`
 - `dict[]`
 - `float`
