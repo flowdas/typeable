@@ -37,7 +37,6 @@ class Context:
     union_prefers_nearest_type: bool = True
 
     # TO REMOVE
-    bool_is_int: bool = True
     lossy_conversion: bool = False
     strict_str: bool = True  # test_enum_legacy 정리 후 제거
 

@@ -70,6 +70,7 @@ def test_builtin_generics_double(T, GT):
         bool,
         bytearray,
         bytes,
+        complex,
         dict,
         float,
         frozenset,

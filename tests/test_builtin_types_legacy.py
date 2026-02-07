@@ -1,7 +1,6 @@
-import cmath
 from typing import Any, Optional, Type
 
-from typeable import deepcast, localcontext
+from typeable import deepcast
 
 import pytest
 
@@ -14,36 +13,6 @@ import pytest
 def test_None():
     assert deepcast(Any, None) is None
     assert deepcast(Optional[int], None) is None
-
-
-#
-# complex
-#
-
-
-def test_complex():
-    # str
-    assert deepcast(complex, "123+456j") == complex(123, 456)
-    assert cmath.isnan(deepcast(complex, "nan+nanj"))
-
-    # bool
-    assert deepcast(complex, True) == 1.0 + 0j
-    with localcontext(bool_is_int=False):
-        with pytest.raises(TypeError):
-            deepcast(complex, True)
-
-    # int
-    assert deepcast(complex, 123) == 123 + 0j
-
-    # float
-    assert deepcast(complex, 123.456) == 123.456 + 0j
-
-    # tuple
-    assert deepcast(complex, [123, 456]) == complex(123, 456)
-    assert deepcast(complex, (123, 456)) == complex(123, 456)
-
-    # complex
-    assert deepcast(complex, complex(123, 456)) == complex(123, 456)
 
 
 #

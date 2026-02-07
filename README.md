@@ -37,6 +37,7 @@ This list is non-exhaustive.
 - `bool`
 - `bytearray`
 - `bytes`
+- `complex`
 - `dict`
 - `dict[]`
 - `float`

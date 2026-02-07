@@ -46,3 +46,8 @@ def test_complex():
 
     with pytest.raises(TypeError):
         deepcast(float, complex(123.456, 1))
+
+
+def test_bool():
+    with pytest.raises(TypeError):
+        deepcast(float, True)

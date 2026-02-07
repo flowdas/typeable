@@ -28,3 +28,6 @@ def float_from_complex(deepcast: DeepCast, cls: type[float], val: complex) -> fl
     if val.imag != 0:
         raise TypeError(f"invalid number for float: '{val}'")
     return val.real
+
+
+deepcast.forbid(float, bool)

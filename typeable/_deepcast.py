@@ -391,29 +391,6 @@ def _cast_Any_object(deepcast: DeepCast, cls: type[Any], val):
 
 
 #
-# complex
-#
-
-
-@deepcast.register
-def _cast_complex_object(deepcast: DeepCast, cls: type[complex], val):
-    # assume not isinstance(val, cls)
-    if isinstance(val, (tuple, list)):
-        r = cls(*val)
-    else:
-        r = cls(val)
-    return r
-
-
-@deepcast.register
-def _cast_complex_bool(deepcast: DeepCast, cls: type[complex], val: bool):
-    ctx: Context = getcontext()
-    if not ctx.bool_is_int:
-        raise TypeError(f"ctx.bool_is_int={ctx.bool_is_int}")
-    return cls(val)
-
-
-#
 # Union
 #
 

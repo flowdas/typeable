@@ -2,6 +2,7 @@ from . import (  # noqa: F401
     bool,
     bytearray,
     bytes,
+    complex,
     dict,
     float,
     frozenset,
