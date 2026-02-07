@@ -27,10 +27,8 @@ class Context:
     validate_default: bool = False
 
     # TODO: review
-    bytes_encoding: str = "utf-8"
     date_format: str = "iso"
     datetime_format: str = "iso"
-    encoding_errors: str = "strict"
     naive_timestamp: bool = False
     time_format: str = "iso"
     union_prefers_same_type: bool = True
