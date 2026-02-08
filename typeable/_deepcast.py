@@ -26,9 +26,10 @@ from typing import (
     get_type_hints,
 )
 
+
 from ._context import Context, getcontext
 from ._error import traverse
-from ._polymorphic import _resolve_polymorphic
+from ._polymorphic import Polymorphic
 
 #
 # declare
@@ -238,7 +239,7 @@ class DeepCast:
             val = self(dict, val)
 
         # resolve interface
-        func = _resolve_polymorphic(func, val)
+        func = Polymorphic.resolve(func, val)
 
         # func 의 서명을 파싱한다.
         aliases: dict[str, str] = {}  # val's name -> func's name mapping
