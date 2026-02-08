@@ -2,6 +2,7 @@ from collections import Counter, OrderedDict, defaultdict, namedtuple
 import sys
 from types import NoneType
 from typing import (
+    Any,
     DefaultDict,
     Dict,
     FrozenSet,
@@ -67,6 +68,17 @@ def test_builtin_generics_double(T, GT):
 @pytest.mark.parametrize(
     "T",
     [
+        Any,
+    ],
+)
+def test_special(T):
+    assert get_origin(T) is None
+    assert get_args(T) == ()
+
+
+@pytest.mark.parametrize(
+    "T",
+    [
         bool,
         bytearray,
         bytes,
@@ -84,6 +96,7 @@ def test_builtin_generics_double(T, GT):
         namedtuple,
         OrderedDict,
         NoneType,
+        Any,
         typing.Counter,
         Dict,
         DefaultDict,

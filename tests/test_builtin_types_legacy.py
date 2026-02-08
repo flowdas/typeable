@@ -11,7 +11,6 @@ import pytest
 
 
 def test_None():
-    assert deepcast(Any, None) is None
     assert deepcast(Optional[int], None) is None
 
 

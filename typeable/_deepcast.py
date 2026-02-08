@@ -21,9 +21,11 @@ from typing import (
     Literal,
     TypeVar,
     Union,
+    cast,
     get_args,
     get_origin,
     get_type_hints,
+    overload,
 )
 
 
@@ -103,8 +105,15 @@ class DeepCast:
         self._registry = {}
         self._dispatch_cache = {}
 
-    def __call__(self, cls: type[_T], val: Any) -> _T:
-        origin = get_origin(cls) or cls
+    @overload
+    def __call__(self, cls: type[_T], val: Any) -> _T: ...
+    @overload
+    def __call__(self, cls: object, val: Any) -> Any: ...
+
+    def __call__(self, cls: type[_T] | object, val: Any) -> _T | Any:
+        origin = cast(type, get_origin(cls) or cls)
+        if origin == Any:
+            origin = object
         Ts = _get_type_args(cls)
         tp = val.__class__
         try:
@@ -380,16 +389,6 @@ class DeepCast:
 
 
 deepcast = DeepCast()
-
-#
-# Any
-#
-
-
-@deepcast.register
-def _cast_Any_object(deepcast: DeepCast, cls: type[Any], val):
-    return val
-
 
 #
 # Union

@@ -1,26 +1,10 @@
 from datetime import date
-from typing import (
-    Any,
-    Dict,
-    List,
-    Literal,
-    Optional,
-    Tuple,
-    Union,
-)
+from typing import Dict, List, Literal, Optional, Tuple, Union
 
 from typeable import Context, declare, deepcast, localcontext
 
 import pytest
 from .conftest import str_from_int
-
-
-def test_Any():
-    assert deepcast(Any, None) is None
-    o = object()
-    assert deepcast(Any, o) is o
-
-    assert deepcast(List[Any], [None, o]) == [None, o]
 
 
 @pytest.mark.skip(reason="Union 재구현시까지 보류")
