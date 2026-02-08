@@ -1,8 +1,5 @@
 from abc import get_cache_token
-from collections.abc import (
-    Callable,
-    Mapping,
-)
+from collections.abc import Callable, Mapping
 from contextlib import contextmanager
 import dataclasses
 from dataclasses import is_dataclass, fields, Field, MISSING
@@ -18,7 +15,6 @@ from types import NoneType
 from typing import (
     Any,
     ForwardRef,
-    Literal,
     TypeVar,
     Union,
     cast,
@@ -847,20 +843,6 @@ def _cast_IntFlag_int(deepcast: DeepCast, cls: type[enum.IntFlag], val: int):
 @deepcast.register
 def _cast_str_IntFlag(deepcast: DeepCast, cls: type[str], val: enum.IntFlag):
     raise TypeError
-
-
-#
-# typing.Literal
-#
-
-
-@deepcast.register
-def _cast_Literal_object(deepcast: DeepCast, cls, val, *literals) -> Literal:
-    for literal in literals:
-        if literal == val:
-            return literal
-    else:
-        raise TypeError(f"One of {literals!r} required, but {val!r} is given")
 
 
 #

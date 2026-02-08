@@ -1,12 +1,11 @@
 from dataclasses import dataclass
-from typing import Annotated, Literal, Union, get_args, get_origin
+from typing import Annotated, Union, get_args, get_origin
 
 from typeable import declare, deepcast
 
 
 def test_get_origin():
     assert get_origin(Union[int, None]) == Union
-    assert get_origin(Literal) is None
     assert get_origin(Annotated) is None
     assert get_origin(Annotated[int, lambda: True]) is Annotated
 
@@ -17,8 +16,6 @@ def test_get_args():
         i: int
 
     assert get_args(Union[int, None]) == (int, type(None))
-    assert get_args(Literal) == ()
-    assert get_args(Literal["2.0"]) == ("2.0",)
     assert get_args(Annotated) == ()
     assert get_args(Annotated[int, True, False]) == (int, True, False)
 

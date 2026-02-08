@@ -72,6 +72,7 @@ This list is non-exhaustive.
 - `typing.FrozenSet[]`
 - `typing.List`
 - `typing.List[]`
+- `typing.Literal[]`
 - `typing.NamedTuple`
 - `typing.OrderedDict`
 - `typing.OrderedDict[]`

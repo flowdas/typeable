@@ -7,6 +7,7 @@ from typing import (
     Dict,
     FrozenSet,
     List,
+    Literal,
     NamedTuple,
     Set,
     Tuple,
@@ -69,6 +70,7 @@ def test_builtin_generics_double(T, GT):
     "T",
     [
         Any,
+        Literal,
     ],
 )
 def test_special(T):

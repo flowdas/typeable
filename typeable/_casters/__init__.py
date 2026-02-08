@@ -8,6 +8,7 @@ from . import (  # noqa: F401
     frozenset,
     int,
     list,
+    literal,
     nonetype,
     object,
     set,
