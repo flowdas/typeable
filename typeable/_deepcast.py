@@ -2,11 +2,11 @@ from abc import get_cache_token
 from collections.abc import Callable, Mapping
 from contextlib import contextmanager
 import dataclasses
-from dataclasses import is_dataclass, fields, Field, MISSING
+from dataclasses import dataclass, is_dataclass, fields, Field, MISSING
 import datetime
 from email.utils import parsedate_to_datetime
 import enum
-from functools import _find_impl  # type: ignore
+from functools import _compose_mro, _find_impl  # type: ignore
 import importlib
 import inspect
 import re
@@ -16,7 +16,6 @@ from typing import (
     Any,
     ForwardRef,
     TypeVar,
-    Union,
     cast,
     get_args,
     get_origin,
@@ -92,14 +91,56 @@ def _get_type_args(tp):
     return tuple(evaled) if changed else args
 
 
+@dataclass
+class UnionCast:
+    args: tuple[type, ...]
+    registry: dict[type, list[type]] = dataclasses.field(default_factory=dict)
+    dispatch_cache: dict[type, list[type]] = dataclasses.field(default_factory=dict)
+    cache_token: Any = None
+
+    def __post_init__(self):
+        reg = self.registry
+        for cls in self.args:
+            origin = get_origin(cls) or cls
+            if origin not in reg:
+                reg[origin] = []
+                if self.cache_token is None and hasattr(origin, "__abstractmethods__"):
+                    self.cache_token = get_cache_token()
+            reg[origin].append(cls)
+
+    def dispatch(self, cls):
+        if self.cache_token is not None:
+            current_token = get_cache_token()
+            if self.cache_token != current_token:
+                self.dispatch_cache.clear()
+                self.cache_token = current_token
+        cache = self.dispatch_cache.get(cls)
+        if cache is None:
+            args = {arg: None for arg in self.args}
+            cache = []
+            reg = self.registry
+            mro = _compose_mro(cls, reg.keys())
+            for t in mro:
+                if t in reg:
+                    for T in reg[t]:
+                        cache.append(T)
+                        del args[T]
+            cache.extend(args.keys())
+            self.dispatch_cache[cls] = cache
+        for t in cache:
+            yield t
+
+
 class DeepCast:
     _registry: dict[type, dict[type, _CasterType]]
     _dispatch_cache: dict[tuple[type, type], _CasterType]
     _cache_token: Any = None
+    _unions: dict[tuple[type, ...], UnionCast]
 
     def __init__(self):
         self._registry = {}
         self._dispatch_cache = {}
+        self._unions = {}
 
     @overload
     def __call__(self, cls: type[_T], val: Any) -> _T: ...
@@ -383,73 +424,15 @@ class DeepCast:
             **kwargs,
         )
 
+    def get_unioncast(self, args: tuple[type, ...]) -> UnionCast:
+        try:
+            return self._unions[args]
+        except KeyError:
+            entry = self._unions[args] = UnionCast(args)
+            return entry
+
 
 deepcast = DeepCast()
-
-#
-# Union
-#
-
-# TODO: caching
-
-
-def _type_distance(tp1, tp2):
-    m1 = tp1.__mro__
-    m2 = tp2.__mro__
-    n = 0
-    i = -1
-    try:
-        while m1[i] == m2[i]:
-            i -= 1
-            n += 1
-    except IndexError:
-        pass
-
-    return len(m1) + len(m2) - 2 * n
-
-
-@deepcast.register
-def _cast_Union_object(deepcast: DeepCast, cls, val, *Ts) -> Union:
-    vcls = val.__class__
-    types = []  # [(kind, distance, index, type)]
-    ctx: Context = getcontext()
-    for i, T in enumerate(Ts):
-        origin = get_origin(T) or T
-        try:
-            func = deepcast.dispatch(origin, vcls)
-        except:
-            continue
-        if ctx.union_prefers_same_type and vcls is origin:
-            k = 0
-            d = 0
-        elif ctx.union_prefers_base_type and isinstance(val, origin):
-            k = 1
-            d = _type_distance(vcls, origin)
-        elif ctx.union_prefers_super_type and issubclass(origin, vcls):
-            k = 2
-            d = _type_distance(vcls, origin)
-        elif ctx.union_prefers_nearest_type:
-            k = 3
-            fcls, fvcls = getattr(func, _TYPES)
-            d = _type_distance(vcls, fcls)
-            if d > 0:
-                d = min(d, _type_distance(vcls, fvcls))
-        else:
-            k = 3
-            d = 0
-        types.append((k, d, i, T))
-    types.sort()
-    for _, _, _, T in types:
-        try:
-            return deepcast(T, val)
-        except:
-            import traceback
-
-            traceback.print_exc()
-            continue
-    else:
-        raise TypeError("no match")
-
 
 #
 # datetime.datetime

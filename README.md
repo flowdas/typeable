@@ -81,3 +81,4 @@ This list is non-exhaustive.
 - `typing.Tuple`
 - `typing.Tuple[]`
 - `typing.TypedDict`
+- `typing.Union[]`

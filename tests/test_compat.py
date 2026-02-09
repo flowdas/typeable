@@ -1,6 +1,6 @@
 from collections import Counter, OrderedDict, defaultdict, namedtuple
 import sys
-from types import NoneType
+from types import NoneType, UnionType
 from typing import (
     Any,
     DefaultDict,
@@ -12,6 +12,7 @@ from typing import (
     Set,
     Tuple,
     Type,
+    Union,
     get_args,
     get_origin,
 )
@@ -119,12 +120,26 @@ def test_valid_type_parameters(T):
 
 
 @pytest.mark.parametrize(
+    "T",
+    [
+        Literal,
+    ],
+)
+def test_partially_valid_type_parameters(T):
+    """type[] 에는 사용할 수 있으나 Type[] 에서는 사용할 수 없는 타입들에 대한 호환성 테스트."""
+    assert get_origin(type[T]) is type
+    assert get_args(type[T]) == (T,)
+    with pytest.raises(TypeError):
+        get_origin(Type[T])
+
+
+@pytest.mark.parametrize(
     "T, CT",
     [
         (None, NoneType),
     ],
 )
-def test_partially_valid_type_parameters(T, CT):
+def test_partially_converted_type_parameters(T, CT):
     """Type[] 을 사용할 때는 자동 변환되지만, type[] 을 사용할 때는 그렇지 않은 타입들에 대한 호환성 테스트."""
     assert get_origin(Type[T]) is type
     assert get_origin(type[T]) is type
@@ -152,3 +167,27 @@ def test_empty_tuple_args():
         assert get_args(Tuple[()]) == ((),)
     else:
         assert get_args(Tuple[()]) == ()
+
+
+def test_Union():
+    assert get_origin(type[Union]) is type
+    assert get_args(type[Union]) == (Union,)
+
+    assert get_origin(Union[str, None]) is Union
+    assert get_args(Union[str, None]) == (str, NoneType)
+
+    assert get_origin(str | None) is UnionType
+    assert get_args(str | None) == (str, NoneType)
+
+    assert type(str | int) is UnionType
+
+    if sys.version_info < (3, 14):
+        with pytest.raises(TypeError):
+            Type[Union]
+        assert Union is not UnionType
+        assert type(Union[str, int]) is not UnionType
+    else:
+        assert get_origin(Type[Union]) is type
+        assert get_args(Type[Union]) == (Union,)
+        assert Union is UnionType
+        assert type(Union[str, int]) is UnionType

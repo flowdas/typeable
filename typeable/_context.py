@@ -31,10 +31,6 @@ class Context:
     datetime_format: str = "iso"
     naive_timestamp: bool = False
     time_format: str = "iso"
-    union_prefers_same_type: bool = True
-    union_prefers_base_type: bool = True
-    union_prefers_super_type: bool = True
-    union_prefers_nearest_type: bool = True
 
     # TO REMOVE
     lossy_conversion: bool = False
