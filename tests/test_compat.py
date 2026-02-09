@@ -9,6 +9,7 @@ from typing import (
     List,
     Literal,
     NamedTuple,
+    Optional,
     Set,
     Tuple,
     Type,
@@ -191,3 +192,25 @@ def test_Union():
         assert get_args(Type[Union]) == (Union,)
         assert Union is UnionType
         assert type(Union[str, int]) is UnionType
+
+
+def test_Optional():
+    assert get_origin(type[Optional]) is type
+    assert get_args(type[Optional]) == (Optional,)
+
+    # Union 캐스터가 사용된다는 뜻
+    assert get_origin(Optional[str]) is Union
+    assert get_args(Optional[str]) == (str, NoneType)
+
+    assert get_origin(str | None) is UnionType
+    assert get_args(str | None) == (str, NoneType)
+
+    assert type(str | None) is UnionType
+
+    with pytest.raises(TypeError):
+        Type[Optional]
+
+    if sys.version_info < (3, 14):
+        assert type(Optional[str]) is not UnionType
+    else:
+        assert type(Optional[str]) is UnionType

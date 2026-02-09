@@ -74,6 +74,7 @@ This list is non-exhaustive.
 - `typing.List[]`
 - `typing.Literal[]`
 - `typing.NamedTuple`
+- `typing.Optional[]`
 - `typing.OrderedDict`
 - `typing.OrderedDict[]`
 - `typing.Set`

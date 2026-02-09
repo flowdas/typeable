@@ -1,17 +1,8 @@
-from typing import Any, Optional, Type
+from typing import Any, Type
 
 from typeable import deepcast
 
 import pytest
-
-
-#
-# None
-#
-
-
-def test_None():
-    assert deepcast(Optional[int], None) is None
 
 
 #
