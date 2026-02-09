@@ -1,19 +1,12 @@
-# Copyright (C) 2021 Flowdas Inc. & Dong-gweon Oh <prospero@flowdas.com>
-#
-# This Source Code Form is subject to the terms of the Mozilla Public
-# License, v. 2.0. If a copy of the MPL was not distributed with this
-# file, You can obtain one at https://mozilla.org/MPL/2.0/.
-
 import cmath
 import math
 import re
-
-from ._cast import cast
-from ._json import JsonSchema
-from .typing import (
+from typing import (
     Annotated,
-    Type,
 )
+
+from ._deepcast import deepcast, DeepCast
+from ._json import JsonSchema
 
 
 #
@@ -21,9 +14,9 @@ from .typing import (
 #
 
 
-@cast.register
-def _cast_Annotated_object(cls, val, ctx, T, *args) -> Annotated:
-    r = cast(T, val, ctx=ctx)
+@deepcast.register
+def _cast_Annotated_object(deepcast: DeepCast, cls, val, T, *args) -> Annotated:
+    r = deepcast(T, val)
     for arg in args:
         if isinstance(arg, Constraint):
             if not arg(r):
@@ -45,8 +38,9 @@ def _jsonschema_Annotated(self, cls, T, *args):
 # Constraint
 #
 
+
 class Constraint:
-    __slots__ = ('_code',)
+    __slots__ = ("_code",)
 
     def __repr__(self):
         return f"{self.__class__.__name__}()"
@@ -55,13 +49,13 @@ class Constraint:
         try:
             return self._code(x)
         except AttributeError:
-            if hasattr(self, '_code'):
+            if hasattr(self, "_code"):
                 raise
             code = self.compile()
             return code(x)
 
     def compile(self):
-        code = getattr(self, '_code', None)
+        code = getattr(self, "_code", None)
         if code is None:
             expr = self.emit()
             if isinstance(expr, tuple):
@@ -72,14 +66,14 @@ class Constraint:
         return code
 
     def emit(self):
-        return 'True'
+        return "True"
 
     def annotate(self, root, schema):
         pass
 
 
 class _Combined(Constraint):
-    __slots__ = ('args',)
+    __slots__ = ("args",)
 
     def __init__(self, arg, *args):
         self.args = (arg,) + args
@@ -96,8 +90,7 @@ class _Combined(Constraint):
                     ns.update(expr[1] or {})
                     expr = expr[0]
                 exprs.append(expr)
-            expr = '(' + \
-                f" {self.OP} ".join(f"({expr})" for expr in exprs) + ')'
+            expr = "(" + f" {self.OP} ".join(f"({expr})" for expr in exprs) + ")"
             return expr, (ns if ns else None)
 
     def annotate(self, root, schema):
@@ -115,15 +108,15 @@ class _Combined(Constraint):
 class AllOf(_Combined):
     __slots__ = ()
 
-    OP = 'and'
-    KEYWORD = 'allOf'
+    OP = "and"
+    KEYWORD = "allOf"
 
 
 class AnyOf(_Combined):
     __slots__ = ()
 
-    OP = 'or'
-    KEYWORD = 'anyOf'
+    OP = "or"
+    KEYWORD = "anyOf"
 
 
 class NoneOf(AnyOf):
@@ -147,13 +140,13 @@ class IsFinite(Constraint):
     __slots__ = ()
 
     def emit(self):
-        expr = '((isinstance(x,(float,int)) and math.isfinite(x)) or (isinstance(x,complex) and cmath.isfinite(x)))'
+        expr = "((isinstance(x,(float,int)) and math.isfinite(x)) or (isinstance(x,complex) and cmath.isfinite(x)))"
         ns = dict(math=math, cmath=cmath)
         return expr, ns
 
 
 class IsGreaterThan(Constraint):
-    __slots__ = ('_value',)
+    __slots__ = ("_value",)
 
     def __init__(self, exclusive_minimum):
         self._value = exclusive_minimum
@@ -166,7 +159,7 @@ class IsGreaterThan(Constraint):
 
 
 class IsGreaterThanOrEqual(Constraint):
-    __slots__ = ('_value',)
+    __slots__ = ("_value",)
 
     def __init__(self, minimum):
         self._value = minimum
@@ -179,7 +172,7 @@ class IsGreaterThanOrEqual(Constraint):
 
 
 class IsLessThan(Constraint):
-    __slots__ = ('_value',)
+    __slots__ = ("_value",)
 
     def __init__(self, exclusive_maximum):
         self._value = exclusive_maximum
@@ -192,7 +185,7 @@ class IsLessThan(Constraint):
 
 
 class IsLessThanOrEqual(Constraint):
-    __slots__ = ('_value',)
+    __slots__ = ("_value",)
 
     def __init__(self, maximum):
         self._value = maximum
@@ -205,7 +198,7 @@ class IsLessThanOrEqual(Constraint):
 
 
 class IsLongerThanOrEqual(Constraint):
-    __slots__ = ('_value',)
+    __slots__ = ("_value",)
 
     def __init__(self, minimum):
         self._value = minimum
@@ -214,16 +207,16 @@ class IsLongerThanOrEqual(Constraint):
         return f"(len(x) >= {self._value!r})"
 
     def annotate(self, root, schema):
-        if root.type == 'string':
+        if root.type == "string":
             schema.minLength = self._value
-        elif root.type == 'object':
+        elif root.type == "object":
             schema.minProperties = self._value
-        elif root.type == 'array':
+        elif root.type == "array":
             schema.minItems = self._value
 
 
 class IsShorterThanOrEqual(Constraint):
-    __slots__ = ('_value',)
+    __slots__ = ("_value",)
 
     def __init__(self, maximum):
         self._value = maximum
@@ -232,16 +225,16 @@ class IsShorterThanOrEqual(Constraint):
         return f"(len(x) <= {self._value!r})"
 
     def annotate(self, root, schema):
-        if root.type == 'string':
+        if root.type == "string":
             schema.maxLength = self._value
-        elif root.type == 'object':
+        elif root.type == "object":
             schema.maxProperties = self._value
-        elif root.type == 'array':
+        elif root.type == "array":
             schema.maxItems = self._value
 
 
 class IsMultipleOf(Constraint):
-    __slots__ = ('_value',)
+    __slots__ = ("_value",)
 
     def __init__(self, value):
         if value <= 0:
@@ -256,7 +249,7 @@ class IsMultipleOf(Constraint):
 
 
 class IsMatched(Constraint):
-    __slots__ = ('_value',)
+    __slots__ = ("_value",)
 
     def __init__(self, pattern):
         self._value = pattern
