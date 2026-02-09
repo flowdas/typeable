@@ -30,6 +30,7 @@ setup(
     author_email="prospero@flowdas.com",
     packages=[
         "typeable",
+        "typeable._casters",
     ],
     setup_requires=setup_requires,
     install_requires=install_requires,
