@@ -1,4 +1,5 @@
 from . import (  # noqa: F401
+    annotated,
     bool,
     bytearray,
     bytes,

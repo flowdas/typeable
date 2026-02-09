@@ -61,6 +61,7 @@ This list is non-exhaustive.
 - `collections.OrderedDict[]`
 - `@dataclasses.dataclass`
 - `types.NoneType`
+- `typing.Annotated[]`
 - `typing.Any`
 - `typing.Counter`
 - `typing.Counter[]`

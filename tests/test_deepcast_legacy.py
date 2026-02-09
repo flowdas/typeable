@@ -1,16 +1,4 @@
-from typing import Annotated, get_args, get_origin
-
 from typeable import declare, deepcast
-
-
-def test_get_origin():
-    assert get_origin(Annotated) is None
-    assert get_origin(Annotated[int, lambda: True]) is Annotated
-
-
-def test_get_args():
-    assert get_args(Annotated) == ()
-    assert get_args(Annotated[int, True, False]) == (int, True, False)
 
 
 Integer = int

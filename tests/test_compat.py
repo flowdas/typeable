@@ -2,6 +2,7 @@ from collections import Counter, OrderedDict, defaultdict, namedtuple
 import sys
 from types import NoneType, UnionType
 from typing import (
+    Annotated,
     Any,
     DefaultDict,
     Dict,
@@ -214,3 +215,21 @@ def test_Optional():
         assert type(Optional[str]) is not UnionType
     else:
         assert type(Optional[str]) is UnionType
+
+
+def test_Annotated():
+    assert get_origin(Annotated) is None
+    assert get_args(Annotated) == ()
+
+    assert get_origin(Annotated[int, lambda: True]) is Annotated
+    assert get_args(Annotated[int, True, False]) == (int, True, False)
+
+    assert get_origin(type[Annotated]) is type
+    assert get_args(type[Annotated]) == (Annotated,)
+
+    if sys.version_info < (3, 13):
+        assert get_origin(Type[Annotated]) is type
+        assert get_args(Type[Annotated]) == (Annotated,)
+    else:
+        with pytest.raises(TypeError):
+            Type[Annotated]
