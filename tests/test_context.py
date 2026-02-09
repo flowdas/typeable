@@ -11,23 +11,23 @@ def test_policies():
         test_option: int = 0
 
     ctx = MyContext()
-    assert ctx.bool_is_int is True
-    assert ctx.bytes_encoding == "utf-8"
+    assert ctx.validate_default is False
+    assert ctx.datetime_format == "iso"
     assert ctx.test_option == 0
 
-    ctx = MyContext(bool_is_int=False)
-    assert ctx.bool_is_int is False
-    assert ctx.bytes_encoding == "utf-8"
+    ctx = MyContext(validate_default=True)
+    assert ctx.validate_default is True
+    assert ctx.datetime_format == "iso"
     assert ctx.test_option == 0
 
-    ctx = MyContext(bytes_encoding="ascii")
-    assert ctx.bool_is_int is True
-    assert ctx.bytes_encoding == "ascii"
+    ctx = MyContext(datetime_format="string")
+    assert ctx.validate_default is False
+    assert ctx.datetime_format == "string"
     assert ctx.test_option == 0
 
     ctx = MyContext(test_option=1)
-    assert ctx.bool_is_int is True
-    assert ctx.bytes_encoding == "utf-8"
+    assert ctx.validate_default is False
+    assert ctx.datetime_format == "iso"
     assert ctx.test_option == 1
 
     with pytest.raises(TypeError):

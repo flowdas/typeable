@@ -21,20 +21,20 @@ _default_bool_strings: dict[str, bool] = {
 
 @dataclass(slots=True)
 class Context:
-    bool_is_int: bool = True
+    bool_from_01: bool = True
     bool_strings: dict[str, bool] = field(default_factory=_default_bool_strings.copy)
-    bytes_encoding: str = "utf-8"
+    parse_number: bool = True
+    validate_default: bool = False
+
+    # TODO: review
     date_format: str = "iso"
     datetime_format: str = "iso"
-    encoding_errors: str = "strict"
-    lossy_conversion: bool = True
     naive_timestamp: bool = False
-    strict_str: bool = True
     time_format: str = "iso"
-    union_prefers_same_type: bool = True
-    union_prefers_base_type: bool = True
-    union_prefers_super_type: bool = True
-    union_prefers_nearest_type: bool = True
+
+    # TO REMOVE
+    lossy_conversion: bool = False
+    strict_str: bool = True  # test_enum_legacy 정리 후 제거
 
 
 _default_context = Context()

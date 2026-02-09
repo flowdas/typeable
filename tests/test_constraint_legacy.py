@@ -1,33 +1,8 @@
 import inspect
-from typing import (
-    Annotated,
-)
 
 import pytest
 
-from typeable import *
-
-
-#
-# Annotated
-#
-
-
-def test_Annotated():
-    assert deepcast(Annotated[int, None, Constraint()], "123") == 123
-
-    class Negative(Constraint):
-        def emit(self):
-            return "x < 0"
-
-    with pytest.raises(ValueError):
-        deepcast(Annotated[int, Negative()], "123")
-
-
-def test_JsonSchema_from_Annotated():
-    assert deepcast(dict, JsonSchema(Annotated[int, None, Constraint()])) == {
-        "type": "integer"
-    }
+from typeable import deepcast
 
 
 #

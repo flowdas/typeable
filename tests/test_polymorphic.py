@@ -1,21 +1,19 @@
 from dataclasses import dataclass, is_dataclass
-from typing import Literal
+
+from typeable import capture, deepcast, identity, localcontext, polymorphic
 
 import pytest
 
-from typeable import capture, deepcast, is_polymorphic, polymorphic
 
-
-def test_polymorphic_is_dataclass():
-    @polymorphic
+def test_polymorphic_with_plain_class():
+    @polymorphic(on="type")
     class Authenticator:
-        type: str
+        def __init__(self, type: str):
+            self._type = str
 
-    assert is_dataclass(Authenticator)
 
-
-def test_polymorphic_with_explicit_dataclass():
-    @polymorphic
+def test_polymorphic_with_dataclass():
+    @polymorphic(on="type")
     @dataclass
     class Authenticator:
         type: str
@@ -26,47 +24,37 @@ def test_polymorphic_with_explicit_dataclass():
 def test_polymorphic_requires_discriminator():
     with pytest.raises(TypeError):
 
-        @polymorphic
+        @polymorphic(on="")
         class Authenticator:
             pass
 
 
-def test_polymorphic_prohibit_ambiguity():
+def test_polymorphic_requires_str():
     with pytest.raises(TypeError):
 
-        @polymorphic
+        @polymorphic(on="type")
+        @dataclass
         class Authenticator:
-            type: str
-            scheme: str
+            type: int
 
 
 def test_polymorphic_on():
     @polymorphic(on="type")
+    @dataclass
     class Authenticator:
         type: str
         scheme: str
 
 
-def test_impl_requires_discriminator_redefinition():
-    @polymorphic
+def test_single_polymorphic():
+    @polymorphic(on="type")
+    @dataclass
     class Authenticator:
         type: str
 
-    with pytest.raises(TypeError):
-
-        @dataclass
-        class ApiKeyAuthenticator(Authenticator):
-            name: str = "X-API-Key"
-
-
-def test_impl_discriminator_is_literal():
-    @polymorphic
-    class Authenticator:
-        type: str
-
+    @identity("apiKey")
     @dataclass
     class ApiKeyAuthenticator(Authenticator):
-        type: Literal["apiKey"]
         name: str = "X-API-Key"
 
     data = dict(
@@ -80,38 +68,66 @@ def test_impl_discriminator_is_literal():
 
     with pytest.raises(TypeError):
 
+        @identity("apiKey")
         @dataclass
         class ApiKeyAuthenticator2(Authenticator):
-            type: str = "apiKey"
             name: str = "X-API-Key"
 
 
-def test_impl_discriminator_conflict():
-    @polymorphic
+def test_impl_do_not_requires_identity():
+    @polymorphic(on="type")
+    @dataclass
     class Authenticator:
         type: str
 
     @dataclass
     class ApiKeyAuthenticator(Authenticator):
-        type: Literal["apiKey"]
+        name: str = "X-API-Key"
+
+    @identity("apiKey")
+    @dataclass
+    class ApiKeyAuthenticator2(ApiKeyAuthenticator):
+        name2: str = "X-API-Key"
+
+    data = dict(
+        type="apiKey",
+        name="x-api-key",
+        name2="XXX",
+    )
+
+    x = deepcast(Authenticator, data)
+    assert isinstance(x, ApiKeyAuthenticator2)
+    assert deepcast(dict, x) == data
+
+
+def test_impl_discriminator_conflict():
+    @polymorphic(on="type")
+    @dataclass
+    class Authenticator:
+        type: str
+
+    @identity("apiKey")
+    @dataclass
+    class ApiKeyAuthenticator(Authenticator):
         name: str = "X-API-Key"
 
     with pytest.raises(TypeError):
 
+        @identity("apiKey")
         @dataclass
         class ApiKeyAuthenticator2(Authenticator):
-            type: Literal["apiKey"]
             name: str = "X-API-Key"
 
 
 def test_impl_discriminator_is_case_sensitive():
-    @polymorphic
+    @polymorphic(on="type")
+    @dataclass
     class Authenticator:
         type: str
 
+    @identity("apiKey")
     @dataclass
     class ApiKeyAuthenticator(Authenticator):
-        type: Literal["apiKey"]
         name: str = "X-API-Key"
 
     data = dict(
@@ -124,26 +140,28 @@ def test_impl_discriminator_is_case_sensitive():
 
 
 def test_impl_discriminator_type_mismatch():
-    @polymorphic
+    @polymorphic(on="type")
+    @dataclass
     class Authenticator:
         type: str
 
     with pytest.raises(TypeError):
 
+        @identity(1)
         @dataclass
         class ApiKeyAuthenticator(Authenticator):
-            type: Literal[1]
             name: str = "X-API-Key"
 
 
 def test_impl_instanciation():
-    @polymorphic
+    @polymorphic(on="type")
+    @dataclass
     class Authenticator:
         type: str
 
+    @identity("apiKey")
     @dataclass
     class ApiKeyAuthenticator(Authenticator):
-        type: Literal["apiKey"]
         name: str = "X-API-Key"
 
     data = dict(
@@ -157,18 +175,19 @@ def test_impl_instanciation():
 
 
 def test_impl_discriminator_mismatch():
-    @polymorphic
+    @polymorphic(on="type")
+    @dataclass
     class Authenticator:
         type: str
 
+    @identity("apiKey")
     @dataclass
     class ApiKeyAuthenticator(Authenticator):
-        type: Literal["apiKey"]
         name: str = "X-API-Key"
 
+    @identity("http")
     @dataclass
     class HttpAuthenticator(Authenticator):
-        type: Literal["http"]
         scheme: str = "bearer"
 
     data = dict(
@@ -180,13 +199,14 @@ def test_impl_discriminator_mismatch():
 
 
 def test_impl_type_check():
-    @polymorphic
+    @polymorphic(on="type")
+    @dataclass
     class Authenticator:
         type: str
 
+    @identity("apiKey")
     @dataclass
     class ApiKeyAuthenticator(Authenticator):
-        type: Literal["apiKey"]
         name: int
 
     data = dict(
@@ -194,20 +214,21 @@ def test_impl_type_check():
         name="X-API-Key",
     )
 
-    with pytest.raises(ValueError):
+    with pytest.raises(TypeError):
         with capture() as error:
             deepcast(Authenticator, data)
     assert error.location == ("name",)
 
 
 def test_impl_type_conversion():
-    @polymorphic
+    @polymorphic(on="type")
+    @dataclass
     class Authenticator:
         type: str
 
+    @identity("apiKey")
     @dataclass
     class ApiKeyAuthenticator(Authenticator):
-        type: Literal["apiKey"]
         name: int
 
     data = dict(
@@ -215,29 +236,32 @@ def test_impl_type_conversion():
         name="123",
     )
 
-    x = deepcast(Authenticator, data)
+    with localcontext(parse_number=True):
+        x = deepcast(Authenticator, data)
     assert isinstance(x, ApiKeyAuthenticator)
     assert x.name == 123
 
 
-def test_multiple_discriptor():
-    @polymorphic
+def test_multiple_polymorphic():
+    @polymorphic(on="type")
+    @dataclass
     class Authenticator:
         type: str
 
+    @identity("apiKey")
     @dataclass
     class ApiKeyAuthenticator(Authenticator):
-        type: Literal["apiKey"]
         name: str = "X-API-Key"
 
-    @polymorphic
+    @polymorphic(on="scheme")
+    @identity("http")
+    @dataclass
     class HttpAuthenticator(Authenticator):
-        type: Literal["http"]
         scheme: str
 
+    @identity("bearer")
     @dataclass
     class HttpBearerAuthenticator(HttpAuthenticator):
-        scheme: Literal["bearer"]
         format: str = "jwt"
 
     data = dict(
@@ -251,23 +275,25 @@ def test_multiple_discriptor():
 
 
 def test_partially_polymorphic():
-    @polymorphic
+    @polymorphic(on="type")
+    @dataclass
     class Authenticator:
         type: str
 
+    @identity("apiKey")
     @dataclass
     class ApiKeyAuthenticator(Authenticator):
-        type: Literal["apiKey"]
         name: str = "X-API-Key"
 
-    @polymorphic
+    @polymorphic(on="scheme")
+    @identity("http")
+    @dataclass
     class HttpAuthenticator(Authenticator):
-        type: Literal["http"]
         scheme: str
 
+    @identity("bearer")
     @dataclass
     class HttpBearerAuthenticator(HttpAuthenticator):
-        scheme: Literal["bearer"]
         format: str = "jwt"
 
     data = dict(
@@ -280,21 +306,59 @@ def test_partially_polymorphic():
     assert deepcast(dict, x) == data
 
 
-def test_is_polymorphic():
-    @polymorphic
-    class Authenticator:
-        type: str
-
+def test_alias():
+    @polymorphic(on="_schema")
     @dataclass
-    class ApiKeyAuthenticator(Authenticator):
-        type: Literal["apiKey"]
-        name: str = "X-API-Key"
+    class JsonSchema:
+        _schema: str = deepcast.field(alias="$schema")
 
-    @polymorphic
-    class HttpAuthenticator(Authenticator):
-        type: Literal["http"]
-        scheme: str
+    @identity("https://json-schema.org/draft/2020-12/schema")
+    @dataclass
+    class JsonSchema202012(JsonSchema):
+        pass
 
-    assert is_polymorphic(Authenticator)
-    assert not is_polymorphic(ApiKeyAuthenticator)
-    assert is_polymorphic(HttpAuthenticator)
+    @identity("https://json-schema.org/draft/2019-09/schema")
+    @dataclass
+    class JsonSchema201909(JsonSchema):
+        pass
+
+    x = deepcast(
+        JsonSchema, {"$schema": "https://json-schema.org/draft/2020-12/schema"}
+    )
+    assert isinstance(x, JsonSchema202012)
+
+
+def test_key():
+    def remove_patch_version(version):
+        try:
+            return ".".join(version.split(".")[:2])
+        except Exception:
+            return version
+
+    @polymorphic(on="openapi", key=remove_patch_version)
+    @dataclass
+    class OpenAPI:
+        openapi: str
+
+    @identity("3.0")
+    @dataclass
+    class OpenAPI30(OpenAPI):
+        pass
+
+    @identity("3.1")
+    @dataclass
+    class OpenAPI31(OpenAPI):
+        pass
+
+    @identity("3.2")
+    @dataclass
+    class OpenAPI32(OpenAPI):
+        pass
+
+    for version, cls in [
+        ("3.0.4", OpenAPI30),
+        ("3.1.2", OpenAPI31),
+        ("3.2.0", OpenAPI32),
+    ]:
+        x = deepcast(OpenAPI, {"openapi": version})
+        assert isinstance(x, cls)

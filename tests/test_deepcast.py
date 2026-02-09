@@ -1,298 +1,344 @@
 import asyncio
-from dataclasses import dataclass
-import inspect
-import sys
-from typing import (
-    Annotated,
-    Any,
-    Dict,
-    FrozenSet,
-    List,
-    Literal,
-    Set,
-    Tuple,
-    Type,
-    Union,
-    get_args,
-    get_origin,
-)
+from collections import namedtuple
+from dataclasses import dataclass, field
+from typing import NamedTuple, Type
+
+from typeable import capture, deepcast, localcontext
 
 import pytest
+from .conftest import str_from_int
 
-from typeable import Context, capture, declare, deepcast
-
-
-def test_get_origin():
-    assert get_origin(Type[int]) == type
-    assert get_origin(Type) == type
-    assert get_origin(List[int]) == list
-    assert get_origin(List) == list
-    assert get_origin(Dict[str, str]) == dict
-    assert get_origin(Dict) == dict
-    assert get_origin(Set[int]) == set
-    assert get_origin(Set) == set
-    assert get_origin(FrozenSet[int]) == frozenset
-    assert get_origin(FrozenSet) == frozenset
-    assert get_origin(Tuple[int]) == tuple
-    assert get_origin(Tuple[int, str]) == tuple
-    assert get_origin(Tuple[int, ...]) == tuple
-    assert get_origin(Tuple[()]) == tuple
-    assert get_origin(Tuple) == tuple
-    assert get_origin(Union[int, None]) == Union
-    assert get_origin(Any) is None
-    assert get_origin(Literal) is None
-    assert get_origin(Annotated) is None
-    assert get_origin(Annotated[int, lambda: True]) is Annotated
+#
+# deepcast.register
+#
 
 
-def test_get_args():
-    @dataclass
-    class X:
-        i: int
+@pytest.mark.parametrize(
+    "T",
+    [
+        Type[bool],
+        type[bool],
+        type[int],
+    ],
+)
+def test_supported_cls_types(deepcast, T):
+    """두번째 인자의 타입으로 등록할 수 있음을 확인한다."""
 
-    assert get_args(Type[int]) == (int,)
-    assert get_args(Type) == ()
-    assert get_args(List[int]) == (int,)
-    assert get_args(List[X]) == (X,)
-    assert get_args(List) == ()
-    assert get_args(Dict[str, X]) == (str, X)
-    assert get_args(Dict) == ()
-    assert get_args(Set[int]) == (int,)
-    assert get_args(Set) == ()
-    assert get_args(FrozenSet[int]) == (int,)
-    assert get_args(FrozenSet) == ()
-    assert get_args(Tuple[int]) == (int,)
-    assert get_args(Tuple[int, str]) == (int, str)
-    assert get_args(Tuple[int, ...]) == (int, ...)
-    if sys.version_info < (3, 11):
-        assert get_args(Tuple[()]) == ((),)
-    else:
-        assert get_args(Tuple[()]) == ()
-    assert get_args(Tuple) == ()
-    assert get_args(Union[int, None]) == (int, type(None))
-    assert get_args(Any) == ()
-    assert get_args(Literal) == ()
-    assert get_args(Literal["2.0"]) == ("2.0",)
-    assert get_args(Annotated) == ()
-    assert get_args(Annotated[int, True, False]) == (int, True, False)
+    @deepcast.register
+    def _(deepcast, cls: T, val: object): ...  # type: ignore
 
 
-Integer = int
+@pytest.mark.parametrize(
+    "T",
+    [
+        bool,  # type[bool] 을 써야 한다
+    ],
+)
+def test_unsupported_cls_types(deepcast, T):
+    """두번째 인자의 타입으로 등록할 수 없음을 확인한다."""
+
+    with pytest.raises(TypeError):
+
+        @deepcast.register
+        def _(deepcast, cls: T, val: object): ...  # type: ignore
 
 
-def test_declare():
-    with declare("Integer") as Ref:
-        T = List[Ref]
+@pytest.mark.parametrize(
+    "RT",
+    [
+        bool,
+        int,
+    ],
+)
+def test_supported_return_types(deepcast, RT):
+    """반환 타입으로 등록할 수 있음을 확인한다."""
 
-    assert deepcast(T, [2]) == [2]
-    assert deepcast(T, ["2"]) == [2]
+    @deepcast.register
+    def _(deepcast, cls, val: object) -> RT: ...  # type: ignore
 
 
-def test_register():
+@pytest.mark.parametrize(
+    "VT",
+    [
+        bool,
+        int,
+    ],
+)
+def test_supported_value_types(deepcast, VT):
+    """세번째 인자의 타입으로 등록할 수 있음을 확인한다."""
+
+    @deepcast.register
+    def _(deepcast, cls: type[object], val: VT): ...  # type: ignore
+
+
+def test_register_collison(deepcast):
+    """같은 서명으로 취급되는 두 변환기를 등록하면 RuntimeError 가 발생해야 한다."""
+
+    @deepcast.register
+    def _(deepcast, cls: type[float], val: object): ...
+
     with pytest.raises(RuntimeError):
-        # _cast_float_object 와 충돌
+
         @deepcast.register
-        def _(cls, val) -> float:
-            return cls(val)
+        def _(deepcast, cls, val: object) -> float: ...
 
 
-def test_invalid_register():
-    @dataclass
+def test_register_without_args(deepcast):
+    """인자가 부족한 변환기를 등록하면 TypeError 가 발생해야 한다."""
+    with pytest.raises(TypeError):
+
+        @deepcast.register
+        def _(deepcast): ...
+
+
+def test_register_without_annotations(deepcast):
+    """형 어노테이션을 제공하지 않으면 TypeError 가 발생해야 한다."""
+    with pytest.raises(TypeError):
+
+        @deepcast.register
+        def _(deepcast, cls, val): ...
+
+
+def test_register_mismatch(deepcast):
+    """두번째 인자의 형과 반환 형이 호환되지 않으면 TypeError 가 발생해야 한다."""
+    with pytest.raises(TypeError):
+
+        @deepcast.register
+        def _(deepcast, cls: type[float], val: int) -> int: ...
+
+
+def test_exact_match(deepcast):
+    """변환기 서명과 정확히 일치하는 형 변환이 수행됨을 확인한다."""
+
     class X:
-        i: int
-
-    with pytest.raises(TypeError):
-
-        @deepcast.register
-        def _():
-            pass
-
-    with pytest.raises(TypeError):
-
-        @deepcast.register
-        def _(cls, val):
-            pass
-
-    with pytest.raises(TypeError):
-
-        @deepcast.register
-        def _(cls: X, val) -> X:
-            pass
-
-
-@pytest.mark.skip(reason="Object 제거로 인해 다른 구현이 필요")
-def test_double_dispatch():
-    class X:
-        pass
-
-    @dataclass
-    class Y:
         pass
 
     @deepcast.register
-    def _(cls, val: X) -> Object:
-        return 1
+    def _(deepcast, cls: type[int], val: X) -> int:
+        return 123
 
-    assert deepcast(Y, X()) == 1
-    assert isinstance(deepcast(Y, {}), Y)
-
-    with pytest.raises(RuntimeError):
-
-        @deepcast.register
-        def _(cls, val: X) -> Object:
-            return 1
+    assert deepcast(int, X()) == 123
 
 
-def test_function():
-    @deepcast.function
+#
+# deepcast.apply
+#
+
+
+def test_apply_class():
+    """클래스에 dict 를 apply 하면 인스턴스를 반환한다."""
+
+    class X:
+        def __init__(self, i: int):
+            self.i = i
+
+    data = {"i": 3}
+    x = deepcast.apply(X, data)
+    assert isinstance(x, X)
+    assert x.i == data["i"]
+
+
+def test_apply_dataclass():
+    """alaias 가 포함된 dataclass에 dict 를 apply 하면 인스턴스를 반환한다."""
+
+    @dataclass
+    class X:
+        i: int = deepcast.field(alias="$i")
+
+    data = {"$i": 3}
+    x = deepcast.apply(X, data)
+    assert isinstance(x, X)
+    assert x.i == data["$i"]
+
+    @dataclass
+    class Y:
+        i: int = field(metadata={"alias": "$i"})
+
+    y = deepcast.apply(Y, data)
+    assert isinstance(y, Y)
+    assert y.i == data["$i"]
+
+
+def test_apply_namedtuple():
+    """namedtuple 에 dict 를 apply 하면 인스턴스를 반환한다."""
+
+    X = namedtuple("X", ["i", "j"], defaults=[9])
+
+    data = {"i": 3}
+    x = deepcast.apply(X, data)
+    assert isinstance(x, X)
+    assert x.i == data["i"]
+    assert x.j == 9
+
+    data["j"] = 7
+    x = deepcast.apply(X, data)
+    assert isinstance(x, X)
+    assert x.i == data["i"]
+    assert x.j == 7
+
+
+def test_apply_NamedTuple():
+    """NamedTuple 에 dict 를 apply 하면 인스턴스를 반환한다."""
+
+    class X(NamedTuple):
+        i: int
+        j: int = 9
+
+    data = {"i": 3}
+    x = deepcast.apply(X, data)
+    assert isinstance(x, X)
+    assert x.i == data["i"]
+    assert x.j == 9
+
+    data["j"] = "7"  # type: ignore
+    with localcontext(parse_number=True):
+        x = deepcast.apply(X, data)
+        assert isinstance(x, X)
+        assert x.i == data["i"]
+        assert x.j == 7
+
+
+def test_apply_function():
+    """함수에 dict 를 apply 하면 언패킹해서 호출한다."""
+
+    def f(i: int) -> int:
+        return i
+
+    data = {"i": 3}
+    x = deepcast.apply(f, data)
+    assert x == data["i"]
+
+
+def test_apply_function_validation():
+    """함수 인자형으로 형변환을 시도한다."""
+
     def test(a: int):
         assert isinstance(a, int)
         return a
 
-    assert test(123) == 123
-    assert test("123") == 123
+    assert deepcast.apply(test, dict(a=123)) == 123
+    assert deepcast.apply(test, dict(a="123")) == 123
     with pytest.raises(TypeError):
-        test(None)
+        deepcast.apply(test, dict(a=None))
 
 
-def test_function_with_ctx():
-    @deepcast.function
-    def test(a: int, *, ctx: Context = None):
-        assert isinstance(a, int)
-        assert ctx is not None
-        return a
+def test_apply_kwargs():
+    """**kwargs 의 어노테이션도 처리된다."""
 
-    assert test(123) == 123
-    assert test("123") == 123
-    with pytest.raises(TypeError):
-        test(None)
-
-
-def test_function_ctx_conflict():
-    with pytest.raises(TypeError):
-
-        @deepcast.function
-        def test(ctx: int):
-            pass
-
-    with pytest.raises(TypeError):
-
-        @deepcast.function
-        def test(ctx):
-            pass
-
-
-def test_function_args():
-    @deepcast.function
-    def test(*args: int):
-        for a in args:
-            assert isinstance(a, int)
-        return args
-
-    assert test(1, "2", 3.14) == (1, 2, 3)
-
-
-def test_function_kwargs():
-    @deepcast.function
     def test(**kwargs: int):
         for k, v in kwargs.items():
             assert isinstance(v, int)
         return kwargs
 
-    assert test(a=1, b="2", c=3.14) == {"a": 1, "b": 2, "c": 3}
+    with localcontext(parse_number=True):
+        assert deepcast.apply(test, dict(a=1, b="2", c=3)) == {
+            "a": 1,
+            "b": 2,
+            "c": 3,
+        }
 
 
-def test_function_cast_return():
-    @deepcast.function
-    def test(a: int) -> str:
+def test_apply_validate_default():
+    """잘못된 인자 기본값에 대한 처리를 확인한다."""
+
+    def f(i: int = None) -> int:  # type: ignore
+        return i
+
+    with localcontext() as ctx:
+        ctx.validate_default = False
+        assert deepcast.apply(f, {}) is None
+
+        ctx.validate_default = True
+        with pytest.raises(TypeError):
+            with capture() as error:
+                deepcast.apply(f, {})
+        assert error.location == ("i",)
+
+
+def test_apply_validate_return():
+    def test(a: int) -> str:  # type: ignore
+        assert isinstance(a, int)
+        return a  # type: ignore
+
+    assert deepcast.apply(test, dict(a=123)) == 123
+    assert deepcast.apply(test, dict(a="123")) == 123
+
+    def test(a: int):  # type: ignore
         assert isinstance(a, int)
         return a
 
-    assert test(123) == 123
-    assert test("123") == 123
+    assert deepcast.apply(test, dict(a=123), validate_return=True) == 123
+    assert deepcast.apply(test, dict(a="123"), validate_return=True) == 123
 
-    @deepcast.function(cast_return=True)
-    def test(a: int):
-        assert isinstance(a, int)
-        return a
-
-    assert test(123) == 123
-    assert test("123") == 123
-
-    @deepcast.function(cast_return=True)
     def test(a: int) -> str:
         assert isinstance(a, int)
-        return a
+        return a  # type: ignore
 
-    assert test(123) == "123"
-    assert test("123") == "123"
+    with deepcast.localregister(str_from_int):
+        assert deepcast.apply(test, dict(a=123), validate_return=True) == "123"
+        assert deepcast.apply(test, dict(a="123"), validate_return=True) == "123"
 
 
-def test_function_capture():
-    @deepcast.function(cast_return=True)
+def test_apply_capture():
     def test(a: int) -> str:
-        return None
+        return None  # type: ignore
 
     with pytest.raises(TypeError):
         with capture() as error:
-            test(None)
+            deepcast.apply(test, dict(a=None))
     assert error.location == ("a",)
 
     with pytest.raises(TypeError):
         with capture() as error:
-            test("123")
+            deepcast.apply(test, dict(a=123), validate_return=True)
     assert error.location == ("return",)
 
 
-def test_function_method():
+def test_apply_method():
     class X:
-        @deepcast.function
         def test1(self, a: int):
             assert isinstance(self, X)
             assert isinstance(a, int)
             return a
 
         @classmethod
-        @deepcast.function
         def test2(cls, a: int):
             assert cls is X
             assert isinstance(a, int)
             return a
 
         @staticmethod
-        @deepcast.function
         def test3(a: int):
             assert isinstance(a, int)
             return a
 
     x = X()
 
-    assert x.test1(123) == 123
-    assert x.test1("123") == 123
+    assert deepcast.apply(x.test1, dict(a=123)) == 123
+    assert deepcast.apply(x.test1, dict(a="123")) == 123
 
-    assert x.test2(123) == 123
-    assert x.test2("123") == 123
+    assert deepcast.apply(x.test2, dict(a=123)) == 123
+    assert deepcast.apply(x.test2, dict(a="123")) == 123
 
-    assert X.test2(123) == 123
-    assert X.test2("123") == 123
+    assert deepcast.apply(X.test2, dict(a=123)) == 123
+    assert deepcast.apply(X.test2, dict(a="123")) == 123
 
-    assert x.test3(123) == 123
-    assert x.test3("123") == 123
+    assert deepcast.apply(x.test3, dict(a=123)) == 123
+    assert deepcast.apply(x.test3, dict(a="123")) == 123
 
-    assert X.test3(123) == 123
-    assert X.test3("123") == 123
+    assert deepcast.apply(X.test3, dict(a=123)) == 123
+    assert deepcast.apply(X.test3, dict(a="123")) == 123
 
 
-def test_function_async():
-    @deepcast.function
+def test_apply_async():
     async def test(a: int):
         assert isinstance(a, int)
         return a
 
-    assert inspect.iscoroutinefunction(test)
+    assert asyncio.iscoroutinefunction(test)
     try:
         loop = asyncio.get_running_loop()
     except RuntimeError:
         loop = asyncio.new_event_loop()
-    assert loop.run_until_complete(test(123)) == 123
-    assert loop.run_until_complete(test("123")) == 123
+    assert loop.run_until_complete(deepcast.apply(test, dict(a=123))) == 123
+    assert loop.run_until_complete(deepcast.apply(test, dict(a="123"))) == 123

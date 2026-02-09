@@ -218,7 +218,8 @@ def test_date():
         pass
 
     dt = datetime.utcnow()
-    assert deepcast(Date, dt) == dt.date()
+    with localcontext(lossy_conversion=True):
+        assert deepcast(Date, dt) == dt.date()
 
     with localcontext(lossy_conversion=False):
         with pytest.raises(ValueError):
@@ -298,13 +299,15 @@ def test_time():
 
     # datetime
     dt = datetime.utcnow()  # naive
-    assert deepcast(time, dt) == dt.time()
+    with localcontext(lossy_conversion=True):
+        assert deepcast(time, dt) == dt.time()
     with localcontext(lossy_conversion=False):
         with pytest.raises(ValueError):
             deepcast(time, dt)
 
     dt = datetime.now(timezone.utc)  # aware
-    assert deepcast(time, dt) == dt.timetz()
+    with localcontext(lossy_conversion=True):
+        assert deepcast(time, dt) == dt.timetz()
 
     # date
     with pytest.raises(TypeError):
@@ -322,7 +325,8 @@ def test_time():
     assert deepcast(Time, t) == t
 
     dt = datetime.utcnow()  # naive
-    assert deepcast(Time, dt) == dt.time()
+    with localcontext(lossy_conversion=True):
+        assert deepcast(Time, dt) == dt.time()
 
 
 def test_bool_from_time():

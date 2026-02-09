@@ -5,7 +5,7 @@ from typing import (
     Annotated,
 )
 
-from ._deepcast import deepcast
+from ._deepcast import deepcast, DeepCast
 from ._json import JsonSchema
 
 
@@ -15,7 +15,7 @@ from ._json import JsonSchema
 
 
 @deepcast.register
-def _cast_Annotated_object(cls, val, T, *args) -> Annotated:
+def _cast_Annotated_object(deepcast: DeepCast, cls, val, T, *args) -> Annotated:
     r = deepcast(T, val)
     for arg in args:
         if isinstance(arg, Constraint):
