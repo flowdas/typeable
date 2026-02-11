@@ -1,4 +1,6 @@
 from collections import Counter, OrderedDict, defaultdict, namedtuple
+from dataclasses import dataclass
+import inspect
 import sys
 from types import NoneType, UnionType
 from typing import (
@@ -6,6 +8,7 @@ from typing import (
     Any,
     DefaultDict,
     Dict,
+    ForwardRef,
     FrozenSet,
     List,
     Literal,
@@ -17,6 +20,7 @@ from typing import (
     Union,
     get_args,
     get_origin,
+    get_type_hints,
 )
 import typing
 
@@ -233,3 +237,99 @@ def test_Annotated():
     else:
         with pytest.raises(TypeError):
             Type[Annotated]
+
+
+@pytest.mark.parametrize(
+    "T, GT",
+    [
+        (list, List),
+        (tuple, Tuple),
+        (set, Set),
+        (frozenset, FrozenSet),
+    ],
+)
+def test_ForwardRef1(T, GT):
+    assert get_args(T["str"]) == ("str",)
+    assert get_args(GT["str"]) == (ForwardRef("str"),)
+
+
+def test_ForwardRef2():
+    assert get_args(dict["str", "int"]) == ("str", "int")
+    assert get_args(Dict["str", "int"]) == (ForwardRef("str"), ForwardRef("int"))
+
+    assert get_args(Union["str", "int"]) == (ForwardRef("str"), ForwardRef("int"))
+
+
+def test_ForwardRef3():
+    @dataclass
+    class X:
+        i: List["int"]
+
+    assert get_type_hints(X) == {"i": List[int]}
+
+
+def test_ForwardRef4():
+    @dataclass
+    class Y:
+        i: list[ForwardRef("int")]  # type: ignore
+
+    assert get_type_hints(Y) == {"i": list[int]}
+
+
+def test_ForwardRef5():
+    @dataclass
+    class Z:
+        i: list["int"]
+
+    if sys.version_info < (3, 11):
+        assert get_type_hints(Z) == {"i": list["int"]}
+    else:
+        assert get_type_hints(Z) == {"i": list[int]}
+
+
+def test_ForwardRef6():
+    @dataclass
+    class X:
+        i: List["int"]
+
+    def f(i: List["int"]): ...
+
+    assert inspect.signature(X).parameters["i"].annotation == List[ForwardRef("int")]
+    assert inspect.signature(f).parameters["i"].annotation == List[ForwardRef("int")]
+
+
+def test_ForwardRef7():
+    @dataclass
+    class X:
+        i: list[ForwardRef("int")]
+
+    def f(i: list[ForwardRef("int")]): ...
+
+    assert inspect.signature(X).parameters["i"].annotation == list[ForwardRef("int")]
+    assert inspect.signature(f).parameters["i"].annotation == list[ForwardRef("int")]
+
+
+def test_ForwardRef8():
+    @dataclass
+    class X:
+        i: list["int"]
+
+    def f(i: list["int"]): ...
+
+    assert inspect.signature(X).parameters["i"].annotation == list["int"]
+    assert inspect.signature(f).parameters["i"].annotation == list["int"]
+
+
+def test_get_type_hints_Optional():
+    @dataclass
+    class X:
+        i: int = None  # type: ignore
+
+    assert get_type_hints(X) == {"i": int}
+
+    def f(i: int = None): ...  # type: ignore
+
+    if sys.version_info < (3, 11):
+        assert get_type_hints(f) == {"i": Optional[int]}
+    else:
+        assert get_type_hints(f) == {"i": int}
