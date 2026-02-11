@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from typing import Union
 
 from typeable import declare, deepcast
@@ -51,3 +52,18 @@ def test_recursive_Union():
     assert deepcast(Json, []) == []
     assert deepcast(Json, ()) == ()
     assert deepcast(Json, {"k1": 1}) == {"k1": 1}
+
+
+def test_dataclass():
+    @dataclass
+    class X:
+        i: int
+
+    @dataclass
+    class Y:
+        j: str
+
+    assert isinstance(deepcast(X | Y, {"i": 0}), X)
+    assert isinstance(deepcast(Y | X, {"i": 0}), X)
+    assert isinstance(deepcast(X | Y, {"j": "j"}), Y)
+    assert isinstance(deepcast(Y | X, {"j": "j"}), Y)
