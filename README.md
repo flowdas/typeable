@@ -24,7 +24,7 @@ Typeable requires Python 3.10+.
 Installation:
 
 ```
-pip install typeable
+pip install typeable==1.0.0a2
 ```
 
 ## Supported Types
@@ -60,6 +60,7 @@ This list is non-exhaustive.
 - `collections.OrderedDict`
 - `collections.OrderedDict[]`
 - `@dataclasses.dataclass`
+- `typeable.JsonValue`
 - `types.NoneType`
 - `typing.Annotated[]`
 - `typing.Any`
