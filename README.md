@@ -60,6 +60,7 @@ This list is non-exhaustive.
 - `collections.OrderedDict`
 - `collections.OrderedDict[]`
 - `@dataclasses.dataclass`
+- `typeable.JsonValue`
 - `types.NoneType`
 - `typing.Annotated[]`
 - `typing.Any`

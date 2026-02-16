@@ -1,4 +1,4 @@
-from abc import get_cache_token
+from abc import ABC, get_cache_token
 from collections.abc import Callable, Mapping
 from contextlib import contextmanager
 import dataclasses
@@ -57,6 +57,23 @@ else:
         ref.__globals__ = globals
         del frame
         del globals
+
+#
+# JsonValue
+#
+
+
+class JsonValue(ABC):
+    pass
+
+
+JsonValue.register(NoneType)
+JsonValue.register(int)
+JsonValue.register(float)
+JsonValue.register(str)
+JsonValue.register(list)
+JsonValue.register(tuple)
+JsonValue.register(dict)
 
 #
 # deepcast
@@ -154,7 +171,12 @@ class DeepCast:
         Ts = _get_type_args(cls)
         tp = val.__class__
         try:
-            if not Ts and isinstance(val, origin) and not (tp is bool and cls is int):
+            if (
+                not Ts
+                and isinstance(val, origin)
+                and not (tp is bool and cls is int)
+                and not (origin is JsonValue and isinstance(val, (dict, list, tuple)))
+            ):
                 return val
         except TypeError:
             pass
