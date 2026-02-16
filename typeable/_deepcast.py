@@ -1,4 +1,4 @@
-from abc import get_cache_token
+from abc import ABC, get_cache_token
 from collections.abc import Callable, Mapping
 from contextlib import contextmanager
 import dataclasses
@@ -57,6 +57,23 @@ else:
         ref.__globals__ = globals
         del frame
         del globals
+
+#
+# JsonValue
+#
+
+
+class JsonValue(ABC):
+    pass
+
+
+JsonValue.register(NoneType)
+JsonValue.register(int)
+JsonValue.register(float)
+JsonValue.register(str)
+JsonValue.register(list)
+JsonValue.register(tuple)
+JsonValue.register(dict)
 
 #
 # deepcast
@@ -154,7 +171,12 @@ class DeepCast:
         Ts = _get_type_args(cls)
         tp = val.__class__
         try:
-            if not Ts and isinstance(val, origin) and not (tp is bool and cls is int):
+            if (
+                not Ts
+                and isinstance(val, origin)
+                and not (tp is bool and cls is int)
+                and not (origin is JsonValue and isinstance(val, (dict, list, tuple)))
+            ):
                 return val
         except TypeError:
             pass
@@ -298,6 +320,7 @@ class DeepCast:
         if is_dataclass(func):
             dataclass_fields = {f.name: f for f in fields(func)}
         sig = inspect.signature(func)
+        ann = get_type_hints(func, include_extras=True)
         validate_default = getcontext().validate_default
         for key, p in sig.parameters.items():
             if key in dataclass_fields:
@@ -331,11 +354,11 @@ class DeepCast:
                         inspect.Parameter.VAR_KEYWORD,
                     }:
                         raise TypeError(f"Unknown field {key!r}")
-                    annotation = sig.parameters[key].annotation
+                    annotation = ann.get(key, empty)
                 else:
                     if kwargs_key is None:
                         raise TypeError(f"Unknown field {key!r}")
-                    annotation = sig.parameters[kwargs_key].annotation
+                    annotation = ann.get(kwargs_key, empty)
                 kwargs[key] = value if annotation == empty else self(annotation, value)
                 omissibles.discard(key)
                 mandatories.discard(key)
@@ -343,7 +366,6 @@ class DeepCast:
         # 기본 값들도 형검사한다.
         for key in omissibles:
             with traverse(key):
-                value = sig.parameters[key].default
                 # defauly_factory 미리 호출하는 이유는 frozen 일 가능성 때문이다.
                 factory = MISSING
                 if key in dataclass_fields:
@@ -353,7 +375,7 @@ class DeepCast:
                 else:
                     value = sig.parameters[key].default
                 # omissibles 에는 어노테이션이 있는 것만 모아두었다.
-                kwargs[key] = self(sig.parameters[key].annotation, value)
+                kwargs[key] = self(ann[key], value)
 
         # 필수 인자 중 빠진 것이 있는지 검사한다
         # 미리 검사하는 대신 호출시 예외가 발생할 때 검사하는 대안도 있다.
@@ -373,7 +395,7 @@ class DeepCast:
         # callable 을 호출한다.
         ret = func(*args, **kwargs)
         if validate_return and sig.return_annotation != empty:
-            return_type = sig.return_annotation or NoneType
+            return_type = ann["return"]
             with traverse("return"):
                 ret = self(return_type, ret)
         return ret

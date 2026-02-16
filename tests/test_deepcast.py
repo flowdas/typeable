@@ -1,7 +1,7 @@
 import asyncio
 from collections import namedtuple
 from dataclasses import dataclass, field
-from typing import NamedTuple, Type
+from typing import ForwardRef, List, NamedTuple, Type
 
 from typeable import capture, deepcast, localcontext
 
@@ -241,12 +241,12 @@ def test_apply_kwargs():
 def test_apply_validate_default():
     """잘못된 인자 기본값에 대한 처리를 확인한다."""
 
-    def f(i: int = None) -> int:  # type: ignore
+    def f(i: str = 1) -> str:  # type: ignore
         return i
 
     with localcontext() as ctx:
         ctx.validate_default = False
-        assert deepcast.apply(f, {}) is None
+        assert deepcast.apply(f, {}) == 1
 
         ctx.validate_default = True
         with pytest.raises(TypeError):
@@ -342,3 +342,25 @@ def test_apply_async():
         loop = asyncio.new_event_loop()
     assert loop.run_until_complete(deepcast.apply(test, dict(a=123))) == 123
     assert loop.run_until_complete(deepcast.apply(test, dict(a="123"))) == 123
+
+
+def my_func(i: List["MyClass"], j: list[ForwardRef("MyClass")]):  # type: ignore
+    return i, j
+
+
+@dataclass
+class MyClass:
+    i: List["MyClass"]
+    j: list[ForwardRef("MyClass")]  # type: ignore
+
+
+def test_apply_ForwardRef_in_func():
+    v = MyClass(i=[], j=[])
+    assert deepcast.apply(my_func, {"i": [v], "j": [v]}) == ([v], [v])
+
+
+def test_apply_ForwardRef_in_class():
+    v = MyClass(i=[], j=[])
+    v.i.append(v)
+    v.j.append(v)
+    assert deepcast.apply(MyClass, {"i": [v], "j": [v]}) == v

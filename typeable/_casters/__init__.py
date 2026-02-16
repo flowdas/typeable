@@ -8,6 +8,7 @@ from . import (  # noqa: F401
     float,
     frozenset,
     int,
+    jsonvalue,
     list,
     literal,
     nonetype,
