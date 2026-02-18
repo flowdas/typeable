@@ -1,6 +1,6 @@
 from collections.abc import Iterable, Sequence
 
-from .._deepcast import (
+from .._typecast import (
     DeepCast,
     deepcast,
     traverse,

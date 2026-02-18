@@ -3,7 +3,7 @@ from collections.abc import Mapping
 from dataclasses import fields, is_dataclass
 from typing import is_typeddict
 
-from .._deepcast import _META_ALIAS, _META_HIDE, DeepCast, deepcast, traverse
+from .._typecast import _META_ALIAS, _META_HIDE, DeepCast, deepcast, traverse
 
 
 @deepcast.register

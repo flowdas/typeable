@@ -3,7 +3,7 @@ import sys
 from types import UnionType
 from typing import Union
 
-from .._deepcast import DeepCast, deepcast
+from .._typecast import DeepCast, deepcast
 from .._error import capture, traverse
 
 

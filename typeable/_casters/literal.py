@@ -1,6 +1,6 @@
 from typing import Literal
 
-from .._deepcast import DeepCast, deepcast
+from .._typecast import DeepCast, deepcast
 
 
 @deepcast.register

@@ -1,6 +1,6 @@
 import pytest
 
-from typeable._deepcast import DeepCast
+from typeable._typecast import DeepCast
 
 
 collect_ignore = [

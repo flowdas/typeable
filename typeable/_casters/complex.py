@@ -2,7 +2,7 @@ import cmath
 from collections.abc import Iterable
 from numbers import Number
 
-from .._deepcast import DeepCast, deepcast, getcontext
+from .._typecast import DeepCast, deepcast, getcontext
 
 
 @deepcast.register

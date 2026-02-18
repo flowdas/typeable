@@ -1,7 +1,7 @@
 from collections.abc import Iterable, Mapping
 from typing import Any
 
-from .._deepcast import (
+from .._typecast import (
     DeepCast,
     deepcast,
     traverse,

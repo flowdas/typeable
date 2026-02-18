@@ -1,6 +1,6 @@
 from collections.abc import Iterable, Mapping
 
-from .._deepcast import DeepCast, JsonValue, deepcast, traverse
+from .._typecast import DeepCast, JsonValue, deepcast, traverse
 
 
 @deepcast.register

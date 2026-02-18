@@ -5,7 +5,7 @@ from typing import (
     Annotated,
 )
 
-from ._deepcast import deepcast, DeepCast
+from ._typecast import deepcast, DeepCast
 from ._json import JsonSchema
 
 
