@@ -5,7 +5,7 @@ from .._typecast import Typecast, getcontext, typecast
 
 
 @typecast.register
-def float_from_str(deepcast: Typecast, cls: type[float], val: str) -> float:
+def float_from_str(typecast: Typecast, cls: type[float], val: str) -> float:
     if not getcontext().parse_number:
         raise TypeError("parse_number is False")
     try:
@@ -16,7 +16,7 @@ def float_from_str(deepcast: Typecast, cls: type[float], val: str) -> float:
 
 
 @typecast.register
-def float_from_Number(deepcast: Typecast, cls: type[float], val: Number) -> float:
+def float_from_Number(typecast: Typecast, cls: type[float], val: Number) -> float:
     r = float(val)  # type: ignore
     if not math.isnan(r) and r != val:
         raise TypeError(f"invalid number for float: '{val}'")
@@ -24,7 +24,7 @@ def float_from_Number(deepcast: Typecast, cls: type[float], val: Number) -> floa
 
 
 @typecast.register
-def float_from_complex(deepcast: Typecast, cls: type[float], val: complex) -> float:
+def float_from_complex(typecast: Typecast, cls: type[float], val: complex) -> float:
     if val.imag != 0:
         raise TypeError(f"invalid number for float: '{val}'")
     return val.real

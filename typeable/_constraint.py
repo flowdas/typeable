@@ -14,8 +14,8 @@ from ._typecast import Typecast, typecast
 
 
 @typecast.register
-def _cast_Annotated_object(deepcast: Typecast, cls, val, T, *args) -> Annotated:
-    r = deepcast(T, val)
+def _cast_Annotated_object(typecast: Typecast, cls, val, T, *args) -> Annotated:
+    r = typecast(T, val)
     for arg in args:
         if isinstance(arg, Constraint):
             if not arg(r):

@@ -5,7 +5,7 @@ from .._typecast import Typecast, typecast
 
 @typecast.register
 def Literal_from_object(
-    deepcast: Typecast, cls: type[Literal], val: object, *literals
+    typecast: Typecast, cls: type[Literal], val: object, *literals
 ) -> Literal:  # type: ignore
     for literal in literals:
         if literal == val:

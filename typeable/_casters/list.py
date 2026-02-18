@@ -7,12 +7,12 @@ from .._typecast import (
 )
 
 
-def sequence_from_Iterable(deepcast: Typecast, cls: type[Sequence], val: Iterable, T):
+def sequence_from_Iterable(typecast: Typecast, cls: type[Sequence], val: Iterable, T):
     if T is not None:
         patch = {}
         for i, v in enumerate(val):
             with traverse(i):
-                cv = deepcast(T, v)
+                cv = typecast(T, v)
                 if cv is not v:
                     patch[i] = cv
         if patch:
@@ -25,9 +25,9 @@ def sequence_from_Iterable(deepcast: Typecast, cls: type[Sequence], val: Iterabl
 
 @typecast.register
 def list_from_Iterable(
-    deepcast: Typecast, cls: type[list], val: Iterable, T=None
+    typecast: Typecast, cls: type[list], val: Iterable, T=None
 ) -> list:
-    return sequence_from_Iterable(deepcast, cls, val, T)
+    return sequence_from_Iterable(typecast, cls, val, T)
 
 
 typecast.forbid(list, str, bytes, bytearray)

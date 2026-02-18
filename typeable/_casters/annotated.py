@@ -5,6 +5,6 @@ from .._typecast import Typecast, typecast
 
 @typecast.register
 def Annotated_from_object(
-    deepcast: Typecast, cls: type[Annotated], val: object, T: type, *args
+    typecast: Typecast, cls: type[Annotated], val: object, T: type, *args
 ):
-    return deepcast(T, val)
+    return typecast(T, val)

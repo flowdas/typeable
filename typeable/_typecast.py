@@ -75,13 +75,13 @@ JsonValue.register(tuple)
 JsonValue.register(dict)
 
 #
-# deepcast
+# typecast
 #
 
 
 _T = TypeVar("_T")
 
-_CasterType = Callable[["DeepCast", type[_T], Any], _T]
+_CasterType = Callable[["Typecast", type[_T], Any], _T]
 
 _TYPES = "__types__"
 
@@ -185,7 +185,7 @@ class Typecast:
     def _register(self, cls, V, func):
         if cls in self._registry:
             if V in self._registry[cls]:
-                raise RuntimeError("Ambiguous `deepcast.register()`")
+                raise RuntimeError("Ambiguous `typecast.register()`")
             self._registry[cls][V] = func
         else:
             self._registry[cls] = {V: func}
@@ -220,7 +220,7 @@ class Typecast:
             type_args = _get_type_args(typ)
             if get_origin(typ) is not type or not type_args:
                 raise TypeError(
-                    f"Invalid second argument to `deepcast.register()`: {typ!r}. "
+                    f"Invalid second argument to `typecast.register()`: {typ!r}. "
                     f"Use either type[] annotation or return type annotation."
                 )
             cls = type_args[0]
@@ -233,7 +233,7 @@ class Typecast:
             cls = hints.get("return")
             if cls is None:
                 raise TypeError(
-                    "Invalid signature to `deepcast.register()`. "
+                    "Invalid signature to `typecast.register()`. "
                     "Use either type[] annotation or return type annotation."
                 )
 
@@ -461,7 +461,7 @@ typecast = Typecast()
 
 
 @typecast.register
-def _cast_datetime_object(deepcast: Typecast, cls: type[datetime.datetime], val):
+def _cast_datetime_object(typecast: Typecast, cls: type[datetime.datetime], val):
     # assume not isinstance(val, cls)
     if isinstance(val, (int, float)):
         ctx: Context = getcontext()
@@ -532,7 +532,7 @@ def _parse_isoduration(cls, m):
 
 
 @typecast.register
-def _cast_datetime_str(deepcast: Typecast, cls: type[datetime.datetime], val: str):
+def _cast_datetime_str(typecast: Typecast, cls: type[datetime.datetime], val: str):
     ctx: Context = getcontext()
     if ctx.datetime_format == "iso":
         m = ISO_PATTERN1.match(val.strip())
@@ -548,7 +548,7 @@ def _cast_datetime_str(deepcast: Typecast, cls: type[datetime.datetime], val: st
 
         return cls.combine(date, time)
     elif ctx.datetime_format == "timestamp":
-        return deepcast(cls, float(val))
+        return typecast(cls, float(val))
     elif ctx.datetime_format == "http" or ctx.datetime_format == "email":
         dt = parsedate_to_datetime(val.strip())
         if cls is not datetime.datetime:
@@ -559,12 +559,12 @@ def _cast_datetime_str(deepcast: Typecast, cls: type[datetime.datetime], val: st
 
 
 @typecast.register
-def _cast_float_datetime(deepcast: Typecast, cls: type[float], val: datetime.datetime):
+def _cast_float_datetime(typecast: Typecast, cls: type[float], val: datetime.datetime):
     return cls(val.timestamp())
 
 
 @typecast.register
-def _cast_int_datetime(deepcast: Typecast, cls: type[int], val: datetime.datetime):
+def _cast_int_datetime(typecast: Typecast, cls: type[int], val: datetime.datetime):
     ts = val.timestamp()
     r = cls(ts)
     ctx: Context = getcontext()
@@ -591,7 +591,7 @@ MON = (
 
 
 @typecast.register
-def _cast_str_datetime(deepcast: Typecast, cls: type[str], val: datetime.datetime):
+def _cast_str_datetime(typecast: Typecast, cls: type[str], val: datetime.datetime):
     ctx: Context = getcontext()
     if ctx.datetime_format == "iso":
         r = val.isoformat()
@@ -625,7 +625,7 @@ def _cast_str_datetime(deepcast: Typecast, cls: type[str], val: datetime.datetim
 
 
 @typecast.register
-def _cast_date_object(deepcast: Typecast, cls: type[datetime.date], val):
+def _cast_date_object(typecast: Typecast, cls: type[datetime.date], val):
     # assume not isinstance(val, cls)
     if isinstance(val, datetime.datetime):  # datetime is subclass of date
         ctx: Context = getcontext()
@@ -639,7 +639,7 @@ def _cast_date_object(deepcast: Typecast, cls: type[datetime.date], val):
 
 
 @typecast.register
-def _cast_date_str(deepcast: Typecast, cls: type[datetime.date], val: str):
+def _cast_date_str(typecast: Typecast, cls: type[datetime.date], val: str):
     ctx: Context = getcontext()
     if ctx.date_format == "iso":
         m = ISO_PATTERN2.match(val.strip())
@@ -652,7 +652,7 @@ def _cast_date_str(deepcast: Typecast, cls: type[datetime.date], val: str):
 
 
 @typecast.register
-def _cast_str_date(deepcast: Typecast, cls: type[str], val: datetime.date):
+def _cast_str_date(typecast: Typecast, cls: type[str], val: datetime.date):
     ctx: Context = getcontext()
     if ctx.date_format == "iso":
         return cls(val.isoformat())
@@ -666,7 +666,7 @@ def _cast_str_date(deepcast: Typecast, cls: type[str], val: datetime.date):
 
 
 @typecast.register
-def _cast_time_object(deepcast: Typecast, cls: type[datetime.time], val):
+def _cast_time_object(typecast: Typecast, cls: type[datetime.time], val):
     # assume not isinstance(val, cls)
     if isinstance(val, datetime.time):
         return cls(val.hour, val.minute, val.second, val.microsecond, tzinfo=val.tzinfo)
@@ -683,7 +683,7 @@ def _cast_time_object(deepcast: Typecast, cls: type[datetime.time], val):
 
 
 @typecast.register
-def _cast_time_str(deepcast: Typecast, cls: type[datetime.time], val: str):
+def _cast_time_str(typecast: Typecast, cls: type[datetime.time], val: str):
     ctx: Context = getcontext()
     if ctx.time_format == "iso":
         m = ISO_PATTERN3.match(val.strip())
@@ -696,7 +696,7 @@ def _cast_time_str(deepcast: Typecast, cls: type[datetime.time], val: str):
 
 
 @typecast.register
-def _cast_str_time(deepcast: Typecast, cls: type[str], val: datetime.time):
+def _cast_str_time(typecast: Typecast, cls: type[str], val: datetime.time):
     ctx: Context = getcontext()
     if ctx.time_format == "iso":
         return cls(val.isoformat())
@@ -710,7 +710,7 @@ def _cast_str_time(deepcast: Typecast, cls: type[str], val: datetime.time):
 
 
 @typecast.register
-def _cast_timedelta_object(deepcast: Typecast, cls: type[datetime.timedelta], val):
+def _cast_timedelta_object(typecast: Typecast, cls: type[datetime.timedelta], val):
     # assume not isinstance(val, cls)
     if isinstance(val, datetime.timedelta):
         return cls(days=val.days, seconds=val.seconds, microseconds=val.microseconds)
@@ -727,13 +727,13 @@ def _cast_timedelta_object(deepcast: Typecast, cls: type[datetime.timedelta], va
 
 @typecast.register
 def _cast_float_timedelta(
-    deepcast: Typecast, cls: type[float], val: datetime.timedelta
+    typecast: Typecast, cls: type[float], val: datetime.timedelta
 ):
     return cls(val.total_seconds())
 
 
 @typecast.register
-def _cast_int_timedelta(deepcast: Typecast, cls: type[int], val: datetime.timedelta):
+def _cast_int_timedelta(typecast: Typecast, cls: type[int], val: datetime.timedelta):
     td = val.total_seconds()
     r = cls(td)
     ctx: Context = getcontext()
@@ -743,7 +743,7 @@ def _cast_int_timedelta(deepcast: Typecast, cls: type[int], val: datetime.timede
 
 
 @typecast.register
-def _cast_str_timedelta(deepcast: Typecast, cls: type[str], val: datetime.timedelta):
+def _cast_str_timedelta(typecast: Typecast, cls: type[str], val: datetime.timedelta):
     r = []
     if val.days < 0:
         r.append("-P")
@@ -773,18 +773,18 @@ def _cast_str_timedelta(deepcast: Typecast, cls: type[str], val: datetime.timede
 
 
 @typecast.register
-def _cast_Enum_object(deepcast: Typecast, cls: type[enum.Enum], val):
+def _cast_Enum_object(typecast: Typecast, cls: type[enum.Enum], val):
     # assume not isinstance(val, cls)
     return cls(val)
 
 
 @typecast.register
-def _cast_Enum_str(deepcast: Typecast, cls: type[enum.Enum], val: str):
+def _cast_Enum_str(typecast: Typecast, cls: type[enum.Enum], val: str):
     return getattr(cls, val)
 
 
 @typecast.register
-def _cast_str_Enum(deepcast: Typecast, cls: type[str], val: enum.Enum):
+def _cast_str_Enum(typecast: Typecast, cls: type[str], val: enum.Enum):
     return val.name
 
 
@@ -794,17 +794,17 @@ def _cast_str_Enum(deepcast: Typecast, cls: type[str], val: enum.Enum):
 
 
 @typecast.register
-def _cast_IntEnum_int(deepcast: Typecast, cls: type[enum.IntEnum], val: int):
+def _cast_IntEnum_int(typecast: Typecast, cls: type[enum.IntEnum], val: int):
     return cls(val)
 
 
 @typecast.register
-def _cast_IntEnum_str(deepcast: Typecast, cls: type[enum.IntEnum], val: str):
+def _cast_IntEnum_str(typecast: Typecast, cls: type[enum.IntEnum], val: str):
     return getattr(cls, val)
 
 
 @typecast.register
-def _cast_str_IntEnum(deepcast: Typecast, cls: type[str], val: enum.IntEnum):
+def _cast_str_IntEnum(typecast: Typecast, cls: type[str], val: enum.IntEnum):
     return val.name
 
 
@@ -814,23 +814,23 @@ def _cast_str_IntEnum(deepcast: Typecast, cls: type[str], val: enum.IntEnum):
 
 
 @typecast.register
-def _cast_Flag_Flag(deepcast: Typecast, cls: type[enum.Flag], val: enum.Flag):
+def _cast_Flag_Flag(typecast: Typecast, cls: type[enum.Flag], val: enum.Flag):
     # assume not isinstance(val, cls)
     return cls(val)
 
 
 @typecast.register
-def _cast_Flag_int(deepcast: Typecast, cls: type[enum.Flag], val: int):
+def _cast_Flag_int(typecast: Typecast, cls: type[enum.Flag], val: int):
     return cls(val)
 
 
 @typecast.register
-def _cast_int_Flag(deepcast: Typecast, cls: type[int], val: enum.Flag):
+def _cast_int_Flag(typecast: Typecast, cls: type[int], val: enum.Flag):
     return cls(val.value)
 
 
 @typecast.register
-def _cast_str_Flag(deepcast: Typecast, cls: type[str], val: enum.Flag):
+def _cast_str_Flag(typecast: Typecast, cls: type[str], val: enum.Flag):
     raise TypeError
 
 
@@ -840,12 +840,12 @@ def _cast_str_Flag(deepcast: Typecast, cls: type[str], val: enum.Flag):
 
 
 @typecast.register
-def _cast_IntFlag_int(deepcast: Typecast, cls: type[enum.IntFlag], val: int):
+def _cast_IntFlag_int(typecast: Typecast, cls: type[enum.IntFlag], val: int):
     return cls(val)
 
 
 @typecast.register
-def _cast_str_IntFlag(deepcast: Typecast, cls: type[str], val: enum.IntFlag):
+def _cast_str_IntFlag(typecast: Typecast, cls: type[str], val: enum.IntFlag):
     raise TypeError
 
 
@@ -855,14 +855,14 @@ def _cast_str_IntFlag(deepcast: Typecast, cls: type[str], val: enum.IntFlag):
 
 
 @typecast.register
-def _cast_type_type(deepcast: Typecast, cls, val: type, T=None) -> type:
+def _cast_type_type(typecast: Typecast, cls, val: type, T=None) -> type:
     if T and T is not Any and not issubclass(val, T):
         raise TypeError
     return val
 
 
 @typecast.register
-def _cast_type_str(deepcast: Typecast, cls, val: str, T=None) -> type:
+def _cast_type_str(typecast: Typecast, cls, val: str, T=None) -> type:
     spec = val.rsplit(".", maxsplit=1)
     if len(spec) == 1:
         modname = "builtins"
