@@ -177,3 +177,31 @@ def test_hide():
     x = typecast(X, data)
     assert x.password == "password"
     assert typecast(dict, x) == {"id": "id"}
+
+
+def test_hide_default_none():
+    """hide_default_none 이 참이면 dict 로 표현될 때 기본값으로 사용 중인 None 은 생략된다."""
+
+    @dataclass
+    class X:
+        mandatory: str
+        mandatory2: str | None
+        optional: str | None = None
+        optional2: str | None = None
+
+    x = X(mandatory="hello", mandatory2=None, optional2="world")
+
+    with localcontext(hide_default_none=False):
+        assert typecast(dict, x) == {
+            "mandatory": "hello",
+            "mandatory2": None,
+            "optional": None,
+            "optional2": "world",
+        }
+
+    with localcontext(hide_default_none=True):
+        assert typecast(dict, x) == {
+            "mandatory": "hello",
+            "mandatory2": None,
+            "optional2": "world",
+        }
