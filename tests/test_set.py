@@ -2,9 +2,9 @@ from collections import UserList, deque
 from dataclasses import dataclass
 from typing import FrozenSet, Set, get_origin
 
-from typeable import deepcast, localcontext
-
 import pytest
+
+from typeable import localcontext, typecast
 
 
 @pytest.fixture(
@@ -41,14 +41,14 @@ def VT(request):
 def test_None(T):
     """None 은 set 으로 변환될 수 없다."""
     with pytest.raises(TypeError):
-        deepcast(T, None)
+        typecast(T, None)
 
 
 def test_Iterable(RT, VT):
     """여러 iterable 을 set 으로 변환할 수 있어야 한다."""
     data = range(10)
     v = VT(data)
-    x = deepcast(RT, v)
+    x = typecast(RT, v)
     T = get_origin(RT) or RT
     if isinstance(v, T):
         assert x is v
@@ -71,13 +71,13 @@ def test_nested(T):
     # non-generic
     data = OT(X(i=i) for i in range(10))
 
-    l = deepcast(T, data)
+    l = typecast(T, data)
     assert l is data
 
     # generic
     data = [{"i": i} for i in range(10)]
 
-    l = deepcast(T[X], data)
+    l = typecast(T[X], data)
     assert isinstance(l, OT)
     for v in l:
         assert isinstance(v, X)
@@ -90,8 +90,8 @@ def test_no_copy(T):
     """isinstance 이면 복사가 일어나지 말아야 한다."""
     OT = get_origin(T) or T
     data = OT(range(10))
-    assert deepcast(T, data) is data
-    assert deepcast(T[int], data) is data
+    assert typecast(T, data) is data
+    assert typecast(T[int], data) is data
 
 
 @pytest.mark.parametrize("T", [frozenset, FrozenSet, set, Set])
@@ -104,9 +104,9 @@ def test_copy(T):
     expected = OT(range(10))
 
     with localcontext(parse_number=True):
-        assert deepcast(T, data) is data
-        assert deepcast(T[int], data) == expected
-        assert deepcast(T[int], list(data)) == expected
+        assert typecast(T, data) is data
+        assert typecast(T[int], data) == expected
+        assert typecast(T[int], list(data)) == expected
 
 
 @pytest.mark.parametrize(
@@ -120,4 +120,4 @@ def test_copy(T):
 def test_string(RT, v):
     """str, bytes, bytearray 는 set 으로 변환할 수 없다."""
     with pytest.raises(TypeError):
-        deepcast(RT, v)
+        typecast(RT, v)

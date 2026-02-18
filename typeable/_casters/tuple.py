@@ -3,13 +3,13 @@ from typing import Any
 
 from .._typecast import (
     DeepCast,
-    deepcast,
     traverse,
+    typecast,
 )
 from .list import sequence_from_Iterable
 
 
-@deepcast.register
+@typecast.register
 def tuple_from_Iterable(
     deepcast: DeepCast, cls: type[tuple], val: Iterable, *Ts
 ) -> tuple:
@@ -46,7 +46,7 @@ def tuple_from_Iterable(
     return val
 
 
-@deepcast.register
+@typecast.register
 def namedtuple_from_Mapping(
     deepcast: DeepCast, cls: type[tuple], val: Mapping, *Ts
 ) -> tuple:
@@ -54,7 +54,7 @@ def namedtuple_from_Mapping(
     return namedtuple_from_object(deepcast, cls, val, *Ts)
 
 
-@deepcast.register
+@typecast.register
 def namedtuple_from_object(
     deepcast: DeepCast, cls: type[tuple], val: object, *Ts
 ) -> tuple:
@@ -63,4 +63,4 @@ def namedtuple_from_object(
     return deepcast.apply(cls, val)
 
 
-deepcast.forbid(tuple, str, bytes, bytearray)
+typecast.forbid(tuple, str, bytes, bytearray)

@@ -3,10 +3,10 @@ from collections.abc import Mapping
 from dataclasses import fields, is_dataclass
 from typing import is_typeddict
 
-from .._typecast import _META_ALIAS, _META_HIDE, DeepCast, deepcast, traverse
+from .._typecast import _META_ALIAS, _META_HIDE, DeepCast, traverse, typecast
 
 
-@deepcast.register
+@typecast.register
 def dict_from_Mapping(
     deepcast: DeepCast,
     cls: type[dict],
@@ -63,7 +63,7 @@ def dict_from_Mapping(
     return val
 
 
-@deepcast.register
+@typecast.register
 def dict_from_NamedTuple(
     deepcast: DeepCast,
     cls: type[dict],
@@ -78,7 +78,7 @@ def dict_from_NamedTuple(
     return dict_from_Mapping(deepcast, cls, d, K, V)
 
 
-@deepcast.register
+@typecast.register
 def dict_from_object(
     deepcast: DeepCast,
     cls: type[dict],
@@ -105,4 +105,4 @@ def dict_from_object(
     return dict_from_Mapping(deepcast, cls, d, K, V)
 
 
-deepcast.forbid(dict, str, bytes, bytearray)
+typecast.forbid(dict, str, bytes, bytearray)

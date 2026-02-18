@@ -1,16 +1,16 @@
 from collections.abc import Iterable, Mapping
 
-from .._typecast import DeepCast, JsonValue, deepcast, traverse
+from .._typecast import DeepCast, JsonValue, traverse, typecast
 
 
-@deepcast.register
+@typecast.register
 def JsonValue_from_Mapping(
     deepcast: DeepCast, cls: type[JsonValue], val: Mapping
 ) -> JsonValue:
     return deepcast(dict[str, JsonValue], val)  # type: ignore
 
 
-@deepcast.register
+@typecast.register
 def JsonValue_from_Iterable(
     deepcast: DeepCast, cls: type[JsonValue], val: Iterable
 ) -> JsonValue:
@@ -27,7 +27,7 @@ def JsonValue_from_Iterable(
     return val  # type: ignore
 
 
-@deepcast.register
+@typecast.register
 def JsonValue_from_object(
     deepcast: DeepCast, cls: type[JsonValue], val: object
 ) -> JsonValue:

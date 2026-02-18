@@ -3,9 +3,10 @@ from collections import namedtuple
 from dataclasses import dataclass, field
 from typing import ForwardRef, List, NamedTuple, Type
 
-from typeable import capture, deepcast, localcontext
-
 import pytest
+
+from typeable import capture, localcontext, typecast
+
 from .conftest import str_from_int
 
 #
@@ -133,7 +134,7 @@ def test_apply_class():
             self.i = i
 
     data = {"i": 3}
-    x = deepcast.apply(X, data)
+    x = typecast.apply(X, data)
     assert isinstance(x, X)
     assert x.i == data["i"]
 
@@ -143,10 +144,10 @@ def test_apply_dataclass():
 
     @dataclass
     class X:
-        i: int = deepcast.field(alias="$i")
+        i: int = typecast.field(alias="$i")
 
     data = {"$i": 3}
-    x = deepcast.apply(X, data)
+    x = typecast.apply(X, data)
     assert isinstance(x, X)
     assert x.i == data["$i"]
 
@@ -154,7 +155,7 @@ def test_apply_dataclass():
     class Y:
         i: int = field(metadata={"alias": "$i"})
 
-    y = deepcast.apply(Y, data)
+    y = typecast.apply(Y, data)
     assert isinstance(y, Y)
     assert y.i == data["$i"]
 
@@ -165,13 +166,13 @@ def test_apply_namedtuple():
     X = namedtuple("X", ["i", "j"], defaults=[9])
 
     data = {"i": 3}
-    x = deepcast.apply(X, data)
+    x = typecast.apply(X, data)
     assert isinstance(x, X)
     assert x.i == data["i"]
     assert x.j == 9
 
     data["j"] = 7
-    x = deepcast.apply(X, data)
+    x = typecast.apply(X, data)
     assert isinstance(x, X)
     assert x.i == data["i"]
     assert x.j == 7
@@ -185,14 +186,14 @@ def test_apply_NamedTuple():
         j: int = 9
 
     data = {"i": 3}
-    x = deepcast.apply(X, data)
+    x = typecast.apply(X, data)
     assert isinstance(x, X)
     assert x.i == data["i"]
     assert x.j == 9
 
     data["j"] = "7"  # type: ignore
     with localcontext(parse_number=True):
-        x = deepcast.apply(X, data)
+        x = typecast.apply(X, data)
         assert isinstance(x, X)
         assert x.i == data["i"]
         assert x.j == 7
@@ -205,7 +206,7 @@ def test_apply_function():
         return i
 
     data = {"i": 3}
-    x = deepcast.apply(f, data)
+    x = typecast.apply(f, data)
     assert x == data["i"]
 
 
@@ -216,10 +217,10 @@ def test_apply_function_validation():
         assert isinstance(a, int)
         return a
 
-    assert deepcast.apply(test, dict(a=123)) == 123
-    assert deepcast.apply(test, dict(a="123")) == 123
+    assert typecast.apply(test, dict(a=123)) == 123
+    assert typecast.apply(test, dict(a="123")) == 123
     with pytest.raises(TypeError):
-        deepcast.apply(test, dict(a=None))
+        typecast.apply(test, dict(a=None))
 
 
 def test_apply_kwargs():
@@ -231,7 +232,7 @@ def test_apply_kwargs():
         return kwargs
 
     with localcontext(parse_number=True):
-        assert deepcast.apply(test, dict(a=1, b="2", c=3)) == {
+        assert typecast.apply(test, dict(a=1, b="2", c=3)) == {
             "a": 1,
             "b": 2,
             "c": 3,
@@ -246,12 +247,12 @@ def test_apply_validate_default():
 
     with localcontext() as ctx:
         ctx.validate_default = False
-        assert deepcast.apply(f, {}) == 1
+        assert typecast.apply(f, {}) == 1
 
         ctx.validate_default = True
         with pytest.raises(TypeError):
             with capture() as error:
-                deepcast.apply(f, {})
+                typecast.apply(f, {})
         assert error.location == ("i",)
 
 
@@ -260,23 +261,23 @@ def test_apply_validate_return():
         assert isinstance(a, int)
         return a  # type: ignore
 
-    assert deepcast.apply(test, dict(a=123)) == 123
-    assert deepcast.apply(test, dict(a="123")) == 123
+    assert typecast.apply(test, dict(a=123)) == 123
+    assert typecast.apply(test, dict(a="123")) == 123
 
     def test(a: int):  # type: ignore
         assert isinstance(a, int)
         return a
 
-    assert deepcast.apply(test, dict(a=123), validate_return=True) == 123
-    assert deepcast.apply(test, dict(a="123"), validate_return=True) == 123
+    assert typecast.apply(test, dict(a=123), validate_return=True) == 123
+    assert typecast.apply(test, dict(a="123"), validate_return=True) == 123
 
     def test(a: int) -> str:
         assert isinstance(a, int)
         return a  # type: ignore
 
-    with deepcast.localregister(str_from_int):
-        assert deepcast.apply(test, dict(a=123), validate_return=True) == "123"
-        assert deepcast.apply(test, dict(a="123"), validate_return=True) == "123"
+    with typecast.localregister(str_from_int):
+        assert typecast.apply(test, dict(a=123), validate_return=True) == "123"
+        assert typecast.apply(test, dict(a="123"), validate_return=True) == "123"
 
 
 def test_apply_capture():
@@ -285,12 +286,12 @@ def test_apply_capture():
 
     with pytest.raises(TypeError):
         with capture() as error:
-            deepcast.apply(test, dict(a=None))
+            typecast.apply(test, dict(a=None))
     assert error.location == ("a",)
 
     with pytest.raises(TypeError):
         with capture() as error:
-            deepcast.apply(test, dict(a=123), validate_return=True)
+            typecast.apply(test, dict(a=123), validate_return=True)
     assert error.location == ("return",)
 
 
@@ -314,20 +315,20 @@ def test_apply_method():
 
     x = X()
 
-    assert deepcast.apply(x.test1, dict(a=123)) == 123
-    assert deepcast.apply(x.test1, dict(a="123")) == 123
+    assert typecast.apply(x.test1, dict(a=123)) == 123
+    assert typecast.apply(x.test1, dict(a="123")) == 123
 
-    assert deepcast.apply(x.test2, dict(a=123)) == 123
-    assert deepcast.apply(x.test2, dict(a="123")) == 123
+    assert typecast.apply(x.test2, dict(a=123)) == 123
+    assert typecast.apply(x.test2, dict(a="123")) == 123
 
-    assert deepcast.apply(X.test2, dict(a=123)) == 123
-    assert deepcast.apply(X.test2, dict(a="123")) == 123
+    assert typecast.apply(X.test2, dict(a=123)) == 123
+    assert typecast.apply(X.test2, dict(a="123")) == 123
 
-    assert deepcast.apply(x.test3, dict(a=123)) == 123
-    assert deepcast.apply(x.test3, dict(a="123")) == 123
+    assert typecast.apply(x.test3, dict(a=123)) == 123
+    assert typecast.apply(x.test3, dict(a="123")) == 123
 
-    assert deepcast.apply(X.test3, dict(a=123)) == 123
-    assert deepcast.apply(X.test3, dict(a="123")) == 123
+    assert typecast.apply(X.test3, dict(a=123)) == 123
+    assert typecast.apply(X.test3, dict(a="123")) == 123
 
 
 def test_apply_async():
@@ -340,8 +341,8 @@ def test_apply_async():
         loop = asyncio.get_running_loop()
     except RuntimeError:
         loop = asyncio.new_event_loop()
-    assert loop.run_until_complete(deepcast.apply(test, dict(a=123))) == 123
-    assert loop.run_until_complete(deepcast.apply(test, dict(a="123"))) == 123
+    assert loop.run_until_complete(typecast.apply(test, dict(a=123))) == 123
+    assert loop.run_until_complete(typecast.apply(test, dict(a="123"))) == 123
 
 
 def my_func(i: List["MyClass"], j: list[ForwardRef("MyClass")]):  # type: ignore
@@ -356,11 +357,11 @@ class MyClass:
 
 def test_apply_ForwardRef_in_func():
     v = MyClass(i=[], j=[])
-    assert deepcast.apply(my_func, {"i": [v], "j": [v]}) == ([v], [v])
+    assert typecast.apply(my_func, {"i": [v], "j": [v]}) == ([v], [v])
 
 
 def test_apply_ForwardRef_in_class():
     v = MyClass(i=[], j=[])
     v.i.append(v)
     v.j.append(v)
-    assert deepcast.apply(MyClass, {"i": [v], "j": [v]}) == v
+    assert typecast.apply(MyClass, {"i": [v], "j": [v]}) == v

@@ -1,9 +1,9 @@
 from dataclasses import dataclass
 from typing import Union
 
-from typeable import declare, deepcast
-
 import pytest
+
+from typeable import declare, typecast
 
 
 @pytest.mark.parametrize(
@@ -27,7 +27,7 @@ import pytest
     ],
 )
 def test_builtins(T, v):
-    assert deepcast(T, v) is v
+    assert typecast(T, v) is v
 
 
 def test_recursive_Union():
@@ -43,15 +43,15 @@ def test_recursive_Union():
             tuple[_Json, ...],
         ]
 
-    assert deepcast(Json, 1) == 1
-    assert deepcast(Json, 1.0) == 1.0
-    assert deepcast(Json, "1") == "1"
-    assert deepcast(Json, True) is True
-    assert deepcast(Json, None) is None
-    assert deepcast(Json, {}) == {}
-    assert deepcast(Json, []) == []
-    assert deepcast(Json, ()) == ()
-    assert deepcast(Json, {"k1": 1}) == {"k1": 1}
+    assert typecast(Json, 1) == 1
+    assert typecast(Json, 1.0) == 1.0
+    assert typecast(Json, "1") == "1"
+    assert typecast(Json, True) is True
+    assert typecast(Json, None) is None
+    assert typecast(Json, {}) == {}
+    assert typecast(Json, []) == []
+    assert typecast(Json, ()) == ()
+    assert typecast(Json, {"k1": 1}) == {"k1": 1}
 
 
 def test_dataclass():
@@ -63,7 +63,7 @@ def test_dataclass():
     class Y:
         j: str
 
-    assert isinstance(deepcast(X | Y, {"i": 0}), X)
-    assert isinstance(deepcast(Y | X, {"i": 0}), X)
-    assert isinstance(deepcast(X | Y, {"j": "j"}), Y)
-    assert isinstance(deepcast(Y | X, {"j": "j"}), Y)
+    assert isinstance(typecast(X | Y, {"i": 0}), X)
+    assert isinstance(typecast(Y | X, {"i": 0}), X)
+    assert isinstance(typecast(X | Y, {"j": "j"}), Y)
+    assert isinstance(typecast(Y | X, {"j": "j"}), Y)

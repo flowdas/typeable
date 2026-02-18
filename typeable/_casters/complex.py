@@ -2,10 +2,10 @@ import cmath
 from collections.abc import Iterable
 from numbers import Number
 
-from .._typecast import DeepCast, deepcast, getcontext
+from .._typecast import DeepCast, getcontext, typecast
 
 
-@deepcast.register
+@typecast.register
 def complex_from_str(deepcast: DeepCast, cls: type[complex], val: str) -> complex:
     if not getcontext().parse_number:
         raise TypeError("parse_number is False")
@@ -16,7 +16,7 @@ def complex_from_str(deepcast: DeepCast, cls: type[complex], val: str) -> comple
     return r
 
 
-@deepcast.register
+@typecast.register
 def complex_from_Iterable(
     deepcast: DeepCast, cls: type[complex], val: Iterable
 ) -> complex:
@@ -24,7 +24,7 @@ def complex_from_Iterable(
     return cls(*cv)
 
 
-@deepcast.register
+@typecast.register
 def complex_from_Number(deepcast: DeepCast, cls: type[complex], val: Number) -> complex:
     r = complex(val)  # type: ignore
     if not cmath.isnan(r) and r != val:
@@ -32,4 +32,4 @@ def complex_from_Number(deepcast: DeepCast, cls: type[complex], val: Number) -> 
     return r
 
 
-deepcast.forbid(complex, bool)
+typecast.forbid(complex, bool)

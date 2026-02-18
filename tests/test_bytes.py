@@ -1,6 +1,6 @@
-from typeable import deepcast
-
 import pytest
+
+from typeable import typecast
 
 
 @pytest.mark.parametrize("T", [bytearray, bytes])
@@ -8,9 +8,9 @@ import pytest
 def test_allowed(T, v):
     """bytes 와 bytearray 는 상호 변환된다."""
     if type(v) is T:
-        assert deepcast(T, v) is v
+        assert typecast(T, v) is v
     else:
-        assert deepcast(T, v) == v
+        assert typecast(T, v) == v
 
 
 @pytest.mark.parametrize("T", [bytearray, bytes])
@@ -33,4 +33,4 @@ def test_allowed(T, v):
 def test_forbidden_cast(T, v):
     """bytes 나 bytearray 가 아닌 것들을 bytes 나 bytearray 로 변환할 수 없다."""
     with pytest.raises(TypeError):
-        deepcast(T, v)
+        typecast(T, v)

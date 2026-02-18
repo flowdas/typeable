@@ -1,7 +1,7 @@
-from .._typecast import DeepCast, deepcast, getcontext
+from .._typecast import DeepCast, getcontext, typecast
 
 
-@deepcast.register
+@typecast.register
 def bool_from_int(deepcast: DeepCast, cls: type[bool], val: int) -> bool:
     if not getcontext().bool_from_01:
         raise TypeError("bool_from_01 is False")
@@ -10,7 +10,7 @@ def bool_from_int(deepcast: DeepCast, cls: type[bool], val: int) -> bool:
     return cls(val)
 
 
-@deepcast.register
+@typecast.register
 def bool_from_str(deepcast: DeepCast, cls: type[bool], val: str) -> bool:
     mapping = getcontext().bool_strings or {}
     try:

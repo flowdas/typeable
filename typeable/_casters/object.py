@@ -1,7 +1,7 @@
-from .._typecast import DeepCast, deepcast
+from .._typecast import DeepCast, typecast
 
 
-@deepcast.register
+@typecast.register
 def object_from_object(
     deepcast: DeepCast, cls: type[object], val: object, *Ts: type
 ) -> object:

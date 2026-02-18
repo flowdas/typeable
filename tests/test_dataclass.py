@@ -3,7 +3,7 @@ from typing import Literal
 
 import pytest
 
-from typeable import deepcast, capture, localcontext
+from typeable import capture, localcontext, typecast
 
 
 def test_cast():
@@ -15,7 +15,7 @@ def test_cast():
 
     data = {"i": 0}
 
-    x = deepcast(X, data)
+    x = typecast(X, data)
     assert isinstance(x, X)
     assert x.i == data["i"]
 
@@ -29,13 +29,13 @@ def test_required():
         b: int = 2
 
     data = {"a": 1}
-    x = deepcast(X, data)
+    x = typecast(X, data)
     assert x.a == 1
     assert x.b == 2
 
     data = {"b": 1}
     with pytest.raises(TypeError):
-        deepcast(X, data)
+        typecast(X, data)
 
 
 def test_dict():
@@ -47,8 +47,8 @@ def test_dict():
 
     data = {"i": 0}
 
-    x = deepcast(X, data)
-    assert deepcast(dict, x) == data
+    x = typecast(X, data)
+    assert typecast(dict, x) == data
 
 
 @pytest.mark.parametrize(
@@ -63,13 +63,13 @@ def test_validate_default(frozen):
         i: int = None  # type: ignore
         j: int = field(default_factory=lambda: None)  # type: ignore
 
-    x = deepcast(X, dict(i=0, j=0))
+    x = typecast(X, dict(i=0, j=0))
     assert x.i == 0
     assert x.j == 0
 
     with localcontext() as ctx:
         ctx.validate_default = False
-        x = deepcast(X, {})
+        x = typecast(X, {})
         assert isinstance(x, X)
         assert x.i is None
         assert x.j is None
@@ -77,17 +77,17 @@ def test_validate_default(frozen):
         ctx.validate_default = True
         with pytest.raises(TypeError):
             with capture() as error:
-                deepcast(X, {})
+                typecast(X, {})
         assert error.location in {("i",), ("j",)}
 
         with pytest.raises(TypeError):
             with capture() as error:
-                deepcast(X, dict(i=0))
+                typecast(X, dict(i=0))
         assert error.location == ("j",)
 
         with pytest.raises(TypeError):
             with capture() as error:
-                deepcast(X, dict(j=0))
+                typecast(X, dict(j=0))
         assert error.location == ("i",)
 
 
@@ -100,12 +100,12 @@ def test_Literal():
 
     data = {"i": 1}
 
-    x = deepcast(X, data)
-    assert deepcast(dict, x) == data
+    x = typecast(X, data)
+    assert typecast(dict, x) == data
 
     data = {"i": 0}
     with pytest.raises(TypeError):
-        deepcast(X, data)
+        typecast(X, data)
 
 
 def test_capture_with_type_mismatch():
@@ -117,7 +117,7 @@ def test_capture_with_type_mismatch():
 
     with pytest.raises(TypeError):
         with capture() as error:
-            deepcast(X, {"i": 0})
+            typecast(X, {"i": 0})
     assert error.location == ("i",)
 
 
@@ -130,12 +130,12 @@ def test_capture_with_missing_field():
 
     with pytest.raises(TypeError):
         with capture() as error:
-            deepcast(X, {})
+            typecast(X, {})
     assert error.location == ("i",)
 
     with pytest.raises(TypeError):
         with capture() as error:
-            deepcast(X, {"i": 1, "j": 0})
+            typecast(X, {"i": 1, "j": 0})
     assert error.location == ("j",)
 
 
@@ -148,7 +148,7 @@ def test_capture_with_extra_field():
 
     with pytest.raises(TypeError):
         with capture() as error:
-            deepcast(X, {"i": 1, "j": 0})
+            typecast(X, {"i": 1, "j": 0})
     assert error.location == ("j",)
 
 
@@ -157,12 +157,12 @@ def test_alias():
 
     @dataclass
     class X:
-        _schema: str = deepcast.field(alias="$schema")
+        _schema: str = typecast.field(alias="$schema")
 
     data = {"$schema": "https://json-schema.org/draft/2020-12/schema"}
-    x = deepcast(X, data)
+    x = typecast(X, data)
     assert x._schema == data["$schema"]
-    assert deepcast(dict, x) == data
+    assert typecast(dict, x) == data
 
 
 def test_hide():
@@ -171,9 +171,9 @@ def test_hide():
     @dataclass
     class X:
         id: str
-        password: str = deepcast.field(hide=True)
+        password: str = typecast.field(hide=True)
 
     data = {"id": "id", "password": "password"}
-    x = deepcast(X, data)
+    x = typecast(X, data)
     assert x.password == "password"
-    assert deepcast(dict, x) == {"id": "id"}
+    assert typecast(dict, x) == {"id": "id"}

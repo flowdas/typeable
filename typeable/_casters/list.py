@@ -2,8 +2,8 @@ from collections.abc import Iterable, Sequence
 
 from .._typecast import (
     DeepCast,
-    deepcast,
     traverse,
+    typecast,
 )
 
 
@@ -23,11 +23,11 @@ def sequence_from_Iterable(deepcast: DeepCast, cls: type[Sequence], val: Iterabl
     return val
 
 
-@deepcast.register
+@typecast.register
 def list_from_Iterable(
     deepcast: DeepCast, cls: type[list], val: Iterable, T=None
 ) -> list:
     return sequence_from_Iterable(deepcast, cls, val, T)
 
 
-deepcast.forbid(list, str, bytes, bytearray)
+typecast.forbid(list, str, bytes, bytearray)

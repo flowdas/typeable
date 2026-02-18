@@ -1,9 +1,9 @@
 from typing import Annotated
 
-from .._typecast import DeepCast, deepcast
+from .._typecast import DeepCast, typecast
 
 
-@deepcast.register
+@typecast.register
 def Annotated_from_object(
     deepcast: DeepCast, cls: type[Annotated], val: object, T: type, *args
 ):
