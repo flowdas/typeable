@@ -108,7 +108,7 @@ def _get_type_args(tp):
 
 
 @dataclass
-class UnionCast:
+class Unioncast:
     args: tuple[type, ...]
     registry: dict[type, list[type]] = dataclasses.field(default_factory=dict)
     dispatch_cache: dict[type, list[type]] = dataclasses.field(default_factory=dict)
@@ -151,7 +151,7 @@ class Typecast:
     _registry: dict[type, dict[type, _CasterType]]
     _dispatch_cache: dict[tuple[type, type], _CasterType]
     _cache_token: Any = None
-    _unions: dict[tuple[type, ...], UnionCast]
+    _unions: dict[tuple[type, ...], Unioncast]
 
     def __init__(self):
         self._registry = {}
@@ -445,11 +445,11 @@ class Typecast:
             **kwargs,
         )
 
-    def get_unioncast(self, args: tuple[type, ...]) -> UnionCast:
+    def get_unioncast(self, args: tuple[type, ...]) -> Unioncast:
         try:
             return self._unions[args]
         except KeyError:
-            entry = self._unions[args] = UnionCast(args)
+            entry = self._unions[args] = Unioncast(args)
             return entry
 
 
