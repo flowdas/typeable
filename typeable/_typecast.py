@@ -320,7 +320,7 @@ class Typecast:
             dataclass_fields = {f.name: f for f in fields(func)}
         sig = inspect.signature(func)
         ann = get_type_hints(func, include_extras=True)
-        validate_default = getcontext().validate_default
+        ctx: Context = getcontext()
         for key, p in sig.parameters.items():
             if key in dataclass_fields:
                 f = dataclass_fields[key]
@@ -336,7 +336,7 @@ class Typecast:
                     inspect.Parameter.VAR_KEYWORD,
                 }:
                     mandatories.add(key)
-            elif validate_default and p.annotation != empty:
+            elif ctx.validate_default and p.annotation != empty:
                 omissibles.add(key)
 
         # kwargs 를 만든다
@@ -356,6 +356,8 @@ class Typecast:
                     annotation = ann.get(key, empty)
                 else:
                     if kwargs_key is None:
+                        if ctx.allow_extra_items:
+                            continue
                         raise TypeError(f"Unknown field {key!r}")
                     annotation = ann.get(kwargs_key, empty)
                 kwargs[key] = value if annotation == empty else self(annotation, value)

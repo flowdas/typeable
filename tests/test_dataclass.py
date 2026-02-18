@@ -133,10 +133,11 @@ def test_capture_with_missing_field():
             typecast(X, {})
     assert error.location == ("i",)
 
-    with pytest.raises(TypeError):
-        with capture() as error:
-            typecast(X, {"i": 1, "j": 0})
-    assert error.location == ("j",)
+    with localcontext(allow_extra_items=False):
+        with pytest.raises(TypeError):
+            with capture() as error:
+                typecast(X, {"i": 1, "j": 0})
+        assert error.location == ("j",)
 
 
 def test_capture_with_extra_field():
@@ -146,10 +147,11 @@ def test_capture_with_extra_field():
     class X:
         i: Literal[1, 2, 3]
 
-    with pytest.raises(TypeError):
-        with capture() as error:
-            typecast(X, {"i": 1, "j": 0})
-    assert error.location == ("j",)
+    with localcontext(allow_extra_items=False):
+        with pytest.raises(TypeError):
+            with capture() as error:
+                typecast(X, {"i": 1, "j": 0})
+        assert error.location == ("j",)
 
 
 def test_alias():
@@ -205,3 +207,19 @@ def test_hide_default_none():
             "mandatory2": None,
             "optional2": "world",
         }
+
+
+def test_allow_extra_items():
+    @dataclass
+    class X:
+        i: int
+
+    data = {"i": 0, "j": 1}
+
+    with localcontext(allow_extra_items=False):
+        with pytest.raises(TypeError):
+            typecast(X, data)
+
+    with localcontext(allow_extra_items=True):
+        x = typecast(X, data)
+        assert x.i == 0
