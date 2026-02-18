@@ -1,11 +1,11 @@
 import math
 from numbers import Number
 
-from .._deepcast import DeepCast, deepcast, getcontext
+from .._typecast import Typecast, getcontext, typecast
 
 
-@deepcast.register
-def float_from_str(deepcast: DeepCast, cls: type[float], val: str) -> float:
+@typecast.register
+def float_from_str(typecast: Typecast, cls: type[float], val: str) -> float:
     if not getcontext().parse_number:
         raise TypeError("parse_number is False")
     try:
@@ -15,19 +15,19 @@ def float_from_str(deepcast: DeepCast, cls: type[float], val: str) -> float:
     return r
 
 
-@deepcast.register
-def float_from_Number(deepcast: DeepCast, cls: type[float], val: Number) -> float:
+@typecast.register
+def float_from_Number(typecast: Typecast, cls: type[float], val: Number) -> float:
     r = float(val)  # type: ignore
     if not math.isnan(r) and r != val:
         raise TypeError(f"invalid number for float: '{val}'")
     return r
 
 
-@deepcast.register
-def float_from_complex(deepcast: DeepCast, cls: type[float], val: complex) -> float:
+@typecast.register
+def float_from_complex(typecast: Typecast, cls: type[float], val: complex) -> float:
     if val.imag != 0:
         raise TypeError(f"invalid number for float: '{val}'")
     return val.real
 
 
-deepcast.forbid(float, bool)
+typecast.forbid(float, bool)

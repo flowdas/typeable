@@ -1,6 +1,6 @@
-from .._deepcast import DeepCast, deepcast
+from .._typecast import Typecast, typecast
 
 
-@deepcast.register
-def bytes_from_bytearray(deepcast: DeepCast, cls: type[bytes], val: bytearray) -> bytes:
+@typecast.register
+def bytes_from_bytearray(typecast: Typecast, cls: type[bytes], val: bytearray) -> bytes:
     return cls(val)

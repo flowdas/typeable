@@ -3,12 +3,12 @@ from collections.abc import Mapping
 from dataclasses import fields, is_dataclass
 from typing import is_typeddict
 
-from .._deepcast import _META_ALIAS, _META_HIDE, DeepCast, deepcast, traverse
+from .._typecast import _META_ALIAS, _META_HIDE, Typecast, traverse, typecast
 
 
-@deepcast.register
+@typecast.register
 def dict_from_Mapping(
-    deepcast: DeepCast,
+    typecast: Typecast,
     cls: type[dict],
     val: Mapping,
     K: type | None = None,
@@ -19,12 +19,12 @@ def dict_from_Mapping(
         vpatch = {}
         for k in val:
             with traverse(k):
-                ck = deepcast(K, k)
+                ck = typecast(K, k)
                 if ck is not k:
                     kpatch[k] = ck
                 v = val[k]
                 if V is not None:  # Counter 에서 V 만 None 일 수 있다.
-                    cv = deepcast(V, v)
+                    cv = typecast(V, v)
                     if cv is not v:
                         vpatch[k] = cv
         if kpatch or vpatch:
@@ -36,13 +36,13 @@ def dict_from_Mapping(
         vpatch = {}
         for k in val:
             with traverse(k):
-                ck = deepcast(str, k)
+                ck = typecast(str, k)
                 if ck is not k:
                     kpatch[k] = ck
                 v = val[k]
                 if ck not in annotations:
                     raise TypeError(f"got an unexpected key '{k}'")
-                cv = deepcast(annotations[ck], v)
+                cv = typecast(annotations[ck], v)
                 if cv is not v:
                     vpatch[k] = cv
             required.discard(k)
@@ -63,9 +63,9 @@ def dict_from_Mapping(
     return val
 
 
-@deepcast.register
+@typecast.register
 def dict_from_NamedTuple(
-    deepcast: DeepCast,
+    typecast: Typecast,
     cls: type[dict],
     val: tuple,
     K: type | None = None,
@@ -75,12 +75,12 @@ def dict_from_NamedTuple(
         d = val._asdict()
     except Exception:
         raise TypeError(f"dict from {type(val)!r} not supported")
-    return dict_from_Mapping(deepcast, cls, d, K, V)
+    return dict_from_Mapping(typecast, cls, d, K, V)
 
 
-@deepcast.register
+@typecast.register
 def dict_from_object(
-    deepcast: DeepCast,
+    typecast: Typecast,
     cls: type[dict],
     val: object,
     K: type | None = None,
@@ -97,12 +97,12 @@ def dict_from_object(
                 d[m.get(_META_ALIAS, f.name)] = getattr(val, f.name)
     else:
         try:
-            d = val.__deepcast__()  # type: ignore
+            d = val.__typecast__()  # type: ignore
         except AttributeError:
             pass
     if d is None:
         raise TypeError(f"dict from {type(val)!r} not supported")
-    return dict_from_Mapping(deepcast, cls, d, K, V)
+    return dict_from_Mapping(typecast, cls, d, K, V)
 
 
-deepcast.forbid(dict, str, bytes, bytearray)
+typecast.forbid(dict, str, bytes, bytearray)

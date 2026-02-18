@@ -1,11 +1,11 @@
 from typing import Any
 
-from typeable import deepcast
+from typeable import typecast
 
 
 def test_Any():
-    assert deepcast(Any, None) is None
+    assert typecast(Any, None) is None
     o = object()
-    assert deepcast(Any, o) is o
+    assert typecast(Any, o) is o
 
-    assert deepcast(list[Any], [None, o]) == [None, o]
+    assert typecast(list[Any], [None, o]) == [None, o]

@@ -2,8 +2,7 @@ import inspect
 
 import pytest
 
-from typeable import deepcast
-
+from typeable import typecast
 
 #
 # Constraint
@@ -61,7 +60,7 @@ def test_AllOf():
     assert not c(10)
     schema = JsonSchema()
     c.annotate(schema, schema)
-    assert deepcast(JsonValue, schema) == {
+    assert typecast(JsonValue, schema) == {
         "allOf": [
             {"format": "positive"},
             {"format": "lt10"},
@@ -73,7 +72,7 @@ def test_AllOf():
     assert not c(0)
     schema = JsonSchema()
     c.annotate(schema, schema)
-    assert deepcast(dict, schema) == {"format": "positive"}
+    assert typecast(dict, schema) == {"format": "positive"}
 
 
 def test_AnyOf():
@@ -99,7 +98,7 @@ def test_AnyOf():
     assert not c(10)
     schema = JsonSchema()
     c.annotate(schema, schema)
-    assert deepcast(JsonValue, schema) == {
+    assert typecast(JsonValue, schema) == {
         "anyOf": [
             {"format": "negative"},
             {"format": "gt10"},
@@ -111,7 +110,7 @@ def test_AnyOf():
     assert not c(0)
     schema = JsonSchema()
     c.annotate(schema, schema)
-    assert deepcast(dict, schema) == {"format": "negative"}
+    assert typecast(dict, schema) == {"format": "negative"}
 
 
 def test_NoneOf():
@@ -137,7 +136,7 @@ def test_NoneOf():
     assert c(10)
     schema = JsonSchema()
     c.annotate(schema, schema)
-    assert deepcast(JsonValue, schema) == {
+    assert typecast(JsonValue, schema) == {
         "not": {
             "anyOf": [
                 {"format": "negative"},
@@ -151,7 +150,7 @@ def test_NoneOf():
     assert not c(-1)
     schema = JsonSchema()
     c.annotate(schema, schema)
-    assert deepcast(JsonValue, schema) == {"not": {"format": "negative"}}
+    assert typecast(JsonValue, schema) == {"not": {"format": "negative"}}
 
 
 def test_IsFinite():
@@ -170,28 +169,28 @@ def test_range():
     assert not c(0)
     schema = JsonSchema()
     c.annotate(schema, schema)
-    assert deepcast(JsonValue, schema) == {"exclusiveMinimum": 0}
+    assert typecast(JsonValue, schema) == {"exclusiveMinimum": 0}
 
     c = IsGreaterThanOrEqual(0)
     assert c(0)
     assert not c(-1)
     schema = JsonSchema()
     c.annotate(schema, schema)
-    assert deepcast(JsonValue, schema) == {"minimum": 0}
+    assert typecast(JsonValue, schema) == {"minimum": 0}
 
     c = IsLessThan(0)
     assert c(-1)
     assert not c(0)
     schema = JsonSchema()
     c.annotate(schema, schema)
-    assert deepcast(JsonValue, schema) == {"exclusiveMaximum": 0}
+    assert typecast(JsonValue, schema) == {"exclusiveMaximum": 0}
 
     c = IsLessThanOrEqual(0)
     assert c(0)
     assert not c(1)
     schema = JsonSchema()
     c.annotate(schema, schema)
-    assert deepcast(JsonValue, schema) == {"maximum": 0}
+    assert typecast(JsonValue, schema) == {"maximum": 0}
 
 
 def test_length():
@@ -201,19 +200,19 @@ def test_length():
     root = JsonSchema(str)
     schema = JsonSchema()
     c.annotate(root, schema)
-    assert deepcast(JsonValue, schema) == {"minLength": 1}
+    assert typecast(JsonValue, schema) == {"minLength": 1}
     root = JsonSchema(dict)
     schema = JsonSchema()
     c.annotate(root, schema)
-    assert deepcast(JsonValue, schema) == {"minProperties": 1}
+    assert typecast(JsonValue, schema) == {"minProperties": 1}
     root = JsonSchema(list)
     schema = JsonSchema()
     c.annotate(root, schema)
-    assert deepcast(JsonValue, schema) == {"minItems": 1}
+    assert typecast(JsonValue, schema) == {"minItems": 1}
     root = JsonSchema(int)
     schema = JsonSchema()
     c.annotate(root, schema)
-    assert deepcast(JsonValue, schema) == {}
+    assert typecast(JsonValue, schema) == {}
 
     c = IsShorterThanOrEqual(1)
     assert c([1])
@@ -221,19 +220,19 @@ def test_length():
     root = JsonSchema(str)
     schema = JsonSchema()
     c.annotate(root, schema)
-    assert deepcast(JsonValue, schema) == {"maxLength": 1}
+    assert typecast(JsonValue, schema) == {"maxLength": 1}
     root = JsonSchema(dict)
     schema = JsonSchema()
     c.annotate(root, schema)
-    assert deepcast(JsonValue, schema) == {"maxProperties": 1}
+    assert typecast(JsonValue, schema) == {"maxProperties": 1}
     root = JsonSchema(list)
     schema = JsonSchema()
     c.annotate(root, schema)
-    assert deepcast(JsonValue, schema) == {"maxItems": 1}
+    assert typecast(JsonValue, schema) == {"maxItems": 1}
     root = JsonSchema(int)
     schema = JsonSchema()
     c.annotate(root, schema)
-    assert deepcast(JsonValue, schema) == {}
+    assert typecast(JsonValue, schema) == {}
 
 
 def test_IsMultipleOf():
@@ -244,7 +243,7 @@ def test_IsMultipleOf():
     assert not c(4.1)
     schema = JsonSchema()
     c.annotate(schema, schema)
-    assert deepcast(JsonValue, schema) == {"multipleOf": 2}
+    assert typecast(JsonValue, schema) == {"multipleOf": 2}
 
     with pytest.raises(ValueError):
         IsMultipleOf(0)
@@ -256,4 +255,4 @@ def test_IsMatched():
     assert not c("orange")
     schema = JsonSchema()
     c.annotate(schema, schema)
-    assert deepcast(JsonValue, schema) == {"pattern": "p"}
+    assert typecast(JsonValue, schema) == {"pattern": "p"}

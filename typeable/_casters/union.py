@@ -1,20 +1,20 @@
-from contextlib import ExitStack
 import sys
+from contextlib import ExitStack
 from types import UnionType
 from typing import Union
 
-from .._deepcast import DeepCast, deepcast
 from .._error import capture, traverse
+from .._typecast import Typecast, typecast
 
 
-@deepcast.register
-def UnionType_from_object(deepcast: DeepCast, cls: type[UnionType], val: object, *Ts):
-    uc = deepcast.get_unioncast(Ts)
+@typecast.register
+def UnionType_from_object(typecast: Typecast, cls: type[UnionType], val: object, *Ts):
+    uc = typecast.get_unioncast(Ts)
     deepest = ()
     for T in uc.dispatch(val.__class__):
         try:
             with capture() as error:
-                return deepcast(T, val)
+                return typecast(T, val)
         except Exception:
             if error.location and len(error.location) > len(deepest):
                 deepest = error.location
@@ -28,6 +28,6 @@ def UnionType_from_object(deepcast: DeepCast, cls: type[UnionType], val: object,
 
 if sys.version_info < (3, 14):
 
-    @deepcast.register
-    def Union_from_object(deepcast: DeepCast, cls: type[Union], val: object, *Ts):
-        return UnionType_from_object(deepcast, cls, val, *Ts)
+    @typecast.register
+    def Union_from_object(typecast: Typecast, cls: type[Union], val: object, *Ts):
+        return UnionType_from_object(typecast, cls, val, *Ts)

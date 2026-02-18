@@ -1,11 +1,11 @@
 from decimal import Decimal
 from numbers import Number
 
-from .._deepcast import DeepCast, deepcast, getcontext
+from .._typecast import Typecast, getcontext, typecast
 
 
-@deepcast.register
-def int_from_str(deepcast: DeepCast, cls: type[int], val: str) -> int:
+@typecast.register
+def int_from_str(typecast: Typecast, cls: type[int], val: str) -> int:
     if not getcontext().parse_number:
         raise TypeError("parse_number is False")
     try:
@@ -18,20 +18,20 @@ def int_from_str(deepcast: DeepCast, cls: type[int], val: str) -> int:
     return r
 
 
-@deepcast.register
-def int_from_Number(deepcast: DeepCast, cls: type[int], val: Number) -> int:
+@typecast.register
+def int_from_Number(typecast: Typecast, cls: type[int], val: Number) -> int:
     r = int(val)  # type: ignore
     if r != val:
         raise TypeError(f"invalid number for int: '{val}'")
     return r
 
 
-@deepcast.register
-def int_from_complex(deepcast: DeepCast, cls: type[int], val: complex) -> int:
+@typecast.register
+def int_from_complex(typecast: Typecast, cls: type[int], val: complex) -> int:
     r = int(val.real)
     if r != val:
         raise TypeError(f"invalid number for int: '{val}'")
     return r
 
 
-deepcast.forbid(int, bool)
+typecast.forbid(int, bool)

@@ -1,16 +1,17 @@
 import pytest
-from typeable import deepcast
+
+from typeable import typecast
 
 
 def test_object():
-    """isinstance(v, T) == True 일 때 deepcast(T, v) 는 보통 v 를 반환한다."""
+    """isinstance(v, T) == True 일 때 typecast(T, v) 는 보통 v 를 반환한다."""
     v = object()
-    assert deepcast(object, v) is v
+    assert typecast(object, v) is v
 
 
 def test_None():
     """None 도 object 다."""
-    assert deepcast(object, None) is None
+    assert typecast(object, None) is None
 
 
 def test_custom_class():
@@ -20,7 +21,7 @@ def test_custom_class():
         pass
 
     x = X()
-    assert deepcast(X, x) is x
+    assert typecast(X, x) is x
 
 
 def test_X_from_str():
@@ -30,7 +31,7 @@ def test_X_from_str():
         pass
 
     with pytest.raises(TypeError):
-        deepcast(X, "")
+        typecast(X, "")
 
 
 def test_init_from_dict():
@@ -41,6 +42,6 @@ def test_init_from_dict():
             self.i = i
 
     data = {"i": 3}
-    x = deepcast(X, data)
+    x = typecast(X, data)
     assert isinstance(x, X)
     assert x.i == data["i"]

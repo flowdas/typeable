@@ -5,18 +5,17 @@ from typing import (
     Annotated,
 )
 
-from ._deepcast import deepcast, DeepCast
 from ._json import JsonSchema
-
+from ._typecast import Typecast, typecast
 
 #
 # Annotated
 #
 
 
-@deepcast.register
-def _cast_Annotated_object(deepcast: DeepCast, cls, val, T, *args) -> Annotated:
-    r = deepcast(T, val)
+@typecast.register
+def _cast_Annotated_object(typecast: Typecast, cls, val, T, *args) -> Annotated:
+    r = typecast(T, val)
     for arg in args:
         if isinstance(arg, Constraint):
             if not arg(r):
