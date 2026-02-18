@@ -10,7 +10,7 @@ from typeable import capture, localcontext, typecast
 from .conftest import str_from_int
 
 #
-# deepcast.register
+# typecast.register
 #
 
 
@@ -22,11 +22,11 @@ from .conftest import str_from_int
         type[int],
     ],
 )
-def test_supported_cls_types(deepcast, T):
+def test_supported_cls_types(typecast, T):
     """두번째 인자의 타입으로 등록할 수 있음을 확인한다."""
 
-    @deepcast.register
-    def _(deepcast, cls: T, val: object): ...  # type: ignore
+    @typecast.register
+    def _(typecast, cls: T, val: object): ...  # type: ignore
 
 
 @pytest.mark.parametrize(
@@ -35,13 +35,13 @@ def test_supported_cls_types(deepcast, T):
         bool,  # type[bool] 을 써야 한다
     ],
 )
-def test_unsupported_cls_types(deepcast, T):
+def test_unsupported_cls_types(typecast, T):
     """두번째 인자의 타입으로 등록할 수 없음을 확인한다."""
 
     with pytest.raises(TypeError):
 
-        @deepcast.register
-        def _(deepcast, cls: T, val: object): ...  # type: ignore
+        @typecast.register
+        def _(typecast, cls: T, val: object): ...  # type: ignore
 
 
 @pytest.mark.parametrize(
@@ -51,11 +51,11 @@ def test_unsupported_cls_types(deepcast, T):
         int,
     ],
 )
-def test_supported_return_types(deepcast, RT):
+def test_supported_return_types(typecast, RT):
     """반환 타입으로 등록할 수 있음을 확인한다."""
 
-    @deepcast.register
-    def _(deepcast, cls, val: object) -> RT: ...  # type: ignore
+    @typecast.register
+    def _(typecast, cls, val: object) -> RT: ...  # type: ignore
 
 
 @pytest.mark.parametrize(
@@ -65,64 +65,64 @@ def test_supported_return_types(deepcast, RT):
         int,
     ],
 )
-def test_supported_value_types(deepcast, VT):
+def test_supported_value_types(typecast, VT):
     """세번째 인자의 타입으로 등록할 수 있음을 확인한다."""
 
-    @deepcast.register
-    def _(deepcast, cls: type[object], val: VT): ...  # type: ignore
+    @typecast.register
+    def _(typecast, cls: type[object], val: VT): ...  # type: ignore
 
 
-def test_register_collison(deepcast):
+def test_register_collison(typecast):
     """같은 서명으로 취급되는 두 변환기를 등록하면 RuntimeError 가 발생해야 한다."""
 
-    @deepcast.register
-    def _(deepcast, cls: type[float], val: object): ...
+    @typecast.register
+    def _(typecast, cls: type[float], val: object): ...
 
     with pytest.raises(RuntimeError):
 
-        @deepcast.register
-        def _(deepcast, cls, val: object) -> float: ...
+        @typecast.register
+        def _(typecast, cls, val: object) -> float: ...
 
 
-def test_register_without_args(deepcast):
+def test_register_without_args(typecast):
     """인자가 부족한 변환기를 등록하면 TypeError 가 발생해야 한다."""
     with pytest.raises(TypeError):
 
-        @deepcast.register
-        def _(deepcast): ...
+        @typecast.register
+        def _(typecast): ...
 
 
-def test_register_without_annotations(deepcast):
+def test_register_without_annotations(typecast):
     """형 어노테이션을 제공하지 않으면 TypeError 가 발생해야 한다."""
     with pytest.raises(TypeError):
 
-        @deepcast.register
-        def _(deepcast, cls, val): ...
+        @typecast.register
+        def _(typecast, cls, val): ...
 
 
-def test_register_mismatch(deepcast):
+def test_register_mismatch(typecast):
     """두번째 인자의 형과 반환 형이 호환되지 않으면 TypeError 가 발생해야 한다."""
     with pytest.raises(TypeError):
 
-        @deepcast.register
-        def _(deepcast, cls: type[float], val: int) -> int: ...
+        @typecast.register
+        def _(typecast, cls: type[float], val: int) -> int: ...
 
 
-def test_exact_match(deepcast):
+def test_exact_match(typecast):
     """변환기 서명과 정확히 일치하는 형 변환이 수행됨을 확인한다."""
 
     class X:
         pass
 
-    @deepcast.register
-    def _(deepcast, cls: type[int], val: X) -> int:
+    @typecast.register
+    def _(typecast, cls: type[int], val: X) -> int:
         return 123
 
-    assert deepcast(int, X()) == 123
+    assert typecast(int, X()) == 123
 
 
 #
-# deepcast.apply
+# typecast.apply
 #
 
 

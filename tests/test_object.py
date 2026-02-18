@@ -4,7 +4,7 @@ from typeable import typecast
 
 
 def test_object():
-    """isinstance(v, T) == True 일 때 deepcast(T, v) 는 보통 v 를 반환한다."""
+    """isinstance(v, T) == True 일 때 typecast(T, v) 는 보통 v 를 반환한다."""
     v = object()
     assert typecast(object, v) is v
 

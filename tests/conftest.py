@@ -8,9 +8,9 @@ collect_ignore = [
 
 
 @pytest.fixture
-def deepcast():
+def typecast():
     return Typecast()
 
 
-def str_from_int(deepcast: Typecast, cls: type[str], val: int) -> str:
+def str_from_int(typecast: Typecast, cls: type[str], val: int) -> str:
     return str(val)
