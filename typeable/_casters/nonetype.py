@@ -1,10 +1,10 @@
 from types import NoneType
 
-from .._deepcast import DeepCast, deepcast
+from .._typecast import Typecast, typecast
 
 
-@deepcast.register
-def NoneType_from_object(deepcast: DeepCast, cls: type[NoneType], val: object) -> None:
+@typecast.register
+def NoneType_from_object(typecast: Typecast, cls: type[NoneType], val: object) -> None:
     if val is not None:
         raise TypeError(f"{val!r} is not None")
     return None

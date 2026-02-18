@@ -1,9 +1,9 @@
-from enum import IntEnum, Enum, IntFlag, Flag
 import sys
+from enum import Enum, Flag, IntEnum, IntFlag
 
 import pytest
 
-from typeable import deepcast, localcontext
+from typeable import localcontext, typecast
 
 
 def test_Enum():
@@ -13,22 +13,22 @@ def test_Enum():
         BLUE = "blue"
 
     # str
-    assert deepcast(Color, "RED") is Color.RED
-    assert deepcast(Color, "GREEN") is Color.GREEN
-    assert deepcast(Color, "BLUE") is Color.BLUE
+    assert typecast(Color, "RED") is Color.RED
+    assert typecast(Color, "GREEN") is Color.GREEN
+    assert typecast(Color, "BLUE") is Color.BLUE
 
     # int
-    assert deepcast(Color, 1) is Color.GREEN
+    assert typecast(Color, 1) is Color.GREEN
     with pytest.raises(ValueError):
-        deepcast(Color, 2)
+        typecast(Color, 2)
 
     # None
-    assert deepcast(Color, None) is Color.RED
+    assert typecast(Color, None) is Color.RED
 
     # Enum
-    assert deepcast(Color, Color.RED) is Color.RED
-    assert deepcast(Color, Color.GREEN) is Color.GREEN
-    assert deepcast(Color, Color.BLUE) is Color.BLUE
+    assert typecast(Color, Color.RED) is Color.RED
+    assert typecast(Color, Color.GREEN) is Color.GREEN
+    assert typecast(Color, Color.BLUE) is Color.BLUE
 
 
 def test_str_from_Enum():
@@ -37,14 +37,14 @@ def test_str_from_Enum():
         GREEN = 1
         BLUE = "blue"
 
-    assert deepcast(str, Color.RED) == "RED"
-    assert deepcast(str, Color.GREEN) == "GREEN"
-    assert deepcast(str, Color.BLUE) == "BLUE"
+    assert typecast(str, Color.RED) == "RED"
+    assert typecast(str, Color.GREEN) == "GREEN"
+    assert typecast(str, Color.BLUE) == "BLUE"
 
     with localcontext(strict_str=False):
-        assert deepcast(str, Color.RED) == "RED"
-        assert deepcast(str, Color.GREEN) == "GREEN"
-        assert deepcast(str, Color.BLUE) == "BLUE"
+        assert typecast(str, Color.RED) == "RED"
+        assert typecast(str, Color.GREEN) == "GREEN"
+        assert typecast(str, Color.BLUE) == "BLUE"
 
 
 def test_IntEnum():
@@ -52,33 +52,33 @@ def test_IntEnum():
         CIRCLE = 1
         SQUARE = 2
 
-    assert deepcast(Shape, 1) is Shape.CIRCLE
-    assert deepcast(Shape, 2) is Shape.SQUARE
+    assert typecast(Shape, 1) is Shape.CIRCLE
+    assert typecast(Shape, 2) is Shape.SQUARE
     with pytest.raises(ValueError):
-        deepcast(Shape, 3)
+        typecast(Shape, 3)
 
     # str
-    assert deepcast(Shape, "CIRCLE") is Shape.CIRCLE
-    assert deepcast(Shape, "SQUARE") is Shape.SQUARE
+    assert typecast(Shape, "CIRCLE") is Shape.CIRCLE
+    assert typecast(Shape, "SQUARE") is Shape.SQUARE
 
     # float
     with pytest.raises(TypeError):
-        deepcast(Shape, 1.0)
+        typecast(Shape, 1.0)
 
     # None
     with pytest.raises(TypeError):
-        deepcast(Shape, None)
+        typecast(Shape, None)
 
     # IntEnum
-    assert deepcast(Shape, Shape.CIRCLE) is Shape.CIRCLE
-    assert deepcast(Shape, Shape.SQUARE) is Shape.SQUARE
+    assert typecast(Shape, Shape.CIRCLE) is Shape.CIRCLE
+    assert typecast(Shape, Shape.SQUARE) is Shape.SQUARE
 
     class Request(IntEnum):
         POST = 1
         GET = 2
 
-    assert deepcast(Shape, Request.POST) is Shape.CIRCLE
-    assert deepcast(Shape, Request.GET) is Shape.SQUARE
+    assert typecast(Shape, Request.POST) is Shape.CIRCLE
+    assert typecast(Shape, Request.GET) is Shape.SQUARE
 
 
 def test_int_from_IntEnum():
@@ -86,8 +86,8 @@ def test_int_from_IntEnum():
         CIRCLE = 1
         SQUARE = 2
 
-    assert deepcast(int, Shape.CIRCLE) == 1
-    assert deepcast(int, Shape.SQUARE) == 2
+    assert typecast(int, Shape.CIRCLE) == 1
+    assert typecast(int, Shape.SQUARE) == 2
 
 
 def test_str_from_IntEnum():
@@ -95,12 +95,12 @@ def test_str_from_IntEnum():
         CIRCLE = 1
         SQUARE = 2
 
-    assert deepcast(str, Shape.CIRCLE) == "CIRCLE"
-    assert deepcast(str, Shape.SQUARE) == "SQUARE"
+    assert typecast(str, Shape.CIRCLE) == "CIRCLE"
+    assert typecast(str, Shape.SQUARE) == "SQUARE"
 
     with localcontext(strict_str=False):
-        assert deepcast(str, Shape.CIRCLE) == "CIRCLE"
-        assert deepcast(str, Shape.SQUARE) == "SQUARE"
+        assert typecast(str, Shape.CIRCLE) == "CIRCLE"
+        assert typecast(str, Shape.SQUARE) == "SQUARE"
 
 
 #
@@ -114,29 +114,29 @@ def test_Flag():
         W = 2
         X = 1
 
-    assert deepcast(Perm, 1) is Perm.X
-    assert deepcast(Perm, 2) is Perm.W
-    assert deepcast(Perm, 4) is Perm.R
-    assert deepcast(Perm, 7) == Perm.R | Perm.W | Perm.X
+    assert typecast(Perm, 1) is Perm.X
+    assert typecast(Perm, 2) is Perm.W
+    assert typecast(Perm, 4) is Perm.R
+    assert typecast(Perm, 7) == Perm.R | Perm.W | Perm.X
     with pytest.raises(ValueError):
-        deepcast(Perm, 8)
+        typecast(Perm, 8)
 
     # str
     with pytest.raises(TypeError):
-        deepcast(Perm, "R")
+        typecast(Perm, "R")
 
     # float
     with pytest.raises(TypeError):
-        deepcast(Perm, 1.0)
+        typecast(Perm, 1.0)
 
     # None
     with pytest.raises(TypeError):
-        deepcast(Perm, None)
+        typecast(Perm, None)
 
     # Flag
-    assert deepcast(Perm, Perm.R) is Perm.R
-    assert deepcast(Perm, Perm.W) is Perm.W
-    assert deepcast(Perm, Perm.X) is Perm.X
+    assert typecast(Perm, Perm.R) is Perm.R
+    assert typecast(Perm, Perm.W) is Perm.W
+    assert typecast(Perm, Perm.X) is Perm.X
 
     class Perm2(Flag):
         R = 4
@@ -149,7 +149,7 @@ def test_Flag():
         Exc = ValueError
 
     with pytest.raises(Exc):
-        deepcast(Perm, Perm2.R)
+        typecast(Perm, Perm2.R)
 
 
 def test_int_from_Flag():
@@ -158,10 +158,10 @@ def test_int_from_Flag():
         W = 2
         X = 1
 
-    assert deepcast(int, Perm.R) == 4
-    assert deepcast(int, Perm.W) == 2
-    assert deepcast(int, Perm.X) == 1
-    assert deepcast(int, Perm.R | Perm.W | Perm.X) == 7
+    assert typecast(int, Perm.R) == 4
+    assert typecast(int, Perm.W) == 2
+    assert typecast(int, Perm.X) == 1
+    assert typecast(int, Perm.R | Perm.W | Perm.X) == 7
 
 
 def test_str_from_Flag():
@@ -171,7 +171,7 @@ def test_str_from_Flag():
         X = 1
 
     with pytest.raises(TypeError):
-        deepcast(str, Perm.R)
+        typecast(str, Perm.R)
 
 
 #
@@ -185,28 +185,28 @@ def test_IntFlag():
         W = 2
         X = 1
 
-    assert deepcast(Perm, 1) is Perm.X
-    assert deepcast(Perm, 2) is Perm.W
-    assert deepcast(Perm, 4) is Perm.R
-    assert deepcast(Perm, 7) == Perm.R | Perm.W | Perm.X
-    assert deepcast(Perm, 8) == Perm(8)
+    assert typecast(Perm, 1) is Perm.X
+    assert typecast(Perm, 2) is Perm.W
+    assert typecast(Perm, 4) is Perm.R
+    assert typecast(Perm, 7) == Perm.R | Perm.W | Perm.X
+    assert typecast(Perm, 8) == Perm(8)
 
     # str
     with pytest.raises(TypeError):
-        deepcast(Perm, "R")
+        typecast(Perm, "R")
 
     # float
     with pytest.raises(TypeError):
-        deepcast(Perm, 1.0)
+        typecast(Perm, 1.0)
 
     # None
     with pytest.raises(TypeError):
-        deepcast(Perm, None)
+        typecast(Perm, None)
 
     # IntFlag
-    assert deepcast(Perm, Perm.R) is Perm.R
-    assert deepcast(Perm, Perm.W) is Perm.W
-    assert deepcast(Perm, Perm.X) is Perm.X
+    assert typecast(Perm, Perm.R) is Perm.R
+    assert typecast(Perm, Perm.W) is Perm.W
+    assert typecast(Perm, Perm.X) is Perm.X
 
 
 def test_int_from_IntFlag():
@@ -215,10 +215,10 @@ def test_int_from_IntFlag():
         W = 2
         X = 1
 
-    assert deepcast(int, Perm.R) == 4
-    assert deepcast(int, Perm.W) == 2
-    assert deepcast(int, Perm.X) == 1
-    assert deepcast(int, Perm.R | Perm.W | Perm.X) == 7
+    assert typecast(int, Perm.R) == 4
+    assert typecast(int, Perm.W) == 2
+    assert typecast(int, Perm.X) == 1
+    assert typecast(int, Perm.R | Perm.W | Perm.X) == 7
 
 
 def test_str_from_IntFlag():
@@ -228,4 +228,4 @@ def test_str_from_IntFlag():
         X = 1
 
     with pytest.raises(TypeError):
-        deepcast(str, Perm.R)
+        typecast(str, Perm.R)

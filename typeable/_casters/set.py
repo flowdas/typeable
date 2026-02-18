@@ -1,12 +1,12 @@
 from collections.abc import Iterable
 
-from .._deepcast import DeepCast, deepcast
+from .._typecast import Typecast, typecast
 from .list import sequence_from_Iterable
 
 
-@deepcast.register
-def set_from_Iterable(deepcast: DeepCast, cls: type[set], val: Iterable, T=None) -> set:
-    return sequence_from_Iterable(deepcast, cls, val, T)  # type: ignore
+@typecast.register
+def set_from_Iterable(typecast: Typecast, cls: type[set], val: Iterable, T=None) -> set:
+    return sequence_from_Iterable(typecast, cls, val, T)  # type: ignore
 
 
-deepcast.forbid(set, str, bytes, bytearray)
+typecast.forbid(set, str, bytes, bytearray)

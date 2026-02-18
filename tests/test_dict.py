@@ -1,3 +1,4 @@
+import typing
 from collections import (
     ChainMap,
     Counter,
@@ -10,11 +11,11 @@ from collections import (
 )
 from dataclasses import dataclass
 from typing import DefaultDict, Dict, NamedTuple, TypedDict, get_origin
-import typing
-
-from typeable import deepcast
 
 import pytest
+
+from typeable import typecast
+
 from .conftest import str_from_int
 
 
@@ -90,7 +91,7 @@ def test_subclass(T):
     d = {"a": 1, "b": 2}
     od = OrderedDict(d)
     assert isinstance(od, dict)
-    r = deepcast(T, od)
+    r = typecast(T, od)
     assert r is od
 
 
@@ -98,7 +99,7 @@ def test_subclass(T):
 def test_None(T):
     """None 은 dict 로 변환될 수 없다."""
     with pytest.raises(TypeError):
-        deepcast(T, None)
+        typecast(T, None)
 
 
 @pytest.mark.parametrize("T", [dict, Dict])
@@ -112,13 +113,13 @@ def test_nested(T):
     data = {i: {"i": i} for i in range(10)}
 
     # dict
-    r = deepcast(T, data)
+    r = typecast(T, data)
     assert isinstance(r, dict)
     assert r == data
 
     # generic dict
-    with deepcast.localregister(str_from_int):
-        r = deepcast(T[str, X], data)
+    with typecast.localregister(str_from_int):
+        r = typecast(T[str, X], data)
 
     assert isinstance(r, dict)
     assert len(r) == len(data)
@@ -132,8 +133,8 @@ def test_nested(T):
 def test_no_copy(T):
     """isinstance 이면 복사가 일어나지 말아야 한다."""
     data = {str(i): i for i in range(10)}
-    assert deepcast(T, data) is data
-    assert deepcast(T[str, int], data) is data
+    assert typecast(T, data) is data
+    assert typecast(T[str, int], data) is data
 
 
 @pytest.mark.parametrize("T", [dict, Dict])
@@ -144,20 +145,20 @@ def test_copy(T):
     expected = data.copy()
     data["9"] = "9"  # type: ignore
 
-    assert deepcast(T[str, int], data) is not data
-    assert deepcast(T[str, int], data) == expected
+    assert typecast(T[str, int], data) is not data
+    assert typecast(T[str, int], data) == expected
     data2 = UserDict(data)
-    assert deepcast(T[str, int], data2) is not data2
-    assert deepcast(T[str, int], data2) == expected
-    assert isinstance(deepcast(T[str, int], data2), T)
-    assert not isinstance(deepcast(T[str, int], data2), UserDict)
+    assert typecast(T[str, int], data2) is not data2
+    assert typecast(T[str, int], data2) == expected
+    assert isinstance(typecast(T[str, int], data2), T)
+    assert not isinstance(typecast(T[str, int], data2), UserDict)
 
 
 def test_dict_from_Mapping(RT, VTMapping):
     """여러 dict 형들로의 다양한 변환을 지원해야 한다."""
     data = {str(i): i for i in range(10)}
     v = VTMapping(None, data) if VTMapping is defaultdict else VTMapping(data)
-    x = deepcast(RT, v)
+    x = typecast(RT, v)
     T = get_origin(RT) or RT
     if isinstance(v, T):
         assert x is v
@@ -176,7 +177,7 @@ def test_dict_from_NamedTuple(RT):
         b: int
 
     v = X(**data)
-    x = deepcast(RT, v)
+    x = typecast(RT, v)
     T = get_origin(RT) or RT
     assert isinstance(x, T)
     assert x == data
@@ -189,7 +190,7 @@ def test_dict_from_namedtuple(RT):
 
     X = namedtuple("X", ["a", "b"])
     v = X(**data)
-    x = deepcast(RT, v)
+    x = typecast(RT, v)
     T = get_origin(RT) or RT
     assert isinstance(x, T)
     assert x == data
@@ -207,7 +208,7 @@ def test_dict_from_namedtuple(RT):
 def test_dict_from_string(RT, v):
     """str, bytes, bytearray 는 dict 로 변환할 수 없다."""
     with pytest.raises(TypeError):
-        deepcast(RT, v)
+        typecast(RT, v)
 
 
 def test_TypedDict_from_Mapping(VTMapping, DSTypedDict):
@@ -226,7 +227,7 @@ def test_TypedDict_from_Mapping(VTMapping, DSTypedDict):
     data, Exc = DSTypedDict
     v = VTMapping(None, data) if VTMapping is defaultdict else VTMapping(data)
     if Exc is None:
-        x = deepcast(X, v)
+        x = typecast(X, v)
         if isinstance(v, dict):
             assert x is v
         else:
@@ -235,4 +236,4 @@ def test_TypedDict_from_Mapping(VTMapping, DSTypedDict):
         assert v == x
     else:
         with pytest.raises(Exc):
-            deepcast(X, v)
+            typecast(X, v)

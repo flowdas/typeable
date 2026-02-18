@@ -1,18 +1,18 @@
 from collections.abc import Iterable, Sequence
 
-from .._deepcast import (
-    DeepCast,
-    deepcast,
+from .._typecast import (
+    Typecast,
     traverse,
+    typecast,
 )
 
 
-def sequence_from_Iterable(deepcast: DeepCast, cls: type[Sequence], val: Iterable, T):
+def sequence_from_Iterable(typecast: Typecast, cls: type[Sequence], val: Iterable, T):
     if T is not None:
         patch = {}
         for i, v in enumerate(val):
             with traverse(i):
-                cv = deepcast(T, v)
+                cv = typecast(T, v)
                 if cv is not v:
                     patch[i] = cv
         if patch:
@@ -23,11 +23,11 @@ def sequence_from_Iterable(deepcast: DeepCast, cls: type[Sequence], val: Iterabl
     return val
 
 
-@deepcast.register
+@typecast.register
 def list_from_Iterable(
-    deepcast: DeepCast, cls: type[list], val: Iterable, T=None
+    typecast: Typecast, cls: type[list], val: Iterable, T=None
 ) -> list:
-    return sequence_from_Iterable(deepcast, cls, val, T)
+    return sequence_from_Iterable(typecast, cls, val, T)
 
 
-deepcast.forbid(list, str, bytes, bytearray)
+typecast.forbid(list, str, bytes, bytearray)
