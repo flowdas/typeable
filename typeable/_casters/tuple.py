@@ -2,7 +2,7 @@ from collections.abc import Iterable, Mapping
 from typing import Any
 
 from .._typecast import (
-    DeepCast,
+    Typecast,
     traverse,
     typecast,
 )
@@ -11,7 +11,7 @@ from .list import sequence_from_Iterable
 
 @typecast.register
 def tuple_from_Iterable(
-    deepcast: DeepCast, cls: type[tuple], val: Iterable, *Ts
+    deepcast: Typecast, cls: type[tuple], val: Iterable, *Ts
 ) -> tuple:
     if not Ts:
         if hasattr(cls, "_fields"):
@@ -48,7 +48,7 @@ def tuple_from_Iterable(
 
 @typecast.register
 def namedtuple_from_Mapping(
-    deepcast: DeepCast, cls: type[tuple], val: Mapping, *Ts
+    deepcast: Typecast, cls: type[tuple], val: Mapping, *Ts
 ) -> tuple:
     # Mapping 을 구체적으로 선언하지 않고 object 에 맡기면, Iterable 로 떨어진다.
     return namedtuple_from_object(deepcast, cls, val, *Ts)
@@ -56,7 +56,7 @@ def namedtuple_from_Mapping(
 
 @typecast.register
 def namedtuple_from_object(
-    deepcast: DeepCast, cls: type[tuple], val: object, *Ts
+    deepcast: Typecast, cls: type[tuple], val: object, *Ts
 ) -> tuple:
     if Ts or not hasattr(cls, "_fields"):
         raise TypeError(f"dict from {type(val)!r} not supported")

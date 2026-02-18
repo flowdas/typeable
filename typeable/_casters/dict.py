@@ -3,12 +3,12 @@ from collections.abc import Mapping
 from dataclasses import fields, is_dataclass
 from typing import is_typeddict
 
-from .._typecast import _META_ALIAS, _META_HIDE, DeepCast, traverse, typecast
+from .._typecast import _META_ALIAS, _META_HIDE, Typecast, traverse, typecast
 
 
 @typecast.register
 def dict_from_Mapping(
-    deepcast: DeepCast,
+    deepcast: Typecast,
     cls: type[dict],
     val: Mapping,
     K: type | None = None,
@@ -65,7 +65,7 @@ def dict_from_Mapping(
 
 @typecast.register
 def dict_from_NamedTuple(
-    deepcast: DeepCast,
+    deepcast: Typecast,
     cls: type[dict],
     val: tuple,
     K: type | None = None,
@@ -80,7 +80,7 @@ def dict_from_NamedTuple(
 
 @typecast.register
 def dict_from_object(
-    deepcast: DeepCast,
+    deepcast: Typecast,
     cls: type[dict],
     val: object,
     K: type | None = None,

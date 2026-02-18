@@ -4,11 +4,11 @@ from types import UnionType
 from typing import Union
 
 from .._error import capture, traverse
-from .._typecast import DeepCast, typecast
+from .._typecast import Typecast, typecast
 
 
 @typecast.register
-def UnionType_from_object(deepcast: DeepCast, cls: type[UnionType], val: object, *Ts):
+def UnionType_from_object(deepcast: Typecast, cls: type[UnionType], val: object, *Ts):
     uc = deepcast.get_unioncast(Ts)
     deepest = ()
     for T in uc.dispatch(val.__class__):
@@ -29,5 +29,5 @@ def UnionType_from_object(deepcast: DeepCast, cls: type[UnionType], val: object,
 if sys.version_info < (3, 14):
 
     @typecast.register
-    def Union_from_object(deepcast: DeepCast, cls: type[Union], val: object, *Ts):
+    def Union_from_object(deepcast: Typecast, cls: type[Union], val: object, *Ts):
         return UnionType_from_object(deepcast, cls, val, *Ts)

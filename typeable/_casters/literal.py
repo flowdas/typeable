@@ -1,11 +1,11 @@
 from typing import Literal
 
-from .._typecast import DeepCast, typecast
+from .._typecast import Typecast, typecast
 
 
 @typecast.register
 def Literal_from_object(
-    deepcast: DeepCast, cls: type[Literal], val: object, *literals
+    deepcast: Typecast, cls: type[Literal], val: object, *literals
 ) -> Literal:  # type: ignore
     for literal in literals:
         if literal == val:

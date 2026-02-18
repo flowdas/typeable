@@ -1,7 +1,6 @@
 import pytest
 
-from typeable._typecast import DeepCast
-
+from typeable._typecast import Typecast
 
 collect_ignore = [
     "test_constraint_legacy.py",
@@ -10,8 +9,8 @@ collect_ignore = [
 
 @pytest.fixture
 def deepcast():
-    return DeepCast()
+    return Typecast()
 
 
-def str_from_int(deepcast: DeepCast, cls: type[str], val: int) -> str:
+def str_from_int(deepcast: Typecast, cls: type[str], val: int) -> str:
     return str(val)
