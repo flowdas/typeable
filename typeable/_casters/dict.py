@@ -42,7 +42,8 @@ def dict_from_Mapping(
                     kpatch[k] = ck
                 v = val[k]
                 if ck not in annotations:
-                    raise TypeError(f"got an unexpected key '{k}'")
+                    # TypedDict 는 extra items 를 허용한다.
+                    continue
                 cv = typecast(annotations[ck], v)
                 if cv is not v:
                     vpatch[k] = cv
