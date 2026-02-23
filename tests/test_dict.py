@@ -77,7 +77,8 @@ def VTIterable(request):
     params=[
         ({"a": 1, "b": 2}, None),
         ({"a": 1}, None),  # b 는 없어도 좋다.
-        ({"a": 1, "b": 2, "c": 3}, TypeError),  # c 가 더있다.
+        ({"a": 1, "b": 2, "c": 3}, None),  # c 가 더있어도 좋다.
+        ({"a": None, "b": 2}, TypeError),  # a 의 타입이 다르다.
         ({"b": 2}, TypeError),  # a 가 없다.
     ]
 )
