@@ -4,6 +4,8 @@ from . import (  # noqa: F401
     bytearray,
     bytes,
     complex,
+    date,
+    datetime,
     dict,
     float,
     frozenset,
@@ -14,6 +16,8 @@ from . import (  # noqa: F401
     nonetype,
     object,
     set,
+    time,
+    timedelta,
     tuple,
     union,
 )
