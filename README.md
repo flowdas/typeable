@@ -60,6 +60,10 @@ This list is non-exhaustive.
 - `collections.OrderedDict`
 - `collections.OrderedDict[]`
 - `@dataclasses.dataclass`
+- `datetime.date`
+- `datetime.datetime`
+- `datetime.time`
+- `datetime.timedelta`
 - `typeable.JsonValue`
 - `types.NoneType`
 - `typing.Annotated[]`

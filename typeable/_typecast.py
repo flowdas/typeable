@@ -1,15 +1,13 @@
 import dataclasses
-import datetime
+from datetime import date, datetime
 import enum
 import importlib
 import inspect
-import re
 import sys
 from abc import ABC, get_cache_token
 from collections.abc import Callable, Mapping
 from contextlib import contextmanager
 from dataclasses import MISSING, Field, dataclass, fields, is_dataclass
-from email.utils import parsedate_to_datetime
 from functools import _compose_mro, _find_impl  # type: ignore
 from types import NoneType
 from typing import (
@@ -175,8 +173,19 @@ class Typecast:
                 and isinstance(val, origin)
                 and not (tp is bool and cls is int)
                 and not (origin is JsonValue and isinstance(val, (dict, list, tuple)))
+                and not (tp is datetime and cls is date)
             ):
-                return val
+                if origin is int:
+                    if tp is not bool:
+                        return val
+                elif origin is JsonValue:
+                    if not isinstance(val, (dict, list, tuple)):
+                        return val
+                elif origin is date:
+                    if not issubclass(tp, datetime):
+                        return val
+                else:
+                    return val
         except TypeError:
             pass
         func = self.dispatch(origin, tp)
@@ -456,318 +465,6 @@ class Typecast:
 
 
 typecast = Typecast()
-
-#
-# datetime.datetime
-#
-
-
-@typecast.register
-def _cast_datetime_object(typecast: Typecast, cls: type[datetime.datetime], val):
-    # assume not isinstance(val, cls)
-    if isinstance(val, (int, float)):
-        ctx: Context = getcontext()
-        if ctx.naive_timestamp:
-            return cls.utcfromtimestamp(val)
-        else:
-            return cls.fromtimestamp(val, datetime.timezone.utc)
-    elif isinstance(val, datetime.datetime):  # datetime is subclass of date
-        return cls.combine(val.date(), val.timetz())
-    elif isinstance(val, datetime.date):
-        return cls.combine(val, datetime.time())
-    else:
-        return cls(*val)
-
-
-ISO_DATE_HEAD = r"(?P<Y>\d{4})(-(?P<m>\d{1,2})(-(?P<D>\d{1,2})"
-ISO_DATE_TAIL = r")?)?"
-ISO_TIME = r"(?P<H>\d{1,2}):(?P<M>\d{1,2})(:(?P<S>\d{1,2}([.]\d*)?))?(?P<tzd>[+-](?P<tzh>\d{1,2}):(?P<tzm>\d{1,2})|Z)?"
-ISO_DURATION = r"(?P<sgn>[+-])?P?((?P<W>\d+)[Ww])?((?P<D>\d+)[Dd])?T?((?P<H>\d+)[Hh])?((?P<M>\d+)[Mm])?((?P<S>\d+([.]\d*)?)[Ss]?)?"
-ISO_PATTERN1 = re.compile(
-    ISO_DATE_HEAD + r"([T ](" + ISO_TIME + r")?)?" + ISO_DATE_TAIL + "$"
-)
-ISO_PATTERN2 = re.compile(ISO_DATE_HEAD + ISO_DATE_TAIL + "$")
-ISO_PATTERN3 = re.compile(ISO_TIME + "$")
-ISO_PATTERN4 = re.compile(ISO_DURATION + "$")
-
-
-def _parse_isotzinfo(m):
-    if m.group("tzd"):
-        if m.group("tzd") in ("Z", "+00:00", "-00:00"):
-            tzinfo = datetime.timezone.utc
-        else:
-            offset = int(m.group("tzh")) * 60 + int(m.group("tzm"))
-            if m.group("tzd").startswith("-"):
-                offset = -offset
-            tzinfo = datetime.timezone(datetime.timedelta(minutes=offset))
-    else:
-        tzinfo = None
-    return tzinfo
-
-
-def _parse_isotime(cls, m):
-    hour, min, sec = m.group("H", "M", "S")
-    hour = int(hour)
-    min = int(min) if min else 0
-    sec = float(sec) if sec else 0.0
-
-    tzinfo = _parse_isotzinfo(m)
-    return cls(hour, min, int(sec), int((sec % 1.0) * 1000000), tzinfo=tzinfo)
-
-
-def _parse_isodate(cls, m):
-    return datetime.date(
-        *map(lambda x: 1 if x is None else int(x), m.group("Y", "m", "D"))
-    )
-
-
-def _parse_isoduration(cls, m):
-    sign, week, day, hour, min, sec = m.group("sgn", "W", "D", "H", "M", "S")
-    week = int(week) if week else 0
-    day = int(day) if day else 0
-    hour = int(hour) if hour else 0
-    min = int(min) if min else 0
-    sec = float(sec) if sec else 0.0
-
-    td = cls(weeks=week, days=day, hours=hour, minutes=min, seconds=sec)
-    return -td if sign == "-" else td
-
-
-@typecast.register
-def _cast_datetime_str(typecast: Typecast, cls: type[datetime.datetime], val: str):
-    ctx: Context = getcontext()
-    if ctx.datetime_format == "iso":
-        m = ISO_PATTERN1.match(val.strip())
-        if m is None:
-            raise ValueError()
-
-        date = _parse_isodate(datetime.date, m)
-
-        if m.group("H"):
-            time = _parse_isotime(datetime.time, m)
-        else:
-            time = datetime.time(tzinfo=_parse_isotzinfo(m))
-
-        return cls.combine(date, time)
-    elif ctx.datetime_format == "timestamp":
-        return typecast(cls, float(val))
-    elif ctx.datetime_format == "http" or ctx.datetime_format == "email":
-        dt = parsedate_to_datetime(val.strip())
-        if cls is not datetime.datetime:
-            dt = cls.combine(dt.date(), dt.timetz())
-        return dt
-    else:
-        return cls.strptime(val, ctx.datetime_format)
-
-
-@typecast.register
-def _cast_float_datetime(typecast: Typecast, cls: type[float], val: datetime.datetime):
-    return cls(val.timestamp())
-
-
-@typecast.register
-def _cast_int_datetime(typecast: Typecast, cls: type[int], val: datetime.datetime):
-    ts = val.timestamp()
-    r = cls(ts)
-    ctx: Context = getcontext()
-    if not ctx.lossy_conversion and r != ts:
-        raise ValueError(f"ctx.lossy_conversion={ctx.lossy_conversion}")
-    return r
-
-
-WDAY = ("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
-MON = (
-    "Jan",
-    "Feb",
-    "Mar",
-    "Apr",
-    "May",
-    "Jun",
-    "Jul",
-    "Aug",
-    "Sep",
-    "Oct",
-    "Nov",
-    "Dec",
-)
-
-
-@typecast.register
-def _cast_str_datetime(typecast: Typecast, cls: type[str], val: datetime.datetime):
-    ctx: Context = getcontext()
-    if ctx.datetime_format == "iso":
-        r = val.isoformat()
-        return cls(r[:-6] + "Z") if r.endswith("+00:00") else cls(r)
-    elif ctx.datetime_format == "timestamp":
-        if val.microsecond > 0:
-            return cls(val.timestamp())
-        else:
-            return cls(int(val.timestamp()))
-    elif ctx.datetime_format == "http" or ctx.datetime_format == "email":
-        if ctx.datetime_format == "http":
-            if val.tzinfo and val.utcoffset() != datetime.timedelta():
-                val = val.replace(tzinfo=datetime.timezone.utc) - val.utcoffset()
-            format = "%s, %%d %s %%Y %%H:%%M:%%S GMT"
-        else:
-            TZ = (
-                (" %%z" if val.utcoffset() != datetime.timedelta() else " GMT")
-                if val.tzinfo
-                else ""
-            )
-            format = "%s, %%d %s %%Y %%H:%%M:%%S" + TZ
-        format = format % (WDAY[val.weekday()], MON[val.month - 1])
-        return cls(val.strftime(format))
-    else:
-        return cls(val.strftime(ctx.datetime_format))
-
-
-#
-# datetime.date
-#
-
-
-@typecast.register
-def _cast_date_object(typecast: Typecast, cls: type[datetime.date], val):
-    # assume not isinstance(val, cls)
-    if isinstance(val, datetime.datetime):  # datetime is subclass of date
-        ctx: Context = getcontext()
-        if not ctx.lossy_conversion and (val.tzinfo or val.time() != datetime.time()):
-            raise ValueError(f"ctx.lossy_conversion={ctx.lossy_conversion}")
-        return cls(val.year, val.month, val.day)
-    elif isinstance(val, datetime.date):
-        return cls(val.year, val.month, val.day)
-    else:
-        return cls(*val)
-
-
-@typecast.register
-def _cast_date_str(typecast: Typecast, cls: type[datetime.date], val: str):
-    ctx: Context = getcontext()
-    if ctx.date_format == "iso":
-        m = ISO_PATTERN2.match(val.strip())
-        if m is None:
-            raise ValueError()
-        return _parse_isodate(cls, m)
-    else:
-        dt = datetime.datetime.strptime(val, ctx.date_format)
-        return cls(dt.year, dt.month, dt.day)
-
-
-@typecast.register
-def _cast_str_date(typecast: Typecast, cls: type[str], val: datetime.date):
-    ctx: Context = getcontext()
-    if ctx.date_format == "iso":
-        return cls(val.isoformat())
-    else:
-        return cls(val.strftime(ctx.date_format))
-
-
-#
-# datetime.time
-#
-
-
-@typecast.register
-def _cast_time_object(typecast: Typecast, cls: type[datetime.time], val):
-    # assume not isinstance(val, cls)
-    if isinstance(val, datetime.time):
-        return cls(val.hour, val.minute, val.second, val.microsecond, tzinfo=val.tzinfo)
-    elif isinstance(val, datetime.datetime):
-        ctx: Context = getcontext()
-        if not ctx.lossy_conversion:
-            raise ValueError(f"ctx.lossy_conversion={ctx.lossy_conversion}")
-        t = val.timetz()
-        if t.__class__ is cls:
-            return t
-        return cls(val.hour, val.minute, val.second, val.microsecond, tzinfo=val.tzinfo)
-    else:
-        return cls(*val)
-
-
-@typecast.register
-def _cast_time_str(typecast: Typecast, cls: type[datetime.time], val: str):
-    ctx: Context = getcontext()
-    if ctx.time_format == "iso":
-        m = ISO_PATTERN3.match(val.strip())
-        if m is None:
-            raise ValueError()
-        return _parse_isotime(cls, m)
-    else:
-        dt = datetime.datetime.strptime(val, ctx.time_format)
-        return cls(dt.hour, dt.minute, dt.second, dt.microsecond, tzinfo=dt.tzinfo)
-
-
-@typecast.register
-def _cast_str_time(typecast: Typecast, cls: type[str], val: datetime.time):
-    ctx: Context = getcontext()
-    if ctx.time_format == "iso":
-        return cls(val.isoformat())
-    else:
-        return cls(val.strftime(ctx.time_format))
-
-
-#
-# datetime.timedelta
-#
-
-
-@typecast.register
-def _cast_timedelta_object(typecast: Typecast, cls: type[datetime.timedelta], val):
-    # assume not isinstance(val, cls)
-    if isinstance(val, datetime.timedelta):
-        return cls(days=val.days, seconds=val.seconds, microseconds=val.microseconds)
-    elif isinstance(val, (int, float)):
-        return cls(seconds=val)
-    elif isinstance(val, str):
-        m = ISO_PATTERN4.match(val.strip())
-        if m is None:
-            raise ValueError()
-        return _parse_isoduration(cls, m)
-    else:
-        raise TypeError
-
-
-@typecast.register
-def _cast_float_timedelta(
-    typecast: Typecast, cls: type[float], val: datetime.timedelta
-):
-    return cls(val.total_seconds())
-
-
-@typecast.register
-def _cast_int_timedelta(typecast: Typecast, cls: type[int], val: datetime.timedelta):
-    td = val.total_seconds()
-    r = cls(td)
-    ctx: Context = getcontext()
-    if not ctx.lossy_conversion and r != td:
-        raise ValueError(f"ctx.lossy_conversion={ctx.lossy_conversion}")
-    return r
-
-
-@typecast.register
-def _cast_str_timedelta(typecast: Typecast, cls: type[str], val: datetime.timedelta):
-    r = []
-    if val.days < 0:
-        r.append("-P")
-        val = -val
-    else:
-        r.append("P")
-    if val.days:
-        r.append(f"{val.days}D")
-    if val.seconds or val.microseconds:
-        r.append("T")
-        min, sec = divmod(val.seconds, 60)
-        hour, min = divmod(min, 60)
-        if hour:
-            r.append(f"{hour}H")
-        if min:
-            r.append(f"{min}M")
-        if val.microseconds:
-            sec += val.microseconds / 1000000
-        if sec:
-            r.append(f"{sec}S")
-    return cls("".join(r))
-
 
 #
 # enum.Enum
