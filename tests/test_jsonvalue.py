@@ -1,9 +1,12 @@
 from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta, timezone
+from enum import Enum, Flag, IntEnum, IntFlag
+
+import pytest
 
 
-from typeable import JsonValue, typecast
+from typeable import JsonValue, localcontext, typecast
 
 from .test_type import OuterClass
 
@@ -94,3 +97,47 @@ def test_type():
         typecast(JsonValue, OuterClass.InnerClass)
         == "tests.test_type.OuterClass.InnerClass"
     )
+
+
+def test_Enum():
+    class Color(Enum):
+        RED = None
+        GREEN = 1
+        BLUE = "blu"
+
+    assert typecast(JsonValue, Color.RED) is None
+    assert typecast(JsonValue, Color.GREEN) == 1
+    assert typecast(JsonValue, Color.BLUE) == "blu"
+
+
+def test_IntEnum():
+    class Shape(IntEnum):
+        CIRCLE = 1
+        SQUARE = 2
+
+    assert typecast(JsonValue, Shape.CIRCLE) == 1
+    assert typecast(JsonValue, Shape.SQUARE) == 2
+
+
+def test_Flag():
+    class Perm(Flag):
+        R = 4
+        W = 2
+        X = 1
+
+    assert typecast(JsonValue, Perm.R) == 4
+    assert typecast(JsonValue, Perm.W) == 2
+    assert typecast(JsonValue, Perm.X) == 1
+    assert typecast(JsonValue, Perm.R | Perm.W | Perm.X) == 7
+
+
+def test_IntFlag():
+    class Perm(IntFlag):
+        R = 4
+        W = 2
+        X = 1
+
+    assert typecast(JsonValue, Perm.R) == 4
+    assert typecast(JsonValue, Perm.W) == 2
+    assert typecast(JsonValue, Perm.X) == 1
+    assert typecast(JsonValue, Perm.R | Perm.W | Perm.X) == 7

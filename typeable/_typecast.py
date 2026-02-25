@@ -1,6 +1,5 @@
 import dataclasses
 from datetime import date, datetime
-import enum
 import inspect
 import sys
 from abc import ABC, get_cache_token
@@ -464,84 +463,3 @@ class Typecast:
 
 
 typecast = Typecast()
-
-#
-# enum.Enum
-#
-
-
-@typecast.register
-def _cast_Enum_object(typecast: Typecast, cls: type[enum.Enum], val):
-    # assume not isinstance(val, cls)
-    return cls(val)
-
-
-@typecast.register
-def _cast_Enum_str(typecast: Typecast, cls: type[enum.Enum], val: str):
-    return getattr(cls, val)
-
-
-@typecast.register
-def _cast_str_Enum(typecast: Typecast, cls: type[str], val: enum.Enum):
-    return val.name
-
-
-#
-# enum.IntEnum
-#
-
-
-@typecast.register
-def _cast_IntEnum_int(typecast: Typecast, cls: type[enum.IntEnum], val: int):
-    return cls(val)
-
-
-@typecast.register
-def _cast_IntEnum_str(typecast: Typecast, cls: type[enum.IntEnum], val: str):
-    return getattr(cls, val)
-
-
-@typecast.register
-def _cast_str_IntEnum(typecast: Typecast, cls: type[str], val: enum.IntEnum):
-    return val.name
-
-
-#
-# enum.Flag
-#
-
-
-@typecast.register
-def _cast_Flag_Flag(typecast: Typecast, cls: type[enum.Flag], val: enum.Flag):
-    # assume not isinstance(val, cls)
-    return cls(val)
-
-
-@typecast.register
-def _cast_Flag_int(typecast: Typecast, cls: type[enum.Flag], val: int):
-    return cls(val)
-
-
-@typecast.register
-def _cast_int_Flag(typecast: Typecast, cls: type[int], val: enum.Flag):
-    return cls(val.value)
-
-
-@typecast.register
-def _cast_str_Flag(typecast: Typecast, cls: type[str], val: enum.Flag):
-    raise TypeError
-
-
-#
-# enum.IntFlag
-#
-
-
-@typecast.register
-def _cast_IntFlag_int(typecast: Typecast, cls: type[enum.IntFlag], val: int):
-    return cls(val)
-
-
-@typecast.register
-def _cast_str_IntFlag(typecast: Typecast, cls: type[str], val: enum.IntFlag):
-    raise TypeError

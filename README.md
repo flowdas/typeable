@@ -66,6 +66,10 @@ This list is non-exhaustive.
 - `datetime.datetime`
 - `datetime.time`
 - `datetime.timedelta`
+- `enum.Enum`
+- `enum.Flag`
+- `enum.IntEnum`
+- `enum.IntFlag`
 - `typeable.JsonValue`
 - `types.NoneType`
 - `typing.Annotated[]`

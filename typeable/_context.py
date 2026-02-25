@@ -28,9 +28,6 @@ class Context:
     parse_number: bool = True
     validate_default: bool = False
 
-    # TO REMOVE
-    strict_str: bool = True  # test_enum_legacy 정리 후 제거
-
 
 _default_context = Context()
 _ctx = ContextVar("context", default=_default_context)
