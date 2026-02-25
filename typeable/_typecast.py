@@ -1,7 +1,6 @@
 import dataclasses
 from datetime import date, datetime
 import enum
-import importlib
 import inspect
 import sys
 from abc import ABC, get_cache_token
@@ -546,47 +545,3 @@ def _cast_IntFlag_int(typecast: Typecast, cls: type[enum.IntFlag], val: int):
 @typecast.register
 def _cast_str_IntFlag(typecast: Typecast, cls: type[str], val: enum.IntFlag):
     raise TypeError
-
-
-#
-# type
-#
-
-
-@typecast.register
-def _cast_type_type(typecast: Typecast, cls, val: type, T=None) -> type:
-    if T and T is not Any and not issubclass(val, T):
-        raise TypeError
-    return val
-
-
-@typecast.register
-def _cast_type_str(typecast: Typecast, cls, val: str, T=None) -> type:
-    spec = val.rsplit(".", maxsplit=1)
-    if len(spec) == 1:
-        modname = "builtins"
-        parts = spec
-    else:
-        modname = spec[0]
-        parts = [spec[1]]
-    if not (modname and parts[0]):
-        raise TypeError
-    while True:
-        try:
-            mod = importlib.import_module(modname)
-            break
-        except ModuleNotFoundError:
-            spec = modname.rsplit(".", maxsplit=1)
-            if len(spec) <= 1:
-                raise
-            modname = spec[0]
-            parts.append(spec[1])
-            continue
-    cls = mod
-    for part in reversed(parts):
-        cls = getattr(cls, part)
-    if not isinstance(cls, type):
-        raise TypeError
-    if T and T is not Any and not issubclass(cls, T):
-        raise TypeError
-    return cls

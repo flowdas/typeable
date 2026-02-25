@@ -1,7 +1,11 @@
+from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta, timezone
 
-from typeable import JsonValue, localcontext, typecast
+
+from typeable import JsonValue, typecast
+
+from .test_type import OuterClass
 
 
 def test_embedded():
@@ -79,3 +83,14 @@ def test_timedelta():
     td = timedelta(days=12, seconds=60)
     assert typecast(JsonValue, td) == "P12DT1M"
     assert typecast(JsonValue, -td) == "-P12DT1M"
+
+
+def test_type():
+    assert typecast(JsonValue, int) == "int"
+    assert typecast(JsonValue, datetime) == "datetime.datetime"
+    assert typecast(JsonValue, Iterable) == "collections.abc.Iterable"
+    assert typecast(JsonValue, OuterClass) == "tests.test_type.OuterClass"
+    assert (
+        typecast(JsonValue, OuterClass.InnerClass)
+        == "tests.test_type.OuterClass.InnerClass"
+    )

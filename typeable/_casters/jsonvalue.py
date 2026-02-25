@@ -74,3 +74,10 @@ def JsonValue_from_timedelta(typecast: Typecast, cls: type[JsonValue], val: time
         if sec:
             r.append(f"{sec}S")
     return "".join(r)
+
+
+@typecast.register
+def JsonValue_from_type(typecast: Typecast, cls: type[JsonValue], val: type):
+    if val.__module__ == "builtins":
+        return val.__qualname__
+    return f"{val.__module__}.{val.__qualname__}"

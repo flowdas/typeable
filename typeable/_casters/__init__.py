@@ -19,5 +19,6 @@ from . import (  # noqa: F401
     time,
     timedelta,
     tuple,
+    type,
     union,
 )
