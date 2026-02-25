@@ -1,5 +1,6 @@
 from collections.abc import Iterable, Mapping
 from datetime import date, datetime, time, timedelta
+from enum import Enum, Flag
 
 from .._typecast import JsonValue, Typecast, traverse, typecast
 
@@ -81,3 +82,15 @@ def JsonValue_from_type(typecast: Typecast, cls: type[JsonValue], val: type):
     if val.__module__ == "builtins":
         return val.__qualname__
     return f"{val.__module__}.{val.__qualname__}"
+
+
+@typecast.register
+def JsonValue_from_Enum(typecast: Typecast, cls: type[JsonValue], val: Enum):
+    return typecast(JsonValue, val.value)
+
+
+@typecast.register
+def JsonValue_from_Flag(typecast: Typecast, cls: type[JsonValue], val: Flag):
+    # Python 3.11 부터 Flag 는 Iterable 이다.
+    # 무한 루프 방지용 캐스터를 등록한다.
+    return typecast(JsonValue, val.value)
