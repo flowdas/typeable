@@ -52,6 +52,8 @@ This list is non-exhaustive.
 - `str`
 - `tuple`
 - `tuple[]`
+- `type`
+- `type[]`
 - `collections.Counter`
 - `collections.Counter[]`
 - `collections.defaultdict`
@@ -87,5 +89,7 @@ This list is non-exhaustive.
 - `typing.Set[]`
 - `typing.Tuple`
 - `typing.Tuple[]`
+- `typing.Type`
+- `typing.Type[]`
 - `typing.TypedDict`
 - `typing.Union[]`
