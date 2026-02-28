@@ -1,5 +1,6 @@
 from typing import Annotated
 
+from .._constraint import Constraint
 from .._typecast import Typecast, typecast
 
 
@@ -7,4 +8,9 @@ from .._typecast import Typecast, typecast
 def Annotated_from_object(
     typecast: Typecast, cls: type[Annotated], val: object, T: type, *args
 ):
-    return typecast(T, val)
+    r = typecast(T, val)
+    for arg in args:
+        if isinstance(arg, Constraint):
+            if not arg(r):
+                raise ValueError(f"Constraint {arg!r} failed")
+    return r
