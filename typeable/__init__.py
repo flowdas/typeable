@@ -1,3 +1,4 @@
+from ._constraint import Constraint, V
 from ._context import Context, getcontext, localcontext, setcontext, setcontextclass
 from ._error import ErrorInfo, capture, traverse
 from ._polymorphic import identity, polymorphic
@@ -6,6 +7,7 @@ from . import _casters  # noqa: F401
 
 __all__ = [
     "capture",
+    "Constraint",
     "Context",
     "declare",
     "ErrorInfo",
@@ -19,4 +21,5 @@ __all__ = [
     "traverse",
     "typecast",
     "Typecast",
+    "V",
 ]
