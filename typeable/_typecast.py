@@ -1,6 +1,7 @@
 import dataclasses
 from datetime import date, datetime
 import inspect
+from re import search
 import sys
 from abc import ABC, get_cache_token
 from collections.abc import Callable, Mapping
@@ -82,6 +83,7 @@ _CasterType = Callable[["Typecast", type[_T], Any], _T]
 _TYPES = "__types__"
 
 _META_ALIAS = "alias"
+_META_EXTRA = "extra"
 _META_HIDE = "hide"
 
 
@@ -323,13 +325,23 @@ class Typecast:
         kwargs_key: str | None = None
         empty = inspect.Parameter.empty
         dataclass_fields: dict[str, Field] = {}
+        extra_fields: dict[str, tuple[str | bool, dict]] = {}
         if is_dataclass(func):
-            dataclass_fields = {f.name: f for f in fields(func)}
+            _fallbacks = {}
+            for f in fields(func):
+                dataclass_fields[f.name] = f
+                extra = (f.metadata or {}).get(_META_EXTRA, False)
+                if extra is not False:
+                    if extra is True:
+                        _fallbacks[f.name] = (extra, {})
+                    else:
+                        extra_fields[f.name] = (extra, {})
+            extra_fields.update(_fallbacks)
         sig = inspect.signature(func)
         ann = get_type_hints(func, include_extras=True)
         ctx: Context = getcontext()
         for key, p in sig.parameters.items():
-            if key in dataclass_fields:
+            if key in dataclass_fields and key not in extra_fields:
                 f = dataclass_fields[key]
                 if _META_ALIAS in (f.metadata or {}):
                     aliases[self(str, f.metadata[_META_ALIAS])] = key
@@ -351,10 +363,9 @@ class Typecast:
         for key in val:
             with traverse(key):
                 value = val[key]
-                key = self(str, key)
                 if key in aliases:
                     key = aliases[key]
-                if key in sig.parameters:
+                if key in sig.parameters and key not in extra_fields:
                     if sig.parameters[key].kind in {
                         inspect.Parameter.VAR_POSITIONAL,
                         inspect.Parameter.VAR_KEYWORD,
@@ -363,10 +374,27 @@ class Typecast:
                     annotation = ann.get(key, empty)
                 else:
                     if kwargs_key is None:
-                        if ctx.allow_extra_items:
-                            continue
-                        raise TypeError(f"Unknown field {key!r}")
+                        for extra, extra_dict in extra_fields.values():
+                            if (
+                                not isinstance(extra, str)
+                                or search(extra, key) is not None
+                            ):
+                                extra_dict[key] = value
+                                break
+                        else:
+                            if not ctx.allow_extra_items:
+                                raise TypeError(f"Unknown field {key!r}")
+                        continue
                     annotation = ann.get(kwargs_key, empty)
+                kwargs[key] = value if annotation == empty else self(annotation, value)
+                omissibles.discard(key)
+                mandatories.discard(key)
+
+        # extra 를 채운다
+        for key in extra_fields:
+            _, value = extra_fields[key]
+            if value:
+                annotation = ann.get(key, empty)
                 kwargs[key] = value if annotation == empty else self(annotation, value)
                 omissibles.discard(key)
                 mandatories.discard(key)
@@ -421,6 +449,7 @@ class Typecast:
         kw_only=MISSING,
         doc=None,
         alias: str | None = None,
+        extra: str | bool = False,
         hide: bool = False,
     ) -> Any:
         kwargs = {}
@@ -439,6 +468,12 @@ class Typecast:
             if not isinstance(alias, str):
                 raise TypeError(f"The alias must be a str: {alias!r}")
             metadata[_META_ALIAS] = alias
+        if extra is False:
+            extra = metadata.pop(_META_EXTRA, False)
+        if extra is not False:
+            if not isinstance(extra, (str, bool)):
+                raise TypeError(f"The extra must be a str|bool: {extra!r}")
+            metadata[_META_EXTRA] = extra
         hide = hide or metadata.pop(_META_HIDE, False)
         if hide:
             metadata[_META_HIDE] = True
