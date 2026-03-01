@@ -24,7 +24,7 @@ Typeable requires Python 3.10+.
 Installation:
 
 ```
-pip install typeable==1.0.0a3
+pip install typeable==1.0.0a4
 ```
 
 ## Supported Types
@@ -52,6 +52,8 @@ This list is non-exhaustive.
 - `str`
 - `tuple`
 - `tuple[]`
+- `type`
+- `type[]`
 - `collections.Counter`
 - `collections.Counter[]`
 - `collections.defaultdict`
@@ -60,6 +62,14 @@ This list is non-exhaustive.
 - `collections.OrderedDict`
 - `collections.OrderedDict[]`
 - `@dataclasses.dataclass`
+- `datetime.date`
+- `datetime.datetime`
+- `datetime.time`
+- `datetime.timedelta`
+- `enum.Enum`
+- `enum.Flag`
+- `enum.IntEnum`
+- `enum.IntFlag`
 - `typeable.JsonValue`
 - `types.NoneType`
 - `typing.Annotated[]`
@@ -83,5 +93,7 @@ This list is non-exhaustive.
 - `typing.Set[]`
 - `typing.Tuple`
 - `typing.Tuple[]`
+- `typing.Type`
+- `typing.Type[]`
 - `typing.TypedDict`
 - `typing.Union[]`

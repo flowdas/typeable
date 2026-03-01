@@ -28,16 +28,6 @@ class Context:
     parse_number: bool = True
     validate_default: bool = False
 
-    # TODO: review
-    date_format: str = "iso"
-    datetime_format: str = "iso"
-    naive_timestamp: bool = False
-    time_format: str = "iso"
-
-    # TO REMOVE
-    lossy_conversion: bool = False
-    strict_str: bool = True  # test_enum_legacy 정리 후 제거
-
 
 _default_context = Context()
 _ctx = ContextVar("context", default=_default_context)

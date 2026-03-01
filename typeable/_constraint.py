@@ -1,262 +1,240 @@
-import cmath
-import math
-import re
-from typing import (
-    Annotated,
-)
-
-from ._json import JsonSchema
-from ._typecast import Typecast, typecast
-
-#
-# Annotated
-#
+from dataclasses import dataclass
+from re import search
+from typing import Any, Callable
 
 
-@typecast.register
-def _cast_Annotated_object(typecast: Typecast, cls, val, T, *args) -> Annotated:
-    r = typecast(T, val)
-    for arg in args:
-        if isinstance(arg, Constraint):
-            if not arg(r):
-                raise ValueError(f"Constraint {arg!r} failed")
-    return r
-
-
-@JsonSchema.register(Annotated)
-def _jsonschema_Annotated(self, cls, T, *args):
-    this = JsonSchema(T)
-    for k, v in this.__dict__.items():
-        setattr(self, k, v)
-    for arg in args:
-        if isinstance(arg, Constraint):
-            arg.annotate(this, self)
-
-
-#
-# Constraint
-#
-
-
+@dataclass(slots=True)
 class Constraint:
-    __slots__ = ("_code",)
+    def __call__(self, val) -> bool:
+        raise NotImplementedError
 
-    def __repr__(self):
-        return f"{self.__class__.__name__}()"
+    def __bool__(self):
+        raise RuntimeError(
+            "Use bitwise operators instead of logical operators in V-expression. Note that chained comparisons implicitly introduce logical operators."
+        )
 
-    def __call__(self, x):
-        try:
-            return self._code(x)
-        except AttributeError:
-            if hasattr(self, "_code"):
-                raise
-            code = self.compile()
-            return code(x)
+    def __and__(self, other):
+        if isinstance(other, AllOf):
+            return AllOf((self,) + other.args)
+        elif isinstance(other, Constraint):
+            return AllOf((self, other))
+        return NotImplemented
 
-    def compile(self):
-        code = getattr(self, "_code", None)
-        if code is None:
-            expr = self.emit()
-            if isinstance(expr, tuple):
-                expr, ns = expr
-            else:
-                ns = None
-            self._code = code = eval(f"lambda x: {expr}", ns)
-        return code
-
-    def emit(self):
-        return "True"
-
-    def annotate(self, root, schema):
-        pass
+    def __or__(self, other):
+        if isinstance(other, AnyOf):
+            return AnyOf((self,) + other.args)
+        elif isinstance(other, Constraint):
+            return AnyOf((self, other))
+        return NotImplemented
 
 
-class _Combined(Constraint):
-    __slots__ = ("args",)
-
-    def __init__(self, arg, *args):
-        self.args = (arg,) + args
-
-    def emit(self):
-        if len(self.args) == 1:
-            return self.args[0].emit()
-        else:
-            ns = {}
-            exprs = []
-            for arg in self.args:
-                expr = arg.emit()
-                if isinstance(expr, tuple):
-                    ns.update(expr[1] or {})
-                    expr = expr[0]
-                exprs.append(expr)
-            expr = "(" + f" {self.OP} ".join(f"({expr})" for expr in exprs) + ")"
-            return expr, (ns if ns else None)
-
-    def annotate(self, root, schema):
-        if len(self.args) == 1:
-            self.args[0].annotate(root, schema)
-        else:
-            schemas = []
-            for arg in self.args:
-                s = JsonSchema()
-                arg.annotate(root, s)
-                schemas.append(s)
-            setattr(schema, self.KEYWORD, schemas)
+@dataclass(slots=True)
+class Combined(Constraint):
+    args: tuple[Constraint, ...]
 
 
-class AllOf(_Combined):
-    __slots__ = ()
+@dataclass(slots=True)
+class AllOf(Combined):
+    def __call__(self, val) -> bool:
+        return all(arg(val) for arg in self.args)
 
-    OP = "and"
-    KEYWORD = "allOf"
+    def __repr__(self) -> str:
+        return " & ".join(f"({arg!r})" for arg in self.args)
 
-
-class AnyOf(_Combined):
-    __slots__ = ()
-
-    OP = "or"
-    KEYWORD = "anyOf"
-
-
-class NoneOf(AnyOf):
-    __slots__ = ()
-
-    def emit(self):
-        expr = super().emit()
-        if isinstance(expr, tuple):
-            expr, ns = expr
-        else:
-            ns = None
-        return f"(not {expr})", ns
-
-    def annotate(self, root, schema):
-        s = JsonSchema()
-        super().annotate(root, s)
-        schema.not_ = s
+    def __and__(self, other):
+        if isinstance(other, AllOf):
+            return AllOf(self.args + other.args)
+        elif isinstance(other, Constraint):
+            return AllOf(self.args + (other,))
+        return NotImplemented
 
 
-class IsFinite(Constraint):
-    __slots__ = ()
+@dataclass(slots=True)
+class AnyOf(Combined):
+    def __call__(self, val) -> bool:
+        return any(arg(val) for arg in self.args)
 
-    def emit(self):
-        expr = "((isinstance(x,(float,int)) and math.isfinite(x)) or (isinstance(x,complex) and cmath.isfinite(x)))"
-        ns = dict(math=math, cmath=cmath)
-        return expr, ns
+    def __repr__(self) -> str:
+        return " | ".join(f"({arg!r})" for arg in self.args)
 
-
-class IsGreaterThan(Constraint):
-    __slots__ = ("_value",)
-
-    def __init__(self, exclusive_minimum):
-        self._value = exclusive_minimum
-
-    def emit(self):
-        return f"(x > {self._value!r})"
-
-    def annotate(self, root, schema):
-        schema.exclusiveMinimum = self._value
+    def __or__(self, other):
+        if isinstance(other, AnyOf):
+            return AnyOf(self.args + other.args)
+        elif isinstance(other, Constraint):
+            return AnyOf(self.args + (other,))
+        return NotImplemented
 
 
-class IsGreaterThanOrEqual(Constraint):
-    __slots__ = ("_value",)
+@dataclass(slots=True)
+class Not(Constraint):
+    arg: Constraint
 
-    def __init__(self, minimum):
-        self._value = minimum
+    def __call__(self, val) -> bool:
+        return not self.arg(val)
 
-    def emit(self):
-        return f"(x >= {self._value!r})"
-
-    def annotate(self, root, schema):
-        schema.minimum = self._value
+    def __repr__(self) -> str:
+        return f"~({self.arg!r})"
 
 
-class IsLessThan(Constraint):
-    __slots__ = ("_value",)
+@dataclass(slots=True)
+class ExclusiveMinimum(Constraint):
+    exclusiveMinimum: int | float
 
-    def __init__(self, exclusive_maximum):
-        self._value = exclusive_maximum
+    def __call__(self, val: int | float) -> bool:
+        return val > self.exclusiveMinimum
 
-    def emit(self):
-        return f"(x < {self._value!r})"
-
-    def annotate(self, root, schema):
-        schema.exclusiveMaximum = self._value
+    def __repr__(self) -> str:
+        return f"Value > {self.exclusiveMinimum}"
 
 
-class IsLessThanOrEqual(Constraint):
-    __slots__ = ("_value",)
+@dataclass(slots=True)
+class Minimum(Constraint):
+    minimum: int | float
 
-    def __init__(self, maximum):
-        self._value = maximum
+    def __call__(self, val: int | float) -> bool:
+        return val >= self.minimum
 
-    def emit(self):
-        return f"(x <= {self._value!r})"
-
-    def annotate(self, root, schema):
-        schema.maximum = self._value
+    def __repr__(self) -> str:
+        return f"Value >= {self.minimum}"
 
 
-class IsLongerThanOrEqual(Constraint):
-    __slots__ = ("_value",)
+@dataclass(slots=True)
+class ExclusiveMaximum(Constraint):
+    exclusiveMaximum: int | float
 
-    def __init__(self, minimum):
-        self._value = minimum
+    def __call__(self, val: int | float) -> bool:
+        return val < self.exclusiveMaximum
 
-    def emit(self):
-        return f"(len(x) >= {self._value!r})"
-
-    def annotate(self, root, schema):
-        if root.type == "string":
-            schema.minLength = self._value
-        elif root.type == "object":
-            schema.minProperties = self._value
-        elif root.type == "array":
-            schema.minItems = self._value
+    def __repr__(self) -> str:
+        return f"Value < {self.exclusiveMaximum}"
 
 
-class IsShorterThanOrEqual(Constraint):
-    __slots__ = ("_value",)
+@dataclass(slots=True)
+class Maximum(Constraint):
+    maximum: int | float
 
-    def __init__(self, maximum):
-        self._value = maximum
+    def __call__(self, val: int | float) -> bool:
+        return val <= self.maximum
 
-    def emit(self):
-        return f"(len(x) <= {self._value!r})"
-
-    def annotate(self, root, schema):
-        if root.type == "string":
-            schema.maxLength = self._value
-        elif root.type == "object":
-            schema.maxProperties = self._value
-        elif root.type == "array":
-            schema.maxItems = self._value
+    def __repr__(self) -> str:
+        return f"Value <= {self.maximum}"
 
 
-class IsMultipleOf(Constraint):
-    __slots__ = ("_value",)
+@dataclass(slots=True)
+class MinLength(Constraint):
+    minLength: int
 
-    def __init__(self, value):
-        if value <= 0:
-            raise ValueError(f"not positive: {value}")
-        self._value = value
+    def __call__(self, val: str | dict | list | tuple) -> bool:
+        return len(val) >= self.minLength
 
-    def emit(self):
-        return f"(x % {self._value!r} == 0)"
-
-    def annotate(self, root, schema):
-        schema.multipleOf = self._value
+    def __repr__(self) -> str:
+        return f"Value.length >= {self.minLength}"
 
 
-class IsMatched(Constraint):
-    __slots__ = ("_value",)
+@dataclass(slots=True)
+class MaxLength(Constraint):
+    maxLength: int
 
-    def __init__(self, pattern):
-        self._value = pattern
+    def __call__(self, val: str | dict | list | tuple) -> bool:
+        return len(val) <= self.maxLength
 
-    def emit(self):
-        expr = f"(re.search({self._value!r}, x) is not None)"
-        ns = dict(re=re)
-        return expr, ns
+    def __repr__(self) -> str:
+        return f"Value.length <= {self.maxLength}"
 
-    def annotate(self, root, schema):
-        schema.pattern = self._value
+
+@dataclass(slots=True)
+class MultipleOf(Constraint):
+    multipleOf: int | float
+
+    def __call__(self, val: int | float) -> bool:
+        return val % self.multipleOf == 0
+
+    def __repr__(self) -> str:
+        return f"Value.multipleOf({self.multipleOf})"
+
+
+@dataclass(slots=True)
+class Pattern(Constraint):
+    pattern: str
+
+    def __call__(self, val: str) -> bool:
+        return search(self.pattern, val) is not None
+
+    def __repr__(self) -> str:
+        return f"Value.pattern({self.pattern!r})"
+
+
+@dataclass(slots=True)
+class Validator(Constraint):
+    callable: Callable[[Any], bool]
+
+    def __call__(self, val) -> bool:
+        return self.callable(val)
+
+    def __repr__(self) -> str:
+        return f"Value.validate({self.callable!r})"
+
+
+class _LengthType:
+    def __gt__(self, other: int) -> Constraint:
+        if isinstance(other, int):
+            return MinLength(other + 1)
+        return NotImplemented
+
+    def __ge__(self, other: int) -> Constraint:
+        if isinstance(other, int):
+            return MinLength(other)
+        return NotImplemented
+
+    def __lt__(self, other: int) -> Constraint:
+        if isinstance(other, int):
+            return MaxLength(other - 1)
+        return NotImplemented
+
+    def __le__(self, other: int) -> Constraint:
+        if isinstance(other, int):
+            return MaxLength(other)
+        return NotImplemented
+
+    def __eq__(self, other: int) -> Constraint:
+        if isinstance(other, int):
+            return MinLength(other) & MaxLength(other)
+        return NotImplemented
+
+
+class _ValueType:
+    def __gt__(self, other: int | float) -> Constraint:
+        if isinstance(other, (int, float)):
+            return ExclusiveMinimum(other)
+        return NotImplemented
+
+    def __ge__(self, other: int | float) -> Constraint:
+        if isinstance(other, (int, float)):
+            return Minimum(other)
+        return NotImplemented
+
+    def __lt__(self, other: int | float) -> Constraint:
+        if isinstance(other, (int, float)):
+            return ExclusiveMaximum(other)
+        return NotImplemented
+
+    def __le__(self, other: int | float) -> Constraint:
+        if isinstance(other, (int, float)):
+            return Maximum(other)
+        return NotImplemented
+
+    @property
+    def length(self):
+        return _LengthType()
+
+    def multipleOf(self, multipleOf: int | float) -> Constraint:
+        return MultipleOf(multipleOf)
+
+    def pattern(self, pattern: str) -> Constraint:
+        return Pattern(pattern)
+
+    def validate(self, callable: Callable[[Any], bool]) -> Constraint:
+        return Validator(callable)
+
+
+V = _ValueType()

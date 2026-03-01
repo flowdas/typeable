@@ -2,10 +2,6 @@ import pytest
 
 from typeable._typecast import Typecast
 
-collect_ignore = [
-    "test_constraint_legacy.py",
-]
-
 
 @pytest.fixture
 def typecast():

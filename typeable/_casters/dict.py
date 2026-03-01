@@ -4,7 +4,14 @@ from dataclasses import fields, is_dataclass
 from typing import is_typeddict
 
 from .._context import getcontext
-from .._typecast import _META_ALIAS, _META_HIDE, Typecast, traverse, typecast
+from .._typecast import (
+    _META_ALIAS,
+    _META_EXTRA,
+    _META_HIDE,
+    Typecast,
+    traverse,
+    typecast,
+)
 
 
 @typecast.register
@@ -42,7 +49,8 @@ def dict_from_Mapping(
                     kpatch[k] = ck
                 v = val[k]
                 if ck not in annotations:
-                    raise TypeError(f"got an unexpected key '{k}'")
+                    # TypedDict 는 extra items 를 허용한다.
+                    continue
                 cv = typecast(annotations[ck], v)
                 if cv is not v:
                     vpatch[k] = cv
@@ -103,7 +111,10 @@ def dict_from_object(
                         hide_default_none = getcontext().hide_default_none
                     include = not hide_default_none or f.default is not None
                 if include:
-                    d[m.get(_META_ALIAS, f.name)] = value
+                    if m.get(_META_EXTRA, False) is False:
+                        d[m.get(_META_ALIAS, f.name)] = value
+                    else:
+                        d.update(value)
     else:
         try:
             d = val.__typecast__()  # type: ignore

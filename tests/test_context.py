@@ -12,26 +12,18 @@ def test_policies():
 
     ctx = MyContext()
     assert ctx.validate_default is False
-    assert ctx.datetime_format == "iso"
     assert ctx.test_option == 0
 
     ctx = MyContext(validate_default=True)
     assert ctx.validate_default is True
-    assert ctx.datetime_format == "iso"
-    assert ctx.test_option == 0
-
-    ctx = MyContext(datetime_format="string")
-    assert ctx.validate_default is False
-    assert ctx.datetime_format == "string"
     assert ctx.test_option == 0
 
     ctx = MyContext(test_option=1)
     assert ctx.validate_default is False
-    assert ctx.datetime_format == "iso"
     assert ctx.test_option == 1
 
     with pytest.raises(TypeError):
-        MyContext(traverse=lambda: 0)
+        MyContext(traverse=lambda: 0)  # type: ignore
 
     with pytest.raises(TypeError):
-        MyContext(unknown_option=0)
+        MyContext(unknown_option=0)  # type: ignore
