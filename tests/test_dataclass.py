@@ -223,3 +223,51 @@ def test_allow_extra_items():
     with localcontext(allow_extra_items=True):
         x = typecast(X, data)
         assert x.i == 0
+
+
+def test_extra_simple():
+    @dataclass
+    class X:
+        i: int
+        extra: dict = typecast.field(extra=True)
+
+    data = {"i": 0, "j": 1, 0: 0}
+
+    for allow_extra_items in [True, False]:
+        with localcontext(allow_extra_items=allow_extra_items):
+            x = typecast(X, data)
+        assert x.i == 0
+        assert x.extra == {"j": 1, 0: 0}
+        assert typecast(dict, x) == data
+
+
+def test_extra_pattern():
+    @dataclass
+    class X:
+        S_: dict = field(metadata={"extra": "^S_"})
+        i: int
+        x: dict[str, int] = typecast.field(extra="^x-")
+        ext: dict = typecast.field(extra=True)
+
+    data = {
+        "i": 0,
+        "j": 1,
+        "x-number": "365",
+        "S_25": "This is a string",
+        "S_": 42,
+    }
+
+    with localcontext(parse_number=True):
+        x = typecast(X, data)
+    assert x.i == 0
+    assert x.S_ == {"S_25": "This is a string", "S_": 42}
+    assert x.x == {"x-number": 365}
+    assert x.ext == {"j": 1}
+
+    assert typecast(dict, x) == {
+        "i": 0,
+        "j": 1,
+        "x-number": 365,
+        "S_25": "This is a string",
+        "S_": 42,
+    }
