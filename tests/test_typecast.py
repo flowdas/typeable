@@ -5,7 +5,7 @@ from typing import ForwardRef, List, NamedTuple, Type
 
 import pytest
 
-from typeable import capture, localcontext, typecast
+from typeable import Metadata, capture, localcontext, typecast
 
 from .conftest import str_from_int
 
@@ -144,7 +144,7 @@ def test_apply_dataclass():
 
     @dataclass
     class X:
-        i: int = typecast.field(alias="$i")
+        i: int = field(metadata=Metadata(alias="$i"))
 
     data = {"$i": 3}
     x = typecast.apply(X, data)
