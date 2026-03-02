@@ -13,6 +13,7 @@ from typing import (
     Any,
     ForwardRef,
     TypeVar,
+    TypedDict,
     cast,
     get_args,
     get_origin,
@@ -85,6 +86,12 @@ _TYPES = "__types__"
 _META_ALIAS = "alias"
 _META_EXTRA = "extra"
 _META_HIDE = "hide"
+
+
+class Metadata(TypedDict, total=False):
+    alias: str
+    extra: str | bool
+    hide: bool
 
 
 def _get_type_args(tp):
@@ -435,59 +442,6 @@ class Typecast:
             with traverse("return"):
                 ret = self(return_type, ret)
         return ret
-
-    def field(
-        self,
-        *,
-        default=MISSING,
-        default_factory=MISSING,
-        init=True,
-        repr=True,
-        hash=None,
-        compare=True,
-        metadata=None,
-        kw_only=MISSING,
-        doc=None,
-        alias: str | None = None,
-        extra: str | bool = False,
-        hide: bool = False,
-    ) -> Any:
-        kwargs = {}
-        if metadata is None:
-            metadata = {}
-        else:
-            metadata = metadata.copy()
-        if doc is not None:
-            if sys.version_info < (3, 14):
-                metadata["doc"] = doc
-            else:
-                kwargs["doc"] = doc
-        if alias is None:
-            alias = metadata.pop(_META_ALIAS, None)
-        if alias is not None:
-            if not isinstance(alias, str):
-                raise TypeError(f"The alias must be a str: {alias!r}")
-            metadata[_META_ALIAS] = alias
-        if extra is False:
-            extra = metadata.pop(_META_EXTRA, False)
-        if extra is not False:
-            if not isinstance(extra, (str, bool)):
-                raise TypeError(f"The extra must be a str|bool: {extra!r}")
-            metadata[_META_EXTRA] = extra
-        hide = hide or metadata.pop(_META_HIDE, False)
-        if hide:
-            metadata[_META_HIDE] = True
-        return dataclasses.field(
-            default=default,
-            default_factory=default_factory,
-            init=init,
-            repr=repr,
-            hash=hash,
-            compare=compare,
-            metadata=(metadata or None),
-            kw_only=kw_only,
-            **kwargs,
-        )
 
     def get_unioncast(self, args: tuple[type, ...]) -> Unioncast:
         try:
