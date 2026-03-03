@@ -1,4 +1,5 @@
 from collections import Counter, OrderedDict, defaultdict, namedtuple
+from collections.abc import Callable
 from dataclasses import dataclass
 import inspect
 import sys
@@ -104,6 +105,7 @@ def test_special(T):
         defaultdict,
         namedtuple,
         OrderedDict,
+        Callable,
         NoneType,
         Any,
         typing.Counter,

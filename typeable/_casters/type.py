@@ -4,8 +4,7 @@ from typing import Any
 from .._typecast import Typecast, typecast
 
 
-@typecast.register
-def type_from_str(typecast: Typecast, cls, val: str, T=None) -> type:
+def import_fqn(val: str) -> Any:
     spec = val.rsplit(".", maxsplit=1)
     if len(spec) == 1:
         modname = "builtins"
@@ -29,8 +28,14 @@ def type_from_str(typecast: Typecast, cls, val: str, T=None) -> type:
     cls = mod
     for part in reversed(parts):
         cls = getattr(cls, part)
-    if not isinstance(cls, type):
-        raise TypeError
-    if T and T is not Any and not issubclass(cls, T):
-        raise TypeError
     return cls
+
+
+@typecast.register
+def type_from_str(typecast: Typecast, cls, val: str, T=None) -> type:
+    klass = import_fqn(val)
+    if not isinstance(klass, type):
+        raise TypeError
+    if T and T is not Any and not issubclass(klass, T):
+        raise TypeError
+    return klass

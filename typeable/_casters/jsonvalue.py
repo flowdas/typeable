@@ -30,10 +30,12 @@ def JsonValue_from_Iterable(
 
 
 @typecast.register
-def JsonValue_from_object(
-    typecast: Typecast, cls: type[JsonValue], val: object
-) -> JsonValue:
-    return typecast(dict[str, JsonValue], val)  # type: ignore
+def JsonValue_from_object(typecast: Typecast, cls: type[JsonValue], val: object):
+    if callable(val) and hasattr(val, "__qualname__"):
+        if val.__module__ == "builtins":
+            return val.__qualname__
+        return f"{val.__module__}.{val.__qualname__}"
+    return typecast(dict[str, JsonValue], val)
 
 
 @typecast.register
