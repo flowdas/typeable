@@ -61,6 +61,8 @@ This list is non-exhaustive.
 - `collections.namedtuple`
 - `collections.OrderedDict`
 - `collections.OrderedDict[]`
+- `collections.abc.Callable`
+- `collections.abc.Callable[]`
 - `@dataclasses.dataclass`
 - `datetime.date`
 - `datetime.datetime`
@@ -74,6 +76,8 @@ This list is non-exhaustive.
 - `types.NoneType`
 - `typing.Annotated[]`
 - `typing.Any`
+- `typing.Callable`
+- `typing.Callable[]`
 - `typing.Counter`
 - `typing.Counter[]`
 - `typing.DefaultDict`

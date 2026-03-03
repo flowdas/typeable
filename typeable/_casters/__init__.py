@@ -3,6 +3,7 @@ from . import (  # noqa: F401
     bool,
     bytearray,
     bytes,
+    callable,
     complex,
     date,
     datetime,
