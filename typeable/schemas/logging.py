@@ -1,22 +1,26 @@
+from collections.abc import Callable
 from dataclasses import dataclass, field
 import sys
-from typing import Any, Literal
+from typing import Annotated, Any, Literal
 
-from typeable import Metadata
+from typeable import Metadata, V
 
 Level = Literal["NOTSET", "DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
+Class = Annotated[str, V.importPath(type)]
 
 
 @dataclass
 class Factory:
-    factory: str = field(metadata=Metadata(alias="()"))
+    factory: Annotated[str, V.importPath(Callable)] = field(
+        metadata=Metadata(alias="()")
+    )
     dot: dict[str, Any] | None = field(default=None, metadata=Metadata(alias="."))
     kwargs: dict[str, Any] = field(default_factory=dict, metadata=Metadata(extra=True))
 
 
 @dataclass
 class Formatter:
-    _class: str | None = field(default=None, metadata=Metadata(alias="class"))
+    _class: Class | None = field(default=None, metadata=Metadata(alias="class"))
     format: str | None = None
     datefmt: str | None = None
     style: str = "%"
@@ -32,7 +36,7 @@ class Filter:
 
 @dataclass
 class Handler:
-    _class: str = field(metadata={"alias": "class"})
+    _class: Class = field(metadata=Metadata(alias="class"))
     level: Level | None = None
     formatter: str | None = None
     filters: list[str] | None = None

@@ -1,9 +1,12 @@
+from collections.abc import Callable
 from dataclasses import dataclass
+from importlib import import_module
+from inspect import signature
 from re import search
-from typing import Any, Callable
+from typing import Any, get_args, get_origin
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True)
 class Constraint:
     def __call__(self, val) -> bool:
         raise NotImplementedError
@@ -28,12 +31,12 @@ class Constraint:
         return NotImplemented
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True)
 class Combined(Constraint):
     args: tuple[Constraint, ...]
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True)
 class AllOf(Combined):
     def __call__(self, val) -> bool:
         return all(arg(val) for arg in self.args)
@@ -49,7 +52,7 @@ class AllOf(Combined):
         return NotImplemented
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True)
 class AnyOf(Combined):
     def __call__(self, val) -> bool:
         return any(arg(val) for arg in self.args)
@@ -65,7 +68,7 @@ class AnyOf(Combined):
         return NotImplemented
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True)
 class Not(Constraint):
     arg: Constraint
 
@@ -76,7 +79,7 @@ class Not(Constraint):
         return f"~({self.arg!r})"
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True)
 class ExclusiveMinimum(Constraint):
     exclusiveMinimum: int | float
 
@@ -87,7 +90,7 @@ class ExclusiveMinimum(Constraint):
         return f"Value > {self.exclusiveMinimum}"
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True)
 class Minimum(Constraint):
     minimum: int | float
 
@@ -98,7 +101,7 @@ class Minimum(Constraint):
         return f"Value >= {self.minimum}"
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True)
 class ExclusiveMaximum(Constraint):
     exclusiveMaximum: int | float
 
@@ -109,7 +112,7 @@ class ExclusiveMaximum(Constraint):
         return f"Value < {self.exclusiveMaximum}"
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True)
 class Maximum(Constraint):
     maximum: int | float
 
@@ -120,7 +123,7 @@ class Maximum(Constraint):
         return f"Value <= {self.maximum}"
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True)
 class MinLength(Constraint):
     minLength: int
 
@@ -131,7 +134,7 @@ class MinLength(Constraint):
         return f"Value.length >= {self.minLength}"
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True)
 class MaxLength(Constraint):
     maxLength: int
 
@@ -142,7 +145,7 @@ class MaxLength(Constraint):
         return f"Value.length <= {self.maxLength}"
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True)
 class MultipleOf(Constraint):
     multipleOf: int | float
 
@@ -153,7 +156,7 @@ class MultipleOf(Constraint):
         return f"Value.multipleOf({self.multipleOf})"
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True)
 class Pattern(Constraint):
     pattern: str
 
@@ -164,7 +167,7 @@ class Pattern(Constraint):
         return f"Value.pattern({self.pattern!r})"
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True)
 class Validator(Constraint):
     callable: Callable[[Any], bool]
 
@@ -173,6 +176,90 @@ class Validator(Constraint):
 
     def __repr__(self) -> str:
         return f"Value.validate({self.callable!r})"
+
+
+def _import_fqn(val: str) -> Any:
+    spec = val.rsplit(".", maxsplit=1)
+    if len(spec) == 1:
+        modname = "builtins"
+        parts = spec
+    else:
+        modname = spec[0]
+        parts = [spec[1]]
+    if not (modname and parts[0]):
+        raise TypeError
+    while True:
+        try:
+            mod = import_module(modname)
+            break
+        except ModuleNotFoundError:
+            spec = modname.rsplit(".", maxsplit=1)
+            if len(spec) <= 1:
+                raise
+            modname = spec[0]
+            parts.append(spec[1])
+            continue
+    cls = mod
+    for part in reversed(parts):
+        cls = getattr(cls, part)
+    return cls
+
+
+def _type_from_str(val: str, T=None):
+    cls = _import_fqn(val)
+    if not isinstance(cls, type):
+        raise TypeError
+    if T and T is not Any and not issubclass(cls, T):
+        raise TypeError
+    return cls
+
+
+def _Callable_from_str(val: str, PT=None, RT=None):
+    f = _import_fqn(val)
+    if not callable(f):
+        raise TypeError
+    if isinstance(PT, list):
+        # check only structural compatibility of arguments
+        sig = signature(f)
+        args = [None] * len(PT)
+        sig.bind(*args)  # may raise TypeError
+    return f
+
+
+@dataclass(frozen=True)
+class ImportPath(Constraint):
+    spec: type | None = None
+
+    def __post_init__(self):
+        if self.spec:
+            origin = get_origin(self.spec) or self.spec
+            if origin not in {type, Callable}:
+                raise TypeError(
+                    f"Value.importPath() support only type or Callable, but {self.spec!r} given."
+                )
+
+    def __call__(self, val: str) -> bool:
+        if self.spec:
+            origin = get_origin(self.spec) or self.spec
+            if origin is type:
+                try:
+                    _type_from_str(val, *get_args(self.spec))
+                except Exception:
+                    return False
+            else:
+                try:
+                    _Callable_from_str(val, *get_args(self.spec))
+                except Exception:
+                    return False
+        else:
+            try:
+                _import_fqn(val)
+            except Exception:
+                return False
+        return True
+
+    def __repr__(self) -> str:
+        return f"Value.importPath({self.spec})"
 
 
 class _LengthType:
@@ -226,6 +313,9 @@ class _ValueType:
     @property
     def length(self):
         return _LengthType()
+
+    def importPath(self, spec=None):
+        return ImportPath(spec)
 
     def multipleOf(self, multipleOf: int | float) -> Constraint:
         return MultipleOf(multipleOf)
