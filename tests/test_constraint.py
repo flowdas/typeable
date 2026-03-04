@@ -202,3 +202,30 @@ def test_Validator():
 
     with pytest.raises(ValueError):
         typecast(Annotated[str, V.validate(lambda s: s.startswith("w"))], "hello")
+
+
+@pytest.mark.parametrize(
+    "format, val",
+    [
+        ("uri", "https://json-schema.org/draft/2020-12/schema"),
+        ("uri-reference", "https://json-schema.org/draft/2020-12/meta/core"),
+        ("uri-reference", "#meta"),
+        ("uri-reference", "#/$defs/anchorString"),
+    ],
+)
+def test_Format_valid(format, val):
+    assert typecast(Annotated[str, V.format(format)], val) == val
+
+
+@pytest.mark.parametrize(
+    "format, val",
+    [
+        ("uri", "https//json-schema.org/draft/2020-12/schema"),
+        ("uri-reference", "https //json-schema.org/draft/2020-12/meta/core"),
+        ("uri-reference", "http://example.com/file[/].html"),
+        ("uri-reference", "$defs\\anchorString"),
+    ],
+)
+def test_Format_invalid(format, val):
+    with pytest.raises(ValueError):
+        typecast(Annotated[str, V.format(format)], val)
