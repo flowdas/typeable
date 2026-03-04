@@ -20,7 +20,7 @@ class Factory:
 
 @dataclass
 class Formatter:
-    _class: Class | None = field(default=None, metadata=Metadata(alias="class"))
+    class_: Class | None = field(default=None, metadata=Metadata(alias="class"))
     format: str | None = None
     datefmt: str | None = None
     style: str = "%"
@@ -36,7 +36,7 @@ class Filter:
 
 @dataclass
 class Handler:
-    _class: Class = field(metadata=Metadata(alias="class"))
+    class_: Class = field(metadata=Metadata(alias="class"))
     level: Level | None = None
     formatter: str | None = None
     filters: list[str] | None = None
