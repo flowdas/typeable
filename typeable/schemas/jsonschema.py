@@ -1,10 +1,15 @@
 from dataclasses import dataclass, field
 import sys
-from typing import Annotated, ForwardRef
+from typing import Annotated, ForwardRef, Literal
 
-from typeable import Metadata, V
+from typeable import JsonValue, Metadata, Missing, MissingType, V
 
 Anchor = Annotated[str, V.pattern("^[A-Za-z_][-A-Za-z0-9._]*$")]
+NonNegativeInteger = Annotated[int, V >= 0]
+SimpleTypes = Literal[
+    "array", "boolean", "integer", "null", "number", "object", "string"
+]
+StringArray = Annotated[list[str], V.unique()]
 Regex = Annotated[str, V.format("regex")]
 Uri = Annotated[str, V.format("uri")]
 UriReference = Annotated[str, V.format("uri-reference")]
@@ -40,20 +45,42 @@ class JsonSchema:
     _vocabulary: dict[Uri, bool] | None = field(
         default=None, metadata=Metadata(alias="$vocabulary")
     )
-    additionalProperties: FullJsonSchema | None = field(default=None)
-    allOf: SchemaArray | None = field(default=None)
-    anyOf: SchemaArray | None = field(default=None)
-    contains: FullJsonSchema | None = field(default=None)
+    additionalProperties: FullJsonSchema | None = None
+    allOf: SchemaArray | None = None
+    anyOf: SchemaArray | None = None
+    const: JsonValue | MissingType = Missing
+    contains: FullJsonSchema | None = None
+    dependentRequired: dict[str, StringArray] | None = None
     dependentSchemas: dict[str, FullJsonSchema] = field(default_factory=dict)
     else_: FullJsonSchema | None = field(default=None, metadata=Metadata(alias="else"))
+    enum: list[JsonValue] | None = None
+    exclusiveMaximum: int | float | None = None
+    exclusiveMinimum: int | float | None = None
     if_: FullJsonSchema | None = field(default=None, metadata=Metadata(alias="if"))
-    items: FullJsonSchema | None = field(default=None)
+    items: FullJsonSchema | None = None
+    maxContains: NonNegativeInteger | None = None
+    maximum: int | float | None = None
+    maxItems: NonNegativeInteger | None = None
+    maxLength: NonNegativeInteger | None = None
+    maxProperties: NonNegativeInteger | None = None
+    minContains: NonNegativeInteger = 1
+    minimum: int | float | None = None
+    minItems: NonNegativeInteger = 0
+    minLength: NonNegativeInteger = 0
+    minProperties: NonNegativeInteger = 0
+    multipleOf: Annotated[int | float, V > 0] | None = None
     not_: FullJsonSchema | None = field(default=None, metadata=Metadata(alias="not"))
-    oneOf: SchemaArray | None = field(default=None)
+    oneOf: SchemaArray | None = None
+    pattern: Regex | None = None
     patternProperties: dict[Regex, FullJsonSchema] = field(default_factory=dict)
-    prefixItems: SchemaArray | None = field(default=None)
+    prefixItems: SchemaArray | None = None
     properties: dict[str, FullJsonSchema] = field(default_factory=dict)
-    propertyNames: FullJsonSchema | None = field(default=None)
-    then: FullJsonSchema | None = field(default=None)
-    unevaluatedItems: FullJsonSchema | None = field(default=None)
-    unevaluatedProperties: FullJsonSchema | None = field(default=None)
+    propertyNames: FullJsonSchema | None = None
+    required: StringArray = field(default_factory=list)
+    then: FullJsonSchema | None = None
+    type: (
+        SimpleTypes | Annotated[list[SimpleTypes], V.length > 0, V.unique()] | None
+    ) = None
+    unevaluatedItems: FullJsonSchema | None = None
+    unevaluatedProperties: FullJsonSchema | None = None
+    uniqueItems: bool = False

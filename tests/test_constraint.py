@@ -194,6 +194,14 @@ def test_Pattern():
         typecast(Annotated[str, V.pattern(P)], "foo")
 
 
+def test_Unique():
+    v = [1, 2, 3]
+    assert typecast(Annotated[list, V.unique()], v) is v
+
+    with pytest.raises(ValueError):
+        typecast(Annotated[list, V.unique()], v + [v[0]])
+
+
 def test_Validator():
     assert (
         typecast(Annotated[str, V.validate(lambda s: s.startswith("h"))], "hello")
