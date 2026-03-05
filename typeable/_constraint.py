@@ -168,6 +168,15 @@ class Pattern(Constraint):
 
 
 @dataclass(frozen=True)
+class Unique(Constraint):
+    def __call__(self, val: list | tuple) -> bool:
+        return len(val) == len(set(val))
+
+    def __repr__(self) -> str:
+        return "Value.unique()"
+
+
+@dataclass(frozen=True)
 class Validator(Constraint):
     callable: Callable[[Any], bool]
 
@@ -490,6 +499,9 @@ class _ValueType:
 
     def pattern(self, pattern: str) -> Constraint:
         return Pattern(pattern)
+
+    def unique(self) -> Constraint:
+        return Unique()
 
     def validate(self, callable: Callable[[Any], bool]) -> Constraint:
         return Validator(callable)
