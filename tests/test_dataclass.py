@@ -3,7 +3,15 @@ from typing import Literal
 
 import pytest
 
-from typeable import Metadata, capture, localcontext, typecast
+from typeable import (
+    JsonValue,
+    Metadata,
+    Missing,
+    MissingType,
+    capture,
+    localcontext,
+    typecast,
+)
 
 
 def test_cast():
@@ -179,6 +187,20 @@ def test_hide():
     x = typecast(X, data)
     assert x.password == "password"
     assert typecast(dict, x) == {"id": "id"}
+
+
+def test_Missing():
+    """dict 로 표현될 때 Missing 은 생략된다."""
+
+    @dataclass
+    class X:
+        i: JsonValue | MissingType = Missing
+
+    x = X(i=None)
+    assert typecast(dict, x) == {"i": None}
+
+    x = X()
+    assert typecast(dict, x) == {}
 
 
 def test_hide_default_none():

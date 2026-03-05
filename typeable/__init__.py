@@ -2,7 +2,15 @@ from ._constraint import Constraint, V
 from ._context import Context, getcontext, localcontext, setcontext, setcontextclass
 from ._error import ErrorInfo, capture, traverse
 from ._polymorphic import identity, polymorphic
-from ._typecast import JsonValue, Metadata, Typecast, declare, typecast
+from ._typecast import (
+    JsonValue,
+    Metadata,
+    Missing,
+    MissingType,
+    Typecast,
+    declare,
+    typecast,
+)
 from . import _casters  # noqa: F401
 
 __all__ = [
@@ -16,6 +24,8 @@ __all__ = [
     "JsonValue",
     "localcontext",
     "Metadata",
+    "Missing",
+    "MissingType",
     "polymorphic",
     "setcontext",
     "setcontextclass",

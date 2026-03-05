@@ -8,6 +8,7 @@ from .._typecast import (
     _META_ALIAS,
     _META_EXTRA,
     _META_HIDE,
+    Missing,
     Typecast,
     traverse,
     typecast,
@@ -110,6 +111,8 @@ def dict_from_object(
                     if hide_default_none is None:
                         hide_default_none = getcontext().hide_default_none
                     include = not hide_default_none or f.default is not None
+                elif value is Missing:
+                    include = False
                 if include:
                     if m.get(_META_EXTRA, False) is False:
                         d[m.get(_META_ALIAS, f.name)] = value
