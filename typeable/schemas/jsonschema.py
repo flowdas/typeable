@@ -5,6 +5,7 @@ from typing import Annotated, ForwardRef
 from typeable import Metadata, V
 
 Anchor = Annotated[str, V.pattern("^[A-Za-z_][-A-Za-z0-9._]*$")]
+Regex = Annotated[str, V.format("regex")]
 Uri = Annotated[str, V.format("uri")]
 UriReference = Annotated[str, V.format("uri-reference")]
 
@@ -15,6 +16,7 @@ else:
     from typing import Union
 
     FullJsonSchema = Union[JsonSchema, bool]
+SchemaArray = Annotated[list[FullJsonSchema], V.length > 0]
 
 
 @dataclass
@@ -38,3 +40,18 @@ class JsonSchema:
     _vocabulary: dict[Uri, bool] | None = field(
         default=None, metadata=Metadata(alias="$vocabulary")
     )
+    additionalProperties: FullJsonSchema | None = field(default=None)
+    allOf: SchemaArray | None = field(default=None)
+    anyOf: SchemaArray | None = field(default=None)
+    contains: FullJsonSchema | None = field(default=None)
+    dependentSchemas: dict[str, FullJsonSchema] = field(default_factory=dict)
+    else_: FullJsonSchema | None = field(default=None, metadata=Metadata(alias="else"))
+    if_: FullJsonSchema | None = field(default=None, metadata=Metadata(alias="if"))
+    items: FullJsonSchema | None = field(default=None)
+    not_: FullJsonSchema | None = field(default=None, metadata=Metadata(alias="not"))
+    oneOf: SchemaArray | None = field(default=None)
+    patternProperties: dict[Regex, FullJsonSchema] = field(default_factory=dict)
+    prefixItems: SchemaArray | None = field(default=None)
+    properties: dict[str, FullJsonSchema] = field(default_factory=dict)
+    propertyNames: FullJsonSchema | None = field(default=None)
+    then: FullJsonSchema | None = field(default=None)
