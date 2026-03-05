@@ -207,6 +207,7 @@ def test_Validator():
 @pytest.mark.parametrize(
     "format, val",
     [
+        ("regex", "^x-"),
         ("uri", "https://json-schema.org/draft/2020-12/schema"),
         ("uri-reference", "https://json-schema.org/draft/2020-12/meta/core"),
         ("uri-reference", "#meta"),
@@ -220,6 +221,7 @@ def test_Format_valid(format, val):
 @pytest.mark.parametrize(
     "format, val",
     [
+        ("regex", "([a-z]+$"),
         ("uri", "https//json-schema.org/draft/2020-12/schema"),
         ("uri-reference", "https //json-schema.org/draft/2020-12/meta/core"),
         ("uri-reference", "http://example.com/file[/].html"),
