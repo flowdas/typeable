@@ -266,7 +266,7 @@ class ImportPath(Constraint):
         return f"Value.importPath({self.spec})"
 
 
-FormatLiteral = Literal["uri", "uri-reference"]
+FormatLiteral = Literal["regex", "uri", "uri-reference"]
 
 # https://jmrware.com/articles/2009/uri_regexp/URI_regex.html
 re_python_rfc3986_URI = re.compile(
@@ -413,6 +413,12 @@ class Format(Constraint):
 
     def __call__(self, val: str) -> bool:
         match self.format:
+            case "regex":
+                try:
+                    re.compile(val)
+                    return True
+                except Exception:
+                    return False
             case "uri":
                 return re_python_rfc3986_URI.match(val) is not None
             case "uri-reference":
