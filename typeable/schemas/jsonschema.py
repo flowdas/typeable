@@ -55,3 +55,5 @@ class JsonSchema:
     properties: dict[str, FullJsonSchema] = field(default_factory=dict)
     propertyNames: FullJsonSchema | None = field(default=None)
     then: FullJsonSchema | None = field(default=None)
+    unevaluatedItems: FullJsonSchema | None = field(default=None)
+    unevaluatedProperties: FullJsonSchema | None = field(default=None)
