@@ -1,8 +1,10 @@
+"""JSON Schema 2020-12"""
+
 from dataclasses import dataclass, field
 import sys
-from typing import Annotated, ForwardRef, Literal
+from typing import Annotated, Any, ForwardRef, Literal
 
-from typeable import JsonValue, Metadata, Missing, MissingType, V
+from typeable import Metadata, Missing, V
 
 Anchor = Annotated[str, V.pattern("^[A-Za-z_][-A-Za-z0-9._]*$")]
 NonNegativeInteger = Annotated[int, V >= 0]
@@ -48,14 +50,22 @@ class JsonSchema:
     additionalProperties: FullJsonSchema | None = None
     allOf: SchemaArray | None = None
     anyOf: SchemaArray | None = None
-    const: JsonValue | MissingType = Missing
+    const: Any = Missing
     contains: FullJsonSchema | None = None
+    contentEncoding: str | None = None
+    contentMediaType: str | None = None
+    contentSchema: FullJsonSchema | None = None
+    default: Any = Missing
     dependentRequired: dict[str, StringArray] | None = None
     dependentSchemas: dict[str, FullJsonSchema] = field(default_factory=dict)
+    deprecated: bool = False
+    description: str | None = None
     else_: FullJsonSchema | None = field(default=None, metadata=Metadata(alias="else"))
-    enum: list[JsonValue] | None = None
+    enum: list | None = None
+    examples: list | None = None
     exclusiveMaximum: int | float | None = None
     exclusiveMinimum: int | float | None = None
+    format: str | None = None
     if_: FullJsonSchema | None = field(default=None, metadata=Metadata(alias="if"))
     items: FullJsonSchema | None = None
     maxContains: NonNegativeInteger | None = None
@@ -76,11 +86,23 @@ class JsonSchema:
     prefixItems: SchemaArray | None = None
     properties: dict[str, FullJsonSchema] = field(default_factory=dict)
     propertyNames: FullJsonSchema | None = None
+    readOnly: bool = False
     required: StringArray = field(default_factory=list)
     then: FullJsonSchema | None = None
+    title: str | None = None
     type: (
         SimpleTypes | Annotated[list[SimpleTypes], V.length > 0, V.unique()] | None
     ) = None
     unevaluatedItems: FullJsonSchema | None = None
     unevaluatedProperties: FullJsonSchema | None = None
     uniqueItems: bool = False
+    writeOnly: bool = False
+    # deprecated properties
+    _recursiveAnchor: Anchor | None = field(
+        default=None, metadata=Metadata(alias="$recursiveAnchor")
+    )
+    _recursiveRef: UriReference | None = field(
+        default=None, metadata=Metadata(alias="$recursiveRef")
+    )
+    definitions: dict[str, FullJsonSchema] = field(default_factory=dict)
+    dependencies: dict[str, FullJsonSchema | StringArray] = field(default_factory=dict)
