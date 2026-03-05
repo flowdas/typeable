@@ -18,6 +18,15 @@ class MyClass:
 
 
 @pytest.mark.parametrize("T", [Callable, typing.Callable])
+def test_Callable(T):
+    assert typecast(T, callable) is callable
+    assert typecast(T, sys.exc_info) is sys.exc_info
+    assert typecast(T[[], Any], sys.exc_info) is sys.exc_info
+    with pytest.raises(TypeError):
+        typecast(T[[int], Any], sys.exc_info)
+
+
+@pytest.mark.parametrize("T", [Callable, typing.Callable])
 def test_str(T):
     assert typecast(T, "callable") is callable
     with pytest.raises(TypeError):

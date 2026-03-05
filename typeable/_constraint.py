@@ -214,16 +214,20 @@ def _type_from_str(val: str, T=None):
     return cls
 
 
-def _Callable_from_str(val: str, PT=None, RT=None):
-    f = _import_fqn(val)
-    if not callable(f):
+def _Callable_from_object(val: object, PT=None, RT=None):
+    if not callable(val):
         raise TypeError
     if isinstance(PT, list):
         # check only structural compatibility of arguments
-        sig = signature(f)
+        sig = signature(val)
         args = [None] * len(PT)
         sig.bind(*args)  # may raise TypeError
-    return f
+    return val
+
+
+def _Callable_from_str(val: str, PT=None, RT=None):
+    f = _import_fqn(val)
+    return _Callable_from_object(f, PT, RT)
 
 
 @dataclass(frozen=True)
