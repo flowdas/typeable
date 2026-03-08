@@ -275,7 +275,7 @@ class ImportPath(Constraint):
         return f"Value.importPath({self.spec})"
 
 
-FormatLiteral = Literal["regex", "uri", "uri-reference"]
+FormatLiteral = Literal["email", "regex", "uri", "uri-reference"]
 
 # https://jmrware.com/articles/2009/uri_regexp/URI_regex.html
 re_python_rfc3986_URI = re.compile(
@@ -415,6 +415,14 @@ re_python_rfc3986_URI_reference = re.compile(
     re.VERBOSE,
 )
 
+re_python_rfc5322_email_simplified = re.compile(
+    r""" ^
+    [a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@
+    (?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?
+    $ """,
+    re.VERBOSE,
+)
+
 
 @dataclass(frozen=True)
 class Format(Constraint):
@@ -422,6 +430,8 @@ class Format(Constraint):
 
     def __call__(self, val: str) -> bool:
         match self.format:
+            case "email":
+                return re_python_rfc5322_email_simplified.match(val) is not None
             case "regex":
                 try:
                     re.compile(val)

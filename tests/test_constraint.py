@@ -215,6 +215,7 @@ def test_Validator():
 @pytest.mark.parametrize(
     "format, val",
     [
+        ("email", "random+test@gmail.com"),
         ("regex", "^x-"),
         ("uri", "https://json-schema.org/draft/2020-12/schema"),
         ("uri-reference", "https://json-schema.org/draft/2020-12/meta/core"),
@@ -229,6 +230,7 @@ def test_Format_valid(format, val):
 @pytest.mark.parametrize(
     "format, val",
     [
+        ("email", "@gmail.com"),
         ("regex", "([a-z]+$"),
         ("uri", "https//json-schema.org/draft/2020-12/schema"),
         ("uri-reference", "https //json-schema.org/draft/2020-12/meta/core"),
