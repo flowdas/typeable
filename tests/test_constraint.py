@@ -194,8 +194,14 @@ def test_Pattern():
         typecast(Annotated[str, V.pattern(P)], "foo")
 
 
-def test_Unique():
-    v = [1, 2, 3]
+@pytest.mark.parametrize(
+    "v",
+    [
+        [1, 2, 3],  # hashable
+        [[1], [2], [3]],  # unhashable
+    ],
+)
+def test_Unique(v):
     assert typecast(Annotated[list, V.unique()], v) is v
 
     with pytest.raises(ValueError):

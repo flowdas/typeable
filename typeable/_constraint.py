@@ -170,7 +170,12 @@ class Pattern(Constraint):
 @dataclass(frozen=True)
 class Unique(Constraint):
     def __call__(self, val: list | tuple) -> bool:
-        return len(val) == len(set(val))
+        last = object()
+        for v in sorted(val):
+            if last == v:
+                return False
+            last = v
+        return True
 
     def __repr__(self) -> str:
         return "Value.unique()"
