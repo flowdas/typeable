@@ -1,7 +1,7 @@
 """JSON Schema 2020-12"""
 
-from dataclasses import dataclass, field
 import sys
+from dataclasses import dataclass, field
 from typing import Annotated, Any, ForwardRef, Literal
 
 from typeable import Metadata, Missing, V
@@ -11,7 +11,7 @@ NonNegativeInteger = Annotated[int, V >= 0]
 SimpleTypes = Literal[
     "array", "boolean", "integer", "null", "number", "object", "string"
 ]
-StringArray = Annotated[list[str], V.unique()]
+StringArray = Annotated[list[str], V.uniqueItems()]
 Regex = Annotated[str, V.format("regex")]
 Uri = Annotated[str, V.format("uri")]
 UriReference = Annotated[str, V.format("uri-reference")]
@@ -23,7 +23,7 @@ else:
     from typing import Union
 
     FullJsonSchema = Union[JsonSchema, bool]
-SchemaArray = Annotated[list[FullJsonSchema], V.length > 0]
+SchemaArray = Annotated[list[FullJsonSchema], V.minItems(1)]
 
 
 @dataclass
@@ -91,7 +91,9 @@ class JsonSchema:
     then: FullJsonSchema | None = None
     title: str | None = None
     type: (
-        SimpleTypes | Annotated[list[SimpleTypes], V.length > 0, V.unique()] | None
+        SimpleTypes
+        | Annotated[list[SimpleTypes], V.minItems(1), V.uniqueItems()]
+        | None
     ) = None
     unevaluatedItems: FullJsonSchema | None = None
     unevaluatedProperties: FullJsonSchema | None = None

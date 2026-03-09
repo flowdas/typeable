@@ -11,6 +11,6 @@ def Annotated_from_object(
     r = typecast(T, val)
     for arg in args:
         if isinstance(arg, Constraint):
-            if not arg(r):
+            if not arg(r, val):
                 raise ValueError(f"Constraint {arg!r} failed")
     return r
