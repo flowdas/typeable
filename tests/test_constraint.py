@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 import operator
 from typing import Annotated
 
@@ -7,12 +8,20 @@ from typeable import typecast
 from typeable._constraint import (
     ExclusiveMaximum,
     ExclusiveMinimum,
-    MaxLength,
     Maximum,
-    MinLength,
     Minimum,
     V,
 )
+
+
+def test_quiet():
+    def func(val, before):
+        return None
+
+    assert typecast(Annotated[str, V.validate(func, quiet=True)], "hello") == "hello"
+
+    with pytest.raises(TypeError):
+        typecast(Annotated[str, V.validate(func)], "hello")
 
 
 @pytest.mark.parametrize(
@@ -77,105 +86,135 @@ def test_ExclusiveMaximum():
 
 
 @pytest.mark.parametrize(
-    "op, Class, RClass",
+    "T, val, empty",
     [
-        (operator.__gt__, MinLength, MaxLength),
-        (operator.__ge__, MinLength, MaxLength),
-        (operator.__lt__, MaxLength, MinLength),
-        (operator.__le__, MaxLength, MinLength),
+        (list, list("hello"), []),
+        (tuple, tuple("hello"), ()),
     ],
 )
-def test_length(op, Class, RClass):
-    c = op(V.length, 3)
-    assert isinstance(c, Class)
+def test_MinItems(T, val, empty):
+    assert typecast(Annotated[T, V.minItems(5)], val) == val
 
-    c = op(3, V.length)
-    assert isinstance(c, RClass)
+    with pytest.raises(ValueError):
+        typecast(Annotated[T, V.minItems(1)], empty)
+
+
+@pytest.mark.parametrize(
+    "T, val",
+    [
+        (list, list("hello")),
+        (tuple, tuple("hello")),
+    ],
+)
+def test_MaxItems(T, val):
+    assert typecast(Annotated[T, V.maxItems(5)], val) == val
+
+    with pytest.raises(ValueError):
+        typecast(Annotated[T, V.maxItems(4)], val)
 
 
 @pytest.mark.parametrize(
     "T, val, empty",
     [
         (bytes, b"hello", b""),
-        (dict, dict(zip("abcde", "hello")), {}),
-        (list, list("hello"), []),
         (str, "hello", ""),
-        (tuple, tuple("hello"), ()),
     ],
 )
 def test_MinLength(T, val, empty):
-    assert typecast(Annotated[T, V.length >= 5], val) == val
-    assert typecast(Annotated[T, 5 <= V.length], val) == val
-    assert typecast(Annotated[T, V.length > 4], val) == val
-    assert typecast(Annotated[T, 4 < V.length], val) == val
+    assert typecast(Annotated[T, V.minLength(5)], val) == val
 
     with pytest.raises(ValueError):
-        typecast(Annotated[T, V.length >= 1], empty)
-
-    with pytest.raises(ValueError):
-        typecast(Annotated[T, 1 <= V.length], empty)
-
-    with pytest.raises(ValueError):
-        typecast(Annotated[T, V.length > 0], empty)
-
-    with pytest.raises(ValueError):
-        typecast(Annotated[T, 0 < V.length], empty)
+        typecast(Annotated[T, V.minLength(1)], empty)
 
 
 @pytest.mark.parametrize(
     "T, val",
     [
         (bytes, b"hello"),
-        (dict, dict(zip("abcde", "hello"))),
-        (list, list("hello")),
         (str, "hello"),
-        (tuple, tuple("hello")),
     ],
 )
 def test_MaxLength(T, val):
-    assert typecast(Annotated[T, V.length <= 5], val) == val
-    assert typecast(Annotated[T, 5 >= V.length], val) == val
-    assert typecast(Annotated[T, V.length < 6], val) == val
-    assert typecast(Annotated[T, 6 > V.length], val) == val
+    assert typecast(Annotated[T, V.maxLength(5)], val) == val
 
     with pytest.raises(ValueError):
-        typecast(Annotated[T, V.length <= 4], val)
+        typecast(Annotated[T, V.maxLength(4)], val)
+
+
+@pytest.mark.parametrize(
+    "T, val, empty",
+    [
+        (dict, dict(zip("abcde", "hello")), {}),
+    ],
+)
+def test_MinProperties(T, val, empty):
+    assert typecast(Annotated[T, V.minProperties(5)], val) == val
 
     with pytest.raises(ValueError):
-        typecast(Annotated[T, 4 >= V.length], val)
+        typecast(Annotated[T, V.minProperties(1)], empty)
+
+
+@pytest.mark.parametrize(
+    "T, val",
+    [
+        (dict, dict(zip("abcde", "hello"))),
+    ],
+)
+def test_MaxProperties(T, val):
+    assert typecast(Annotated[T, V.maxProperties(5)], val) == val
 
     with pytest.raises(ValueError):
-        typecast(Annotated[T, V.length < 5], val)
+        typecast(Annotated[T, V.maxProperties(4)], val)
+
+
+@pytest.mark.parametrize(
+    "T, val",
+    [
+        (list, list("hello")),
+        (tuple, tuple("hello")),
+    ],
+)
+def test_fixed_items(T, val):
+    assert typecast(Annotated[T, V.minItems(5), V.maxItems(5)], val) == val
 
     with pytest.raises(ValueError):
-        typecast(Annotated[T, 5 > V.length], val)
+        typecast(Annotated[T, V.minItems(4), V.maxItems(4)], val)
+
+    with pytest.raises(ValueError):
+        typecast(Annotated[T, V.minItems(6), V.maxItems(6)], val)
 
 
 @pytest.mark.parametrize(
     "T, val",
     [
         (bytes, b"hello"),
-        (dict, dict(zip("abcde", "hello"))),
-        (list, list("hello")),
         (str, "hello"),
-        (tuple, tuple("hello")),
     ],
 )
 def test_fixed_length(T, val):
-    assert typecast(Annotated[T, V.length == 5], val) == val
-    assert typecast(Annotated[T, 5 == V.length], val) == val
+    assert typecast(Annotated[T, V.minLength(5), V.maxLength(5)], val) == val
 
     with pytest.raises(ValueError):
-        typecast(Annotated[T, V.length == 4], val)
+        typecast(Annotated[T, V.minLength(4), V.maxLength(4)], val)
 
     with pytest.raises(ValueError):
-        typecast(Annotated[T, 4 == V.length], val)
+        typecast(Annotated[T, V.minLength(6), V.maxLength(6)], val)
+
+
+@pytest.mark.parametrize(
+    "T, val",
+    [
+        (dict, dict(zip("abcde", "hello"))),
+    ],
+)
+def test_fixed_properties(T, val):
+    assert typecast(Annotated[T, V.minProperties(5), V.maxProperties(5)], val) == val
 
     with pytest.raises(ValueError):
-        typecast(Annotated[T, V.length == 6], val)
+        typecast(Annotated[T, V.minProperties(4), V.maxProperties(4)], val)
 
     with pytest.raises(ValueError):
-        typecast(Annotated[T, 6 == V.length], val)
+        typecast(Annotated[T, V.minProperties(6), V.maxProperties(6)], val)
 
 
 def test_MultipleOf():
@@ -194,27 +233,34 @@ def test_Pattern():
         typecast(Annotated[str, V.pattern(P)], "foo")
 
 
-def test_Unique():
-    v = [1, 2, 3]
-    assert typecast(Annotated[list, V.unique()], v) is v
+@pytest.mark.parametrize(
+    "v",
+    [
+        [1, 2, 3],  # hashable
+        [[1], [2], [3]],  # unhashable
+    ],
+)
+def test_Unique(v):
+    assert typecast(Annotated[list, V.uniqueItems()], v) is v
 
     with pytest.raises(ValueError):
-        typecast(Annotated[list, V.unique()], v + [v[0]])
+        typecast(Annotated[list, V.uniqueItems()], v + [v[0]])
 
 
 def test_Validator():
     assert (
-        typecast(Annotated[str, V.validate(lambda s: s.startswith("h"))], "hello")
+        typecast(Annotated[str, V.validate(lambda s, _: s.startswith("h"))], "hello")
         == "hello"
     )
 
     with pytest.raises(ValueError):
-        typecast(Annotated[str, V.validate(lambda s: s.startswith("w"))], "hello")
+        typecast(Annotated[str, V.validate(lambda s, _: s.startswith("w"))], "hello")
 
 
 @pytest.mark.parametrize(
     "format, val",
     [
+        ("email", "random+test@gmail.com"),
         ("regex", "^x-"),
         ("uri", "https://json-schema.org/draft/2020-12/schema"),
         ("uri-reference", "https://json-schema.org/draft/2020-12/meta/core"),
@@ -229,6 +275,7 @@ def test_Format_valid(format, val):
 @pytest.mark.parametrize(
     "format, val",
     [
+        ("email", "@gmail.com"),
         ("regex", "([a-z]+$"),
         ("uri", "https//json-schema.org/draft/2020-12/schema"),
         ("uri-reference", "https //json-schema.org/draft/2020-12/meta/core"),
@@ -239,3 +286,20 @@ def test_Format_valid(format, val):
 def test_Format_invalid(format, val):
     with pytest.raises(ValueError):
         typecast(Annotated[str, V.format(format)], val)
+
+
+def test_datetime():
+    naive_epoch = datetime(1970, 1, 1, 0, 0)
+    aware_epoch = naive_epoch.replace(tzinfo=timezone.utc)
+
+    DT = "1970-01-01T00:00:00.000"
+
+    assert typecast(datetime, DT) == naive_epoch
+    assert typecast(datetime, DT + "Z") == aware_epoch
+    assert typecast(Annotated[datetime, V.localTime()], DT) == naive_epoch
+    assert typecast(Annotated[datetime, V.zonedTime()], DT + "Z") == aware_epoch
+
+    with pytest.raises(ValueError):
+        typecast(Annotated[datetime, V.localTime()], DT + "Z")
+    with pytest.raises(ValueError):
+        typecast(Annotated[datetime, V.zonedTime()], DT)

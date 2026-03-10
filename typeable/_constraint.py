@@ -1,15 +1,28 @@
-from collections.abc import Callable
-from dataclasses import dataclass
+import re
+from collections.abc import Callable, Mapping, Sequence
+from dataclasses import dataclass, is_dataclass
+from datetime import datetime, time
 from importlib import import_module
 from inspect import signature
-import re
 from typing import Any, Literal, get_args, get_origin
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, kw_only=True)
 class Constraint:
-    def __call__(self, val) -> bool:
+    quiet: bool = False
+
+    def evaluate(self, val, before) -> bool | None:
         raise NotImplementedError
+
+    def __call__(self, val, before) -> bool:
+        ret = self.evaluate(val, before)
+        if ret is None:
+            if self.quiet:
+                return True
+            raise TypeError(
+                f"'{self!r}' is not applicable to {val.__class__.__qualname__}."
+            )
+        return ret
 
     def __bool__(self):
         raise RuntimeError(
@@ -38,8 +51,8 @@ class Combined(Constraint):
 
 @dataclass(frozen=True)
 class AllOf(Combined):
-    def __call__(self, val) -> bool:
-        return all(arg(val) for arg in self.args)
+    def evaluate(self, val, before) -> bool | None:
+        return all(arg(val, before) for arg in self.args)
 
     def __repr__(self) -> str:
         return " & ".join(f"({arg!r})" for arg in self.args)
@@ -54,8 +67,8 @@ class AllOf(Combined):
 
 @dataclass(frozen=True)
 class AnyOf(Combined):
-    def __call__(self, val) -> bool:
-        return any(arg(val) for arg in self.args)
+    def evaluate(self, val, before) -> bool | None:
+        return any(arg(val, before) for arg in self.args)
 
     def __repr__(self) -> str:
         return " | ".join(f"({arg!r})" for arg in self.args)
@@ -72,8 +85,9 @@ class AnyOf(Combined):
 class Not(Constraint):
     arg: Constraint
 
-    def __call__(self, val) -> bool:
-        return not self.arg(val)
+    def evaluate(self, val, before) -> bool | None:
+        if isinstance(self.arg, Constraint):
+            return not self.arg(val, before)
 
     def __repr__(self) -> str:
         return f"~({self.arg!r})"
@@ -83,8 +97,9 @@ class Not(Constraint):
 class ExclusiveMinimum(Constraint):
     exclusiveMinimum: int | float
 
-    def __call__(self, val: int | float) -> bool:
-        return val > self.exclusiveMinimum
+    def evaluate(self, val, before) -> bool | None:
+        if isinstance(val, (int, float)):
+            return val > self.exclusiveMinimum
 
     def __repr__(self) -> str:
         return f"Value > {self.exclusiveMinimum}"
@@ -94,8 +109,9 @@ class ExclusiveMinimum(Constraint):
 class Minimum(Constraint):
     minimum: int | float
 
-    def __call__(self, val: int | float) -> bool:
-        return val >= self.minimum
+    def evaluate(self, val, before) -> bool | None:
+        if isinstance(val, (int, float)):
+            return val >= self.minimum
 
     def __repr__(self) -> str:
         return f"Value >= {self.minimum}"
@@ -105,8 +121,9 @@ class Minimum(Constraint):
 class ExclusiveMaximum(Constraint):
     exclusiveMaximum: int | float
 
-    def __call__(self, val: int | float) -> bool:
-        return val < self.exclusiveMaximum
+    def evaluate(self, val, before) -> bool | None:
+        if isinstance(val, (int, float)):
+            return val < self.exclusiveMaximum
 
     def __repr__(self) -> str:
         return f"Value < {self.exclusiveMaximum}"
@@ -116,41 +133,101 @@ class ExclusiveMaximum(Constraint):
 class Maximum(Constraint):
     maximum: int | float
 
-    def __call__(self, val: int | float) -> bool:
-        return val <= self.maximum
+    def evaluate(self, val, before) -> bool | None:
+        if isinstance(val, (int, float)):
+            return val <= self.maximum
 
     def __repr__(self) -> str:
         return f"Value <= {self.maximum}"
 
 
 @dataclass(frozen=True)
-class MinLength(Constraint):
-    minLength: int
-
-    def __call__(self, val: str | dict | list | tuple) -> bool:
-        return len(val) >= self.minLength
-
-    def __repr__(self) -> str:
-        return f"Value.length >= {self.minLength}"
-
-
-@dataclass(frozen=True)
 class MaxLength(Constraint):
     maxLength: int
 
-    def __call__(self, val: str | dict | list | tuple) -> bool:
-        return len(val) <= self.maxLength
+    def evaluate(self, val, before) -> bool | None:
+        if isinstance(val, (str, bytes, bytearray, memoryview)):
+            return len(val) <= self.maxLength
 
     def __repr__(self) -> str:
-        return f"Value.length <= {self.maxLength}"
+        return f"Value.maxLength({self.maxLength})"
+
+
+@dataclass(frozen=True)
+class MinLength(Constraint):
+    minLength: int
+
+    def evaluate(self, val, before) -> bool | None:
+        if isinstance(val, (str, bytes, bytearray, memoryview)):
+            return len(val) >= self.minLength
+
+    def __repr__(self) -> str:
+        return f"Value.minLength({self.minLength})"
+
+
+@dataclass(frozen=True)
+class MaxItems(Constraint):
+    maxItems: int
+
+    def evaluate(self, val, before) -> bool | None:
+        if isinstance(val, Sequence) and not isinstance(
+            val, (str, bytes, bytearray, memoryview)
+        ):
+            return len(val) <= self.maxItems
+
+    def __repr__(self) -> str:
+        return f"Value.maxItems({self.maxItems})"
+
+
+@dataclass(frozen=True)
+class MinItems(Constraint):
+    minItems: int
+
+    def evaluate(self, val, before) -> bool | None:
+        if isinstance(val, Sequence) and not isinstance(
+            val, (str, bytes, bytearray, memoryview)
+        ):
+            return len(val) >= self.minItems
+
+    def __repr__(self) -> str:
+        return f"Value.minItems({self.minItems})"
+
+
+@dataclass(frozen=True)
+class MaxProperties(Constraint):
+    maxProperties: int
+
+    def evaluate(self, val, before) -> bool | None:
+        if isinstance(val, Mapping):
+            return len(val) <= self.maxProperties
+        elif is_dataclass(val) and isinstance(before, Mapping):
+            return len(before) <= self.maxProperties
+
+    def __repr__(self) -> str:
+        return f"Value.maxProperties({self.maxProperties})"
+
+
+@dataclass(frozen=True)
+class MinProperties(Constraint):
+    minProperties: int
+
+    def evaluate(self, val, before) -> bool | None:
+        if isinstance(val, Mapping):
+            return len(val) >= self.minProperties
+        elif is_dataclass(val) and isinstance(before, Mapping):
+            return len(before) >= self.minProperties
+
+    def __repr__(self) -> str:
+        return f"Value.minProperties({self.minProperties})"
 
 
 @dataclass(frozen=True)
 class MultipleOf(Constraint):
     multipleOf: int | float
 
-    def __call__(self, val: int | float) -> bool:
-        return val % self.multipleOf == 0
+    def evaluate(self, val, before) -> bool | None:
+        if isinstance(val, (int, float)):
+            return val % self.multipleOf == 0
 
     def __repr__(self) -> str:
         return f"Value.multipleOf({self.multipleOf})"
@@ -160,28 +237,55 @@ class MultipleOf(Constraint):
 class Pattern(Constraint):
     pattern: str
 
-    def __call__(self, val: str) -> bool:
-        return re.search(self.pattern, val) is not None
+    def evaluate(self, val, before) -> bool | None:
+        if isinstance(val, str):
+            return re.search(self.pattern, val) is not None
 
     def __repr__(self) -> str:
         return f"Value.pattern({self.pattern!r})"
 
 
 @dataclass(frozen=True)
-class Unique(Constraint):
-    def __call__(self, val: list | tuple) -> bool:
-        return len(val) == len(set(val))
+class UniqueItems(Constraint):
+    def evaluate(self, val, before) -> bool | None:
+        if isinstance(val, (list, tuple)):
+            last = object()
+            for v in sorted(val):
+                if last == v:
+                    return False
+                last = v
+            return True
 
     def __repr__(self) -> str:
-        return "Value.unique()"
+        return "Value.uniqueItems()"
+
+
+@dataclass(frozen=True)
+class LocalTime(Constraint):
+    def evaluate(self, val, before) -> bool | None:
+        if isinstance(val, (datetime, time)):
+            return val.tzinfo is None
+
+    def __repr__(self) -> str:
+        return "Value.localTime()"
+
+
+@dataclass(frozen=True)
+class ZonedTime(Constraint):
+    def evaluate(self, val, before) -> bool | None:
+        if isinstance(val, (datetime, time)):
+            return val.tzinfo is not None
+
+    def __repr__(self) -> str:
+        return "Value.zonedTime()"
 
 
 @dataclass(frozen=True)
 class Validator(Constraint):
-    callable: Callable[[Any], bool]
+    callable: Callable[[Any, Any], bool | None]
 
-    def __call__(self, val) -> bool:
-        return self.callable(val)
+    def evaluate(self, val, before) -> bool | None:
+        return self.callable(val, before)
 
     def __repr__(self) -> str:
         return f"Value.validate({self.callable!r})"
@@ -251,31 +355,32 @@ class ImportPath(Constraint):
                     f"Value.importPath() support only type or Callable, but {self.spec!r} given."
                 )
 
-    def __call__(self, val: str) -> bool:
-        if self.spec:
-            origin = get_origin(self.spec) or self.spec
-            if origin is type:
-                try:
-                    _type_from_str(val, *get_args(self.spec))
-                except Exception:
-                    return False
+    def evaluate(self, val, before) -> bool | None:
+        if isinstance(val, str):
+            if self.spec:
+                origin = get_origin(self.spec) or self.spec
+                if origin is type:
+                    try:
+                        _type_from_str(val, *get_args(self.spec))
+                    except Exception:
+                        return False
+                else:
+                    try:
+                        _Callable_from_str(val, *get_args(self.spec))
+                    except Exception:
+                        return False
             else:
                 try:
-                    _Callable_from_str(val, *get_args(self.spec))
+                    _import_fqn(val)
                 except Exception:
                     return False
-        else:
-            try:
-                _import_fqn(val)
-            except Exception:
-                return False
-        return True
+            return True
 
     def __repr__(self) -> str:
         return f"Value.importPath({self.spec})"
 
 
-FormatLiteral = Literal["regex", "uri", "uri-reference"]
+FormatLiteral = Literal["email", "regex", "uri", "uri-reference"]
 
 # https://jmrware.com/articles/2009/uri_regexp/URI_regex.html
 re_python_rfc3986_URI = re.compile(
@@ -415,52 +520,35 @@ re_python_rfc3986_URI_reference = re.compile(
     re.VERBOSE,
 )
 
+re_python_rfc5322_email_simplified = re.compile(
+    r""" ^
+    [a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@
+    (?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?
+    $ """,
+    re.VERBOSE,
+)
+
 
 @dataclass(frozen=True)
 class Format(Constraint):
     format: FormatLiteral
 
-    def __call__(self, val: str) -> bool:
-        match self.format:
-            case "regex":
-                try:
-                    re.compile(val)
-                    return True
-                except Exception:
-                    return False
-            case "uri":
-                return re_python_rfc3986_URI.match(val) is not None
-            case "uri-reference":
-                return re_python_rfc3986_URI_reference.match(val) is not None
-
-        return False
-
-
-class _LengthType:
-    def __gt__(self, other: int) -> Constraint:
-        if isinstance(other, int):
-            return MinLength(other + 1)
-        return NotImplemented
-
-    def __ge__(self, other: int) -> Constraint:
-        if isinstance(other, int):
-            return MinLength(other)
-        return NotImplemented
-
-    def __lt__(self, other: int) -> Constraint:
-        if isinstance(other, int):
-            return MaxLength(other - 1)
-        return NotImplemented
-
-    def __le__(self, other: int) -> Constraint:
-        if isinstance(other, int):
-            return MaxLength(other)
-        return NotImplemented
-
-    def __eq__(self, other: int) -> Constraint:
-        if isinstance(other, int):
-            return MinLength(other) & MaxLength(other)
-        return NotImplemented
+    def evaluate(self, val, before) -> bool | None:
+        if isinstance(val, str):
+            match self.format:
+                case "email":
+                    return re_python_rfc5322_email_simplified.match(val) is not None
+                case "regex":
+                    try:
+                        re.compile(val)
+                        return True
+                    except Exception:
+                        return False
+                case "uri":
+                    return re_python_rfc3986_URI.match(val) is not None
+                case "uri-reference":
+                    return re_python_rfc3986_URI_reference.match(val) is not None
+            return False
 
 
 class _ValueType:
@@ -484,27 +572,65 @@ class _ValueType:
             return Maximum(other)
         return NotImplemented
 
-    @property
-    def length(self):
-        return _LengthType()
+    def exclusiveMaximum(
+        self, exclusiveMaximum: int | float, *, quiet: bool = False
+    ) -> Constraint:
+        return ExclusiveMaximum(exclusiveMaximum, quiet=quiet)
 
-    def format(self, format: FormatLiteral):
-        return Format(format)
+    def exclusiveMinimum(
+        self, exclusiveMinimum: int | float, *, quiet: bool = False
+    ) -> Constraint:
+        return ExclusiveMinimum(exclusiveMinimum, quiet=quiet)
 
-    def importPath(self, spec=None):
-        return ImportPath(spec)
+    def format(self, format: FormatLiteral, *, quiet: bool = False) -> Constraint:
+        return Format(format, quiet=quiet)
 
-    def multipleOf(self, multipleOf: int | float) -> Constraint:
-        return MultipleOf(multipleOf)
+    def importPath(self, spec=None, *, quiet: bool = False) -> Constraint:
+        return ImportPath(spec, quiet=quiet)
 
-    def pattern(self, pattern: str) -> Constraint:
-        return Pattern(pattern)
+    def localTime(self, *, quiet: bool = False) -> Constraint:
+        return LocalTime(quiet=quiet)
 
-    def unique(self) -> Constraint:
-        return Unique()
+    def maximum(self, maximum: int | float, *, quiet: bool = False) -> Constraint:
+        return Maximum(maximum, quiet=quiet)
 
-    def validate(self, callable: Callable[[Any], bool]) -> Constraint:
-        return Validator(callable)
+    def maxItems(self, maxItems: int, *, quiet: bool = False) -> Constraint:
+        return MaxItems(maxItems, quiet=quiet)
+
+    def maxLength(self, maxLength: int, *, quiet: bool = False) -> Constraint:
+        return MaxLength(maxLength, quiet=quiet)
+
+    def maxProperties(self, maxProperties: int, *, quiet: bool = False) -> Constraint:
+        return MaxProperties(maxProperties, quiet=quiet)
+
+    def minimum(self, minimum: int | float, *, quiet: bool = False) -> Constraint:
+        return Minimum(minimum, quiet=quiet)
+
+    def minItems(self, minItems: int, *, quiet: bool = False) -> Constraint:
+        return MinItems(minItems, quiet=quiet)
+
+    def minLength(self, minLength: int, *, quiet: bool = False) -> Constraint:
+        return MinLength(minLength, quiet=quiet)
+
+    def minProperties(self, minProperties: int, *, quiet: bool = False) -> Constraint:
+        return MinProperties(minProperties, quiet=quiet)
+
+    def multipleOf(self, multipleOf: int | float, *, quiet: bool = False) -> Constraint:
+        return MultipleOf(multipleOf, quiet=quiet)
+
+    def pattern(self, pattern: str, *, quiet: bool = False) -> Constraint:
+        return Pattern(pattern, quiet=quiet)
+
+    def uniqueItems(self, *, quiet: bool = False) -> Constraint:
+        return UniqueItems(quiet=quiet)
+
+    def validate(
+        self, callable: Callable[[Any, Any], bool | None], *, quiet: bool = False
+    ) -> Constraint:
+        return Validator(callable, quiet=quiet)
+
+    def zonedTime(self, *, quiet: bool = False) -> Constraint:
+        return ZonedTime(quiet=quiet)
 
 
 V = _ValueType()
