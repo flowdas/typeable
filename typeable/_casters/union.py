@@ -1,5 +1,4 @@
 import sys
-from contextlib import ExitStack
 from types import UnionType
 from typing import Union
 
@@ -10,19 +9,16 @@ from .._typecast import Typecast, typecast
 @typecast.register
 def UnionType_from_object(typecast: Typecast, cls: type[UnionType], val: object, *Ts):
     uc = typecast.get_unioncast(Ts)
-    deepest = ()
+    history = {}
     for T in uc.dispatch(val.__class__):
         try:
             with capture() as error:
                 return typecast(T, val)
         except Exception:
-            if error.location and len(error.location) > len(deepest):
-                deepest = error.location
+            history[T] = error.location
             continue
     else:
-        with ExitStack() as stack:
-            for loc in deepest:
-                stack.enter_context(traverse(loc))
+        with traverse(history):
             raise TypeError("no match")
 
 
