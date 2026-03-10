@@ -9,13 +9,13 @@ from .._typecast import Typecast, typecast
 @typecast.register
 def UnionType_from_object(typecast: Typecast, cls: type[UnionType], val: object, *Ts):
     uc = typecast.get_unioncast(Ts)
-    history = {}
+    history = []
     for T in uc.dispatch(val.__class__):
         try:
             with capture() as error:
                 return typecast(T, val)
-        except Exception:
-            history[T] = error.location
+        except Exception as e:
+            history.append((T, error.location, e))
             continue
     else:
         with traverse(history):
