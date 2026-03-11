@@ -1,12 +1,12 @@
 import re
 from collections.abc import Callable, Mapping, Sequence
-from dataclasses import dataclass, is_dataclass
+from dataclasses import dataclass, fields, is_dataclass
 from datetime import datetime, time
 from importlib import import_module
 from inspect import signature
 from typing import Any, Literal, get_args, get_origin
 
-from ._typecast import _BEFORE
+from ._typecast import _BEFORE, _META_ALIAS
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -238,42 +238,45 @@ class MinProperties(Constraint):
 
 
 @dataclass(frozen=True)
-class HasAny(Constraint):
+class HasConstraint(Constraint):
     names: tuple[str, ...]
+
+    def _evaluate(self, val: Mapping, names) -> bool:
+        raise NotImplementedError
 
     def evaluate(self, val, before) -> bool | None:
         if isinstance(val, Mapping):
-            return any(map(lambda x: x in val, self.names))
+            return self._evaluate(val, self.names)
         elif is_dataclass(val) and isinstance(before, Mapping):
-            return any(map(lambda x: x in before, self.names))
+            aliases = {
+                f.name: (f.metadata or {}).get(_META_ALIAS, f.name) for f in fields(val)
+            }
+            names = [aliases.get(name) for name in self.names]
+            return self._evaluate(before, names)
+
+
+@dataclass(frozen=True)
+class HasAny(HasConstraint):
+    def _evaluate(self, val: Mapping, names) -> bool:
+        return any(map(lambda x: x in val, names))
 
     def __repr__(self) -> str:
         return f"Value.hasAny({self.names})"
 
 
 @dataclass(frozen=True)
-class HasOne(Constraint):
-    names: tuple[str, ...]
-
-    def evaluate(self, val, before) -> bool | None:
-        if isinstance(val, Mapping):
-            return sum(map(lambda x: x in val, self.names)) == 1
-        elif is_dataclass(val) and isinstance(before, Mapping):
-            return sum(map(lambda x: x in before, self.names)) == 1
+class HasOne(HasConstraint):
+    def _evaluate(self, val: Mapping, names) -> bool:
+        return sum(map(lambda x: x in val, names)) == 1
 
     def __repr__(self) -> str:
         return f"Value.hasOne({self.names})"
 
 
 @dataclass(frozen=True)
-class HasNotAll(Constraint):
-    names: tuple[str, ...]
-
-    def evaluate(self, val, before) -> bool | None:
-        if isinstance(val, Mapping):
-            return not all(map(lambda x: x in val, self.names))
-        elif is_dataclass(val) and isinstance(before, Mapping):
-            return not all(map(lambda x: x in before, self.names))
+class HasNotAll(HasConstraint):
+    def _evaluate(self, val: Mapping, names) -> bool:
+        return not all(map(lambda x: x in val, names))
 
     def __repr__(self) -> str:
         return f"Value.hasNotAll({self.names})"

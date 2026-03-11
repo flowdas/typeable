@@ -1,11 +1,11 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 import operator
 from typing import Annotated
 
 import pytest
 
-from typeable import enforce_constraints, typecast
+from typeable import Metadata, enforce_constraints, typecast
 from typeable._constraint import (
     ExclusiveMaximum,
     ExclusiveMinimum,
@@ -212,6 +212,19 @@ def test_HasAny():
         typecast(Annotated[X, V.hasAny("i", "j")], {})
 
 
+def test_HasAny_alias():
+    @dataclass
+    class X:
+        i: int = field(default=0, metadata=Metadata(alias="$i"))
+        j: int = 0
+
+    assert typecast(Annotated[X, V.hasAny("i", "j")], {"$i": 0, "j": 0}) == X()
+    assert typecast(Annotated[X, V.hasAny("i", "j")], {"$i": 0}) == X()
+    assert typecast(Annotated[X, V.hasAny("i", "j")], {"j": 0}) == X()
+    with pytest.raises(ValueError):
+        typecast(Annotated[X, V.hasAny("i", "j")], {})
+
+
 def test_HasOne():
     with pytest.raises(ValueError):
         typecast(Annotated[dict, V.hasOne("i", "j")], {"i": 0, "j": 0})
@@ -233,6 +246,20 @@ def test_HasOne():
         typecast(Annotated[X, V.hasOne("i", "j")], {})
 
 
+def test_HasOne_alias():
+    @dataclass
+    class X:
+        i: int = field(default=0, metadata=Metadata(alias="$i"))
+        j: int = 0
+
+    with pytest.raises(ValueError):
+        typecast(Annotated[X, V.hasOne("i", "j")], {"$i": 0, "j": 0})
+    assert typecast(Annotated[X, V.hasOne("i", "j")], {"$i": 0}) == X()
+    assert typecast(Annotated[X, V.hasOne("i", "j")], {"j": 0}) == X()
+    with pytest.raises(ValueError):
+        typecast(Annotated[X, V.hasOne("i", "j")], {})
+
+
 def test_HasNotAll():
     with pytest.raises(ValueError):
         typecast(Annotated[dict, V.hasNotAll("i", "j")], {"i": 0, "j": 0})
@@ -248,6 +275,19 @@ def test_HasNotAll():
     with pytest.raises(ValueError):
         typecast(Annotated[X, V.hasNotAll("i", "j")], {"i": 0, "j": 0})
     assert typecast(Annotated[X, V.hasNotAll("i", "j")], {"i": 0}) == X()
+    assert typecast(Annotated[X, V.hasNotAll("i", "j")], {"j": 0}) == X()
+    assert typecast(Annotated[X, V.hasNotAll("i", "j")], {}) == X()
+
+
+def test_HasNotAll_alias():
+    @dataclass
+    class X:
+        i: int = field(default=0, metadata=Metadata(alias="$i"))
+        j: int = 0
+
+    with pytest.raises(ValueError):
+        typecast(Annotated[X, V.hasNotAll("i", "j")], {"$i": 0, "j": 0})
+    assert typecast(Annotated[X, V.hasNotAll("i", "j")], {"$i": 0}) == X()
     assert typecast(Annotated[X, V.hasNotAll("i", "j")], {"j": 0}) == X()
     assert typecast(Annotated[X, V.hasNotAll("i", "j")], {}) == X()
 
