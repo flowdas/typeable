@@ -6,6 +6,8 @@ from importlib import import_module
 from inspect import signature
 from typing import Any, Literal, get_args, get_origin
 
+from ._typecast import _BEFORE
+
 
 @dataclass(frozen=True, kw_only=True)
 class Constraint:
@@ -42,6 +44,20 @@ class Constraint:
         elif isinstance(other, Constraint):
             return AnyOf((self, other))
         return NotImplemented
+
+
+def enforce_constraints(obj, *args: Constraint) -> bool:
+    if not is_dataclass(obj):
+        raise TypeError("obj MUST be a dataclass.")
+    before = _BEFORE.get()
+    if before is not None:
+        for arg in args:
+            if not isinstance(arg, Constraint):
+                raise TypeError("arg MUST be a Constraint.")
+            if not arg(obj, before):
+                raise ValueError(f"Constraint {arg!r} failed")
+        return True
+    return False
 
 
 @dataclass(frozen=True)

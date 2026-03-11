@@ -1,10 +1,11 @@
+from dataclasses import dataclass
 from datetime import datetime, timezone
 import operator
 from typing import Annotated
 
 import pytest
 
-from typeable import typecast
+from typeable import enforce_constraints, typecast
 from typeable._constraint import (
     ExclusiveMaximum,
     ExclusiveMinimum,
@@ -22,6 +23,28 @@ def test_quiet():
 
     with pytest.raises(TypeError):
         typecast(Annotated[str, V.validate(func)], "hello")
+
+
+def test_enforce_constraints():
+    @dataclass
+    class X:
+        i: int = 0
+
+    @dataclass
+    class Y:
+        i: int = 0
+
+        def __post_init__(self):
+            enforce_constraints(self, V.minProperties(1))
+
+    assert typecast(X, {"i": 1}) == X(i=1)
+    assert typecast(X, {"i": 0}) == X(i=0)
+    assert typecast(X, {}) == X(i=0)
+
+    assert typecast(Y, {"i": 1}) == Y(i=1)
+    assert typecast(Y, {"i": 0}) == Y(i=0)
+    with pytest.raises(ValueError):
+        typecast(Y, {})
 
 
 @pytest.mark.parametrize(

@@ -1,4 +1,4 @@
-from ._constraint import Constraint, V
+from ._constraint import Constraint, V, enforce_constraints
 from ._context import Context, getcontext, localcontext, setcontext, setcontextclass
 from ._error import ErrorInfo, capture, traverse
 from ._polymorphic import identity, polymorphic
@@ -18,6 +18,7 @@ __all__ = [
     "Constraint",
     "Context",
     "declare",
+    "enforce_constraints",
     "ErrorInfo",
     "getcontext",
     "identity",
