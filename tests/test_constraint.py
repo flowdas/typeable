@@ -190,6 +190,68 @@ def test_MaxProperties(T, val):
         typecast(Annotated[T, V.maxProperties(4)], val)
 
 
+def test_HasAny():
+    assert typecast(Annotated[dict, V.hasAny("i", "j")], {"i": 0, "j": 0}) == {
+        "i": 0,
+        "j": 0,
+    }
+    assert typecast(Annotated[dict, V.hasAny("i", "j")], {"i": 0}) == {"i": 0}
+    assert typecast(Annotated[dict, V.hasAny("i", "j")], {"j": 0}) == {"j": 0}
+    with pytest.raises(ValueError):
+        typecast(Annotated[dict, V.hasAny("i", "j")], {})
+
+    @dataclass
+    class X:
+        i: int = 0
+        j: int = 0
+
+    assert typecast(Annotated[X, V.hasAny("i", "j")], {"i": 0, "j": 0}) == X()
+    assert typecast(Annotated[X, V.hasAny("i", "j")], {"i": 0}) == X()
+    assert typecast(Annotated[X, V.hasAny("i", "j")], {"j": 0}) == X()
+    with pytest.raises(ValueError):
+        typecast(Annotated[X, V.hasAny("i", "j")], {})
+
+
+def test_HasOne():
+    with pytest.raises(ValueError):
+        typecast(Annotated[dict, V.hasOne("i", "j")], {"i": 0, "j": 0})
+    assert typecast(Annotated[dict, V.hasOne("i", "j")], {"i": 0}) == {"i": 0}
+    assert typecast(Annotated[dict, V.hasOne("i", "j")], {"j": 0}) == {"j": 0}
+    with pytest.raises(ValueError):
+        typecast(Annotated[dict, V.hasOne("i", "j")], {})
+
+    @dataclass
+    class X:
+        i: int = 0
+        j: int = 0
+
+    with pytest.raises(ValueError):
+        typecast(Annotated[X, V.hasOne("i", "j")], {"i": 0, "j": 0})
+    assert typecast(Annotated[X, V.hasOne("i", "j")], {"i": 0}) == X()
+    assert typecast(Annotated[X, V.hasOne("i", "j")], {"j": 0}) == X()
+    with pytest.raises(ValueError):
+        typecast(Annotated[X, V.hasOne("i", "j")], {})
+
+
+def test_HasNotAll():
+    with pytest.raises(ValueError):
+        typecast(Annotated[dict, V.hasNotAll("i", "j")], {"i": 0, "j": 0})
+    assert typecast(Annotated[dict, V.hasNotAll("i", "j")], {"i": 0}) == {"i": 0}
+    assert typecast(Annotated[dict, V.hasNotAll("i", "j")], {"j": 0}) == {"j": 0}
+    assert typecast(Annotated[dict, V.hasNotAll("i", "j")], {}) == {}
+
+    @dataclass
+    class X:
+        i: int = 0
+        j: int = 0
+
+    with pytest.raises(ValueError):
+        typecast(Annotated[X, V.hasNotAll("i", "j")], {"i": 0, "j": 0})
+    assert typecast(Annotated[X, V.hasNotAll("i", "j")], {"i": 0}) == X()
+    assert typecast(Annotated[X, V.hasNotAll("i", "j")], {"j": 0}) == X()
+    assert typecast(Annotated[X, V.hasNotAll("i", "j")], {}) == X()
+
+
 @pytest.mark.parametrize(
     "T, val",
     [

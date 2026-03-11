@@ -238,6 +238,48 @@ class MinProperties(Constraint):
 
 
 @dataclass(frozen=True)
+class HasAny(Constraint):
+    names: tuple[str, ...]
+
+    def evaluate(self, val, before) -> bool | None:
+        if isinstance(val, Mapping):
+            return any(map(lambda x: x in val, self.names))
+        elif is_dataclass(val) and isinstance(before, Mapping):
+            return any(map(lambda x: x in before, self.names))
+
+    def __repr__(self) -> str:
+        return f"Value.hasAny({self.names})"
+
+
+@dataclass(frozen=True)
+class HasOne(Constraint):
+    names: tuple[str, ...]
+
+    def evaluate(self, val, before) -> bool | None:
+        if isinstance(val, Mapping):
+            return sum(map(lambda x: x in val, self.names)) == 1
+        elif is_dataclass(val) and isinstance(before, Mapping):
+            return sum(map(lambda x: x in before, self.names)) == 1
+
+    def __repr__(self) -> str:
+        return f"Value.hasOne({self.names})"
+
+
+@dataclass(frozen=True)
+class HasNotAll(Constraint):
+    names: tuple[str, ...]
+
+    def evaluate(self, val, before) -> bool | None:
+        if isinstance(val, Mapping):
+            return not all(map(lambda x: x in val, self.names))
+        elif is_dataclass(val) and isinstance(before, Mapping):
+            return not all(map(lambda x: x in before, self.names))
+
+    def __repr__(self) -> str:
+        return f"Value.hasNotAll({self.names})"
+
+
+@dataclass(frozen=True)
 class MultipleOf(Constraint):
     multipleOf: int | float
 
@@ -600,6 +642,15 @@ class _ValueType:
 
     def format(self, format: FormatLiteral, *, quiet: bool = False) -> Constraint:
         return Format(format, quiet=quiet)
+
+    def hasAny(self, name: str, *names: str, quiet: bool = False) -> Constraint:
+        return HasAny((name,) + names, quiet=quiet)
+
+    def hasNotAll(self, name: str, *names: str, quiet: bool = False) -> Constraint:
+        return HasNotAll((name,) + names, quiet=quiet)
+
+    def hasOne(self, name: str, *names: str, quiet: bool = False) -> Constraint:
+        return HasOne((name,) + names, quiet=quiet)
 
     def importPath(self, spec=None, *, quiet: bool = False) -> Constraint:
         return ImportPath(spec, quiet=quiet)
