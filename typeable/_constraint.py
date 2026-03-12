@@ -282,6 +282,24 @@ class HasNotAll(HasConstraint):
         return f"Value.hasNotAll({self.names})"
 
 
+_none = object()
+
+
+@dataclass(frozen=True)
+class HasConst(Constraint):
+    name: str
+    const: Any
+
+    def evaluate(self, val, before) -> bool | None:
+        if isinstance(val, Mapping):
+            return val.get(self.name, _none) == self.const
+        elif is_dataclass(val):
+            return getattr(val, self.name, _none) == self.const
+
+    def __repr__(self) -> str:
+        return f'Value.hasConst("{self.name}", {self.const!r})'
+
+
 @dataclass(frozen=True)
 class MultipleOf(Constraint):
     multipleOf: int | float
@@ -648,6 +666,9 @@ class _ValueType:
 
     def hasAny(self, name: str, *names: str, quiet: bool = False) -> Constraint:
         return HasAny((name,) + names, quiet=quiet)
+
+    def hasConst(self, name: str, const: Any, quiet: bool = False) -> Constraint:
+        return HasConst(name, const, quiet=quiet)
 
     def hasNotAll(self, name: str, *names: str, quiet: bool = False) -> Constraint:
         return HasNotAll((name,) + names, quiet=quiet)

@@ -292,6 +292,25 @@ def test_HasNotAll_alias():
     assert typecast(Annotated[X, V.hasNotAll("i", "j")], {}) == X()
 
 
+def test_HasConst():
+    assert typecast(Annotated[dict, V.hasConst("i", 0)], {"i": 0}) == {
+        "i": 0,
+    }
+    with pytest.raises(ValueError):
+        typecast(Annotated[dict, V.hasConst("i", 0)], {})
+    with pytest.raises(ValueError):
+        typecast(Annotated[dict, V.hasConst("i", 0)], {"i": ""})
+
+    @dataclass
+    class X:
+        i: int = 0
+
+    assert typecast(Annotated[X, V.hasConst("i", 0)], {"i": 0}) == X()
+    assert typecast(Annotated[X, V.hasConst("i", 0)], {}) == X()
+    with pytest.raises(ValueError):
+        typecast(Annotated[X, V.hasConst("i", 0)], {"i": 1})
+
+
 @pytest.mark.parametrize(
     "T, val",
     [
