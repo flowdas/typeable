@@ -26,6 +26,34 @@ else:
 SchemaArray = Annotated[list[FullJsonSchema], V.minItems(1)]
 
 
+@dataclass(kw_only=True)
+class ExtensionMixIn:
+    x: dict = field(default_factory=dict, metadata=Metadata(extra="^x-"))
+
+
+@dataclass
+class Discriminator(ExtensionMixIn):
+    propertyName: str
+    mapping: dict[str, str] | None = None
+    defaultMapping: str | None = None
+
+
+@dataclass
+class ExternalDocs(ExtensionMixIn):
+    url: UriReference
+    description: str | None = None
+
+
+@dataclass
+class XML(ExtensionMixIn):
+    nodeType: Literal["element", "attribute", "text", "cdata", "none"] | None = None
+    name: str | None = None
+    namespace: str | None = None  # TODO: iri format
+    prefix: str | None = None
+    attribute: bool | None = None
+    wrapped: bool | None = None
+
+
 @dataclass
 class JsonSchema:
     _anchor: Anchor | None = field(default=None, metadata=Metadata(alias="$anchor"))
@@ -99,6 +127,10 @@ class JsonSchema:
     unevaluatedProperties: FullJsonSchema | None = None
     uniqueItems: bool = False
     writeOnly: bool = False
+    # OpenAPI Dialect
+    discriminator: Discriminator | None = None
+    externalDocs: ExternalDocs | None = None
+    xml: XML | None = None
     # deprecated properties
     _recursiveAnchor: Anchor | None = field(
         default=None, metadata=Metadata(alias="$recursiveAnchor")
@@ -108,3 +140,6 @@ class JsonSchema:
     )
     definitions: dict[str, FullJsonSchema] = field(default_factory=dict)
     dependencies: dict[str, FullJsonSchema | StringArray] = field(default_factory=dict)
+    # deprecated OpenAPI Dialect
+    example: Any = Missing
+    nullable: bool = False
