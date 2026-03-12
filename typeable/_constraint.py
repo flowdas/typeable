@@ -1,10 +1,12 @@
 import re
 from collections.abc import Callable, Mapping, Sequence
-from dataclasses import dataclass, is_dataclass
+from dataclasses import dataclass, fields, is_dataclass
 from datetime import datetime, time
 from importlib import import_module
 from inspect import signature
 from typing import Any, Literal, get_args, get_origin
+
+from ._typecast import _BEFORE, _META_ALIAS
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -42,6 +44,20 @@ class Constraint:
         elif isinstance(other, Constraint):
             return AnyOf((self, other))
         return NotImplemented
+
+
+def enforce_constraints(obj, *args: Constraint) -> bool:
+    if not is_dataclass(obj):
+        raise TypeError("obj MUST be a dataclass.")
+    before = _BEFORE.get()
+    if before is not None:
+        for arg in args:
+            if not isinstance(arg, Constraint):
+                raise TypeError("arg MUST be a Constraint.")
+            if not arg(obj, before):
+                raise ValueError(f"Constraint {arg!r} failed")
+        return True
+    return False
 
 
 @dataclass(frozen=True)
@@ -222,6 +238,69 @@ class MinProperties(Constraint):
 
 
 @dataclass(frozen=True)
+class HasConstraint(Constraint):
+    names: tuple[str, ...]
+
+    def _evaluate(self, val: Mapping, names) -> bool:
+        raise NotImplementedError
+
+    def evaluate(self, val, before) -> bool | None:
+        if isinstance(val, Mapping):
+            return self._evaluate(val, self.names)
+        elif is_dataclass(val) and isinstance(before, Mapping):
+            aliases = {
+                f.name: (f.metadata or {}).get(_META_ALIAS, f.name) for f in fields(val)
+            }
+            names = [aliases.get(name) for name in self.names]
+            return self._evaluate(before, names)
+
+
+@dataclass(frozen=True)
+class HasAny(HasConstraint):
+    def _evaluate(self, val: Mapping, names) -> bool:
+        return any(map(lambda x: x in val, names))
+
+    def __repr__(self) -> str:
+        return f"Value.hasAny({self.names})"
+
+
+@dataclass(frozen=True)
+class HasOne(HasConstraint):
+    def _evaluate(self, val: Mapping, names) -> bool:
+        return sum(map(lambda x: x in val, names)) == 1
+
+    def __repr__(self) -> str:
+        return f"Value.hasOne({self.names})"
+
+
+@dataclass(frozen=True)
+class HasNotAll(HasConstraint):
+    def _evaluate(self, val: Mapping, names) -> bool:
+        return not all(map(lambda x: x in val, names))
+
+    def __repr__(self) -> str:
+        return f"Value.hasNotAll({self.names})"
+
+
+_none = object()
+
+
+@dataclass(frozen=True)
+class HasConst(Constraint):
+    name: str
+    const: Any
+
+    def evaluate(self, val, before) -> bool | None:
+        if isinstance(val, Mapping):
+            return val.get(self.name, _none) == self.const
+        elif is_dataclass(val):
+            return getattr(val, self.name, _none) == self.const
+
+    def __repr__(self) -> str:
+        return f'Value.hasConst("{self.name}", {self.const!r})'
+
+
+@dataclass(frozen=True)
 class MultipleOf(Constraint):
     multipleOf: int | float
 
@@ -380,7 +459,7 @@ class ImportPath(Constraint):
         return f"Value.importPath({self.spec})"
 
 
-FormatLiteral = Literal["email", "regex", "uri", "uri-reference"]
+FormatLiteral = Literal["email", "media-range", "regex", "uri", "uri-reference"]
 
 # https://jmrware.com/articles/2009/uri_regexp/URI_regex.html
 re_python_rfc3986_URI = re.compile(
@@ -527,6 +606,12 @@ re_python_rfc5322_email_simplified = re.compile(
     $ """,
     re.VERBOSE,
 )
+re_python_rfc9110_media_range = re.compile(
+    r""" ^
+    (\*|\w[\w!#$%&'*+-.^_`|~-]*)\/(\*|\w[\w!#$%&'*+-.^_`|~-]*)(?:\s*;\s*.*)?
+    $ """,
+    re.VERBOSE,
+)
 
 
 @dataclass(frozen=True)
@@ -538,6 +623,8 @@ class Format(Constraint):
             match self.format:
                 case "email":
                     return re_python_rfc5322_email_simplified.match(val) is not None
+                case "media-range":
+                    return re_python_rfc9110_media_range.match(val) is not None
                 case "regex":
                     try:
                         re.compile(val)
@@ -584,6 +671,18 @@ class _ValueType:
 
     def format(self, format: FormatLiteral, *, quiet: bool = False) -> Constraint:
         return Format(format, quiet=quiet)
+
+    def hasAny(self, name: str, *names: str, quiet: bool = False) -> Constraint:
+        return HasAny((name,) + names, quiet=quiet)
+
+    def hasConst(self, name: str, const: Any, quiet: bool = False) -> Constraint:
+        return HasConst(name, const, quiet=quiet)
+
+    def hasNotAll(self, name: str, *names: str, quiet: bool = False) -> Constraint:
+        return HasNotAll((name,) + names, quiet=quiet)
+
+    def hasOne(self, name: str, *names: str, quiet: bool = False) -> Constraint:
+        return HasOne((name,) + names, quiet=quiet)
 
     def importPath(self, spec=None, *, quiet: bool = False) -> Constraint:
         return ImportPath(spec, quiet=quiet)

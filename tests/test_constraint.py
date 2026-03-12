@@ -1,10 +1,11 @@
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 import operator
 from typing import Annotated
 
 import pytest
 
-from typeable import typecast
+from typeable import Metadata, enforce_constraints, typecast
 from typeable._constraint import (
     ExclusiveMaximum,
     ExclusiveMinimum,
@@ -22,6 +23,28 @@ def test_quiet():
 
     with pytest.raises(TypeError):
         typecast(Annotated[str, V.validate(func)], "hello")
+
+
+def test_enforce_constraints():
+    @dataclass
+    class X:
+        i: int = 0
+
+    @dataclass
+    class Y:
+        i: int = 0
+
+        def __post_init__(self):
+            enforce_constraints(self, V.minProperties(1))
+
+    assert typecast(X, {"i": 1}) == X(i=1)
+    assert typecast(X, {"i": 0}) == X(i=0)
+    assert typecast(X, {}) == X(i=0)
+
+    assert typecast(Y, {"i": 1}) == Y(i=1)
+    assert typecast(Y, {"i": 0}) == Y(i=0)
+    with pytest.raises(ValueError):
+        typecast(Y, {})
 
 
 @pytest.mark.parametrize(
@@ -167,6 +190,127 @@ def test_MaxProperties(T, val):
         typecast(Annotated[T, V.maxProperties(4)], val)
 
 
+def test_HasAny():
+    assert typecast(Annotated[dict, V.hasAny("i", "j")], {"i": 0, "j": 0}) == {
+        "i": 0,
+        "j": 0,
+    }
+    assert typecast(Annotated[dict, V.hasAny("i", "j")], {"i": 0}) == {"i": 0}
+    assert typecast(Annotated[dict, V.hasAny("i", "j")], {"j": 0}) == {"j": 0}
+    with pytest.raises(ValueError):
+        typecast(Annotated[dict, V.hasAny("i", "j")], {})
+
+    @dataclass
+    class X:
+        i: int = 0
+        j: int = 0
+
+    assert typecast(Annotated[X, V.hasAny("i", "j")], {"i": 0, "j": 0}) == X()
+    assert typecast(Annotated[X, V.hasAny("i", "j")], {"i": 0}) == X()
+    assert typecast(Annotated[X, V.hasAny("i", "j")], {"j": 0}) == X()
+    with pytest.raises(ValueError):
+        typecast(Annotated[X, V.hasAny("i", "j")], {})
+
+
+def test_HasAny_alias():
+    @dataclass
+    class X:
+        i: int = field(default=0, metadata=Metadata(alias="$i"))
+        j: int = 0
+
+    assert typecast(Annotated[X, V.hasAny("i", "j")], {"$i": 0, "j": 0}) == X()
+    assert typecast(Annotated[X, V.hasAny("i", "j")], {"$i": 0}) == X()
+    assert typecast(Annotated[X, V.hasAny("i", "j")], {"j": 0}) == X()
+    with pytest.raises(ValueError):
+        typecast(Annotated[X, V.hasAny("i", "j")], {})
+
+
+def test_HasOne():
+    with pytest.raises(ValueError):
+        typecast(Annotated[dict, V.hasOne("i", "j")], {"i": 0, "j": 0})
+    assert typecast(Annotated[dict, V.hasOne("i", "j")], {"i": 0}) == {"i": 0}
+    assert typecast(Annotated[dict, V.hasOne("i", "j")], {"j": 0}) == {"j": 0}
+    with pytest.raises(ValueError):
+        typecast(Annotated[dict, V.hasOne("i", "j")], {})
+
+    @dataclass
+    class X:
+        i: int = 0
+        j: int = 0
+
+    with pytest.raises(ValueError):
+        typecast(Annotated[X, V.hasOne("i", "j")], {"i": 0, "j": 0})
+    assert typecast(Annotated[X, V.hasOne("i", "j")], {"i": 0}) == X()
+    assert typecast(Annotated[X, V.hasOne("i", "j")], {"j": 0}) == X()
+    with pytest.raises(ValueError):
+        typecast(Annotated[X, V.hasOne("i", "j")], {})
+
+
+def test_HasOne_alias():
+    @dataclass
+    class X:
+        i: int = field(default=0, metadata=Metadata(alias="$i"))
+        j: int = 0
+
+    with pytest.raises(ValueError):
+        typecast(Annotated[X, V.hasOne("i", "j")], {"$i": 0, "j": 0})
+    assert typecast(Annotated[X, V.hasOne("i", "j")], {"$i": 0}) == X()
+    assert typecast(Annotated[X, V.hasOne("i", "j")], {"j": 0}) == X()
+    with pytest.raises(ValueError):
+        typecast(Annotated[X, V.hasOne("i", "j")], {})
+
+
+def test_HasNotAll():
+    with pytest.raises(ValueError):
+        typecast(Annotated[dict, V.hasNotAll("i", "j")], {"i": 0, "j": 0})
+    assert typecast(Annotated[dict, V.hasNotAll("i", "j")], {"i": 0}) == {"i": 0}
+    assert typecast(Annotated[dict, V.hasNotAll("i", "j")], {"j": 0}) == {"j": 0}
+    assert typecast(Annotated[dict, V.hasNotAll("i", "j")], {}) == {}
+
+    @dataclass
+    class X:
+        i: int = 0
+        j: int = 0
+
+    with pytest.raises(ValueError):
+        typecast(Annotated[X, V.hasNotAll("i", "j")], {"i": 0, "j": 0})
+    assert typecast(Annotated[X, V.hasNotAll("i", "j")], {"i": 0}) == X()
+    assert typecast(Annotated[X, V.hasNotAll("i", "j")], {"j": 0}) == X()
+    assert typecast(Annotated[X, V.hasNotAll("i", "j")], {}) == X()
+
+
+def test_HasNotAll_alias():
+    @dataclass
+    class X:
+        i: int = field(default=0, metadata=Metadata(alias="$i"))
+        j: int = 0
+
+    with pytest.raises(ValueError):
+        typecast(Annotated[X, V.hasNotAll("i", "j")], {"$i": 0, "j": 0})
+    assert typecast(Annotated[X, V.hasNotAll("i", "j")], {"$i": 0}) == X()
+    assert typecast(Annotated[X, V.hasNotAll("i", "j")], {"j": 0}) == X()
+    assert typecast(Annotated[X, V.hasNotAll("i", "j")], {}) == X()
+
+
+def test_HasConst():
+    assert typecast(Annotated[dict, V.hasConst("i", 0)], {"i": 0}) == {
+        "i": 0,
+    }
+    with pytest.raises(ValueError):
+        typecast(Annotated[dict, V.hasConst("i", 0)], {})
+    with pytest.raises(ValueError):
+        typecast(Annotated[dict, V.hasConst("i", 0)], {"i": ""})
+
+    @dataclass
+    class X:
+        i: int = 0
+
+    assert typecast(Annotated[X, V.hasConst("i", 0)], {"i": 0}) == X()
+    assert typecast(Annotated[X, V.hasConst("i", 0)], {}) == X()
+    with pytest.raises(ValueError):
+        typecast(Annotated[X, V.hasConst("i", 0)], {"i": 1})
+
+
 @pytest.mark.parametrize(
     "T, val",
     [
@@ -261,6 +405,7 @@ def test_Validator():
     "format, val",
     [
         ("email", "random+test@gmail.com"),
+        ("media-range", "text/*;q=0.3"),
         ("regex", "^x-"),
         ("uri", "https://json-schema.org/draft/2020-12/schema"),
         ("uri-reference", "https://json-schema.org/draft/2020-12/meta/core"),
@@ -276,6 +421,7 @@ def test_Format_valid(format, val):
     "format, val",
     [
         ("email", "@gmail.com"),
+        ("media-range", "*"),
         ("regex", "([a-z]+$"),
         ("uri", "https//json-schema.org/draft/2020-12/schema"),
         ("uri-reference", "https //json-schema.org/draft/2020-12/meta/core"),

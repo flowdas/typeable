@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Annotated, Any, Literal
 
-from typeable import Metadata, Missing, V, identity, polymorphic
+from typeable import Metadata, Missing, V, enforce_constraints, identity, polymorphic
 from typeable.schemas.jsonschema import JsonSchema, Uri
 
 PATH1_PATTERN = "^(?=^[^./~])(^((?!\\.{2}).)*$).*$"
@@ -46,10 +46,7 @@ class License1(License):
     path: Path1 | None = None
 
     def __post_init__(self):
-        if self.name is None and self.path is None:
-            raise TypeError(
-                "The License object MUST contain a name property and/or a path property."
-            )
+        enforce_constraints(self, V.hasAny("name", "path"))
 
 
 @dataclass
@@ -57,10 +54,7 @@ class License2(License):
     path: Path2 | None = None
 
     def __post_init__(self):
-        if self.name is None and self.path is None:
-            raise TypeError(
-                "The License object MUST contain a name property and/or a path property."
-            )
+        enforce_constraints(self, V.hasAny("name", "path"))
 
 
 @dataclass(kw_only=True)
@@ -693,10 +687,7 @@ class DataResource1(DataResource):
     sources: list[Annotated[Source1, V.minProperties(1)]] | None = None
 
     def __post_init__(self):
-        if self.path is None and self.data is Missing:
-            raise TypeError(
-                "The DataResource object MUST contain one (and only one) of path or data properties."
-            )
+        enforce_constraints(self, V.hasOne("data", "path"))
 
 
 @identity("https://datapackage.org/profiles/2.0/dataresource.json")
@@ -711,10 +702,7 @@ class DataResource2(DataResource):
     type: Literal["table"] | None = None
 
     def __post_init__(self):
-        if self.path is None and self.data is Missing:
-            raise TypeError(
-                "The DataResource object MUST contain one (and only one) of path or data properties."
-            )
+        enforce_constraints(self, V.hasOne("data", "path"))
 
 
 @polymorphic(on="_schema")

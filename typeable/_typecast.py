@@ -1,13 +1,14 @@
 import dataclasses
-from datetime import date, datetime
 import inspect
-from re import search
 import sys
 from abc import ABC, get_cache_token
 from collections.abc import Callable, Mapping
 from contextlib import contextmanager
+from contextvars import ContextVar
 from dataclasses import MISSING, Field, dataclass, fields, is_dataclass
+from datetime import date, datetime
 from functools import _compose_mro, _find_impl  # type: ignore
+from re import search
 from types import NoneType
 from typing import (
     Any,
@@ -102,6 +103,8 @@ _TYPES = "__types__"
 _META_ALIAS = "alias"
 _META_EXTRA = "extra"
 _META_HIDE = "hide"
+
+_BEFORE = ContextVar("before", default=None)
 
 
 class Metadata(TypedDict, total=False):
@@ -452,7 +455,12 @@ class Typecast:
             pass
 
         # callable 을 호출한다.
-        ret = func(*args, **kwargs)
+        token = _BEFORE.set(val)
+        try:
+            ret = func(*args, **kwargs)
+        finally:
+            _BEFORE.reset(token)
+
         if validate_return and sig.return_annotation != empty:
             return_type = ann["return"]
             with traverse("return"):
