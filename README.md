@@ -24,7 +24,7 @@ Typeable requires Python 3.10+.
 Installation:
 
 ```
-pip install typeable==1.0.0a4
+pip install typeable
 ```
 
 ## Supported Types
