@@ -1,8 +1,7 @@
 """JSON Schema 2020-12"""
 
-import sys
 from dataclasses import dataclass, field
-from typing import Annotated, Any, ForwardRef, Literal
+from typing import Annotated, Any, ForwardRef, Literal, Union
 
 from typeable import Metadata, Missing, V
 
@@ -17,12 +16,7 @@ Uri = Annotated[str, V.format("uri")]
 UriReference = Annotated[str, V.format("uri-reference")]
 
 JsonSchema = ForwardRef("JsonSchema")  # type: ignore
-if sys.version_info >= (3, 11):
-    FullJsonSchema = JsonSchema | bool
-else:
-    from typing import Union
-
-    FullJsonSchema = Union[JsonSchema, bool]
+FullJsonSchema = Union[JsonSchema, bool]  # Union for 3.10 compatibility
 SchemaArray = Annotated[list[FullJsonSchema], V.minItems(1)]
 
 

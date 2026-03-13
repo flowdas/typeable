@@ -1,8 +1,7 @@
 """OpenAPI 3.2 Schema"""
 
 from dataclasses import dataclass, field
-import sys
-from typing import Annotated, Any, ForwardRef, Literal
+from typing import Annotated, Any, ForwardRef, Literal, Optional, Union
 
 from typeable import Metadata, Missing, V, enforce_constraints, identity, polymorphic
 from typeable.schemas.jsonschema import (
@@ -82,14 +81,10 @@ class SecuritySchemeReference(Reference):
 
 
 MediaType = ForwardRef("MediaType")  # type: ignore
-if sys.version_info >= (3, 11):
-    MediaTypeOrReference = MediaTypeReference | MediaType
-else:
-    from typing import Union
 
-    MediaTypeOrReference = Union[MediaTypeReference, MediaType]
-
-Content = dict[MediaRange, MediaTypeOrReference]
+Content = dict[
+    MediaRange, Union[MediaTypeReference, MediaType]
+]  # Union for 3.10 compatibility
 SingleContent = Annotated[Content, V.minProperties(1), V.maxProperties(1)]
 
 
@@ -181,12 +176,6 @@ class Header(ExtensionMixIn, ExamplesMixIn):
 
 
 Encoding = ForwardRef("Encoding")  # type: ignore
-if sys.version_info >= (3, 11):
-    OptionalEncoding = Encoding | None
-else:
-    from typing import Optional
-
-    OptionalEncoding = Optional[Encoding]
 
 
 @dataclass
@@ -200,7 +189,7 @@ class Encoding(ExtensionMixIn):
     allowReserved: bool | None = None
     encoding: dict[str, Encoding] | None = None
     prefixEncoding: list[Encoding] | None = None
-    itemEncoding: OptionalEncoding = None
+    itemEncoding: Optional[Encoding] = None  # Optional for 3.10 compatibility
 
     def __post_init__(self):
         if enforce_constraints(
