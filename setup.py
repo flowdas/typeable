@@ -31,6 +31,7 @@ setup(
     packages=[
         "typeable",
         "typeable._casters",
+        "typeable.schemas",
     ],
     setup_requires=setup_requires,
     install_requires=install_requires,

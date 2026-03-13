@@ -1,8 +1,8 @@
-from dataclasses import dataclass, is_dataclass
+from dataclasses import dataclass, field, is_dataclass
 
 import pytest
 
-from typeable import capture, identity, localcontext, polymorphic, typecast
+from typeable import Metadata, capture, identity, localcontext, polymorphic, typecast
 
 
 def test_polymorphic_with_plain_class():
@@ -310,7 +310,7 @@ def test_alias():
     @polymorphic(on="_schema")
     @dataclass
     class JsonSchema:
-        _schema: str = typecast.field(alias="$schema")
+        _schema: str = field(metadata=Metadata(alias="$schema"))
 
     @identity("https://json-schema.org/draft/2020-12/schema")
     @dataclass

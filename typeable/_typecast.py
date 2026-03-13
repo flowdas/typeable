@@ -1,18 +1,20 @@
 import dataclasses
-from datetime import date, datetime
 import inspect
-from re import search
 import sys
 from abc import ABC, get_cache_token
 from collections.abc import Callable, Mapping
 from contextlib import contextmanager
+from contextvars import ContextVar
 from dataclasses import MISSING, Field, dataclass, fields, is_dataclass
+from datetime import date, datetime
 from functools import _compose_mro, _find_impl  # type: ignore
+from re import search
 from types import NoneType
 from typing import (
     Any,
     ForwardRef,
     TypeVar,
+    TypedDict,
     cast,
     get_args,
     get_origin,
@@ -23,6 +25,22 @@ from typing import (
 from ._context import Context, getcontext
 from ._error import traverse
 from ._polymorphic import Polymorphic
+
+#
+# Missing
+#
+
+
+class MissingType:
+    _instance = None
+
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+        return cls._instance
+
+
+Missing = MissingType()
 
 #
 # declare
@@ -85,6 +103,14 @@ _TYPES = "__types__"
 _META_ALIAS = "alias"
 _META_EXTRA = "extra"
 _META_HIDE = "hide"
+
+_BEFORE = ContextVar("before", default=None)
+
+
+class Metadata(TypedDict, total=False):
+    alias: str
+    extra: str | bool
+    hide: bool
 
 
 def _get_type_args(tp):
@@ -429,65 +455,17 @@ class Typecast:
             pass
 
         # callable 을 호출한다.
-        ret = func(*args, **kwargs)
+        token = _BEFORE.set(val)
+        try:
+            ret = func(*args, **kwargs)
+        finally:
+            _BEFORE.reset(token)
+
         if validate_return and sig.return_annotation != empty:
             return_type = ann["return"]
             with traverse("return"):
                 ret = self(return_type, ret)
         return ret
-
-    def field(
-        self,
-        *,
-        default=MISSING,
-        default_factory=MISSING,
-        init=True,
-        repr=True,
-        hash=None,
-        compare=True,
-        metadata=None,
-        kw_only=MISSING,
-        doc=None,
-        alias: str | None = None,
-        extra: str | bool = False,
-        hide: bool = False,
-    ) -> Any:
-        kwargs = {}
-        if metadata is None:
-            metadata = {}
-        else:
-            metadata = metadata.copy()
-        if doc is not None:
-            if sys.version_info < (3, 14):
-                metadata["doc"] = doc
-            else:
-                kwargs["doc"] = doc
-        if alias is None:
-            alias = metadata.pop(_META_ALIAS, None)
-        if alias is not None:
-            if not isinstance(alias, str):
-                raise TypeError(f"The alias must be a str: {alias!r}")
-            metadata[_META_ALIAS] = alias
-        if extra is False:
-            extra = metadata.pop(_META_EXTRA, False)
-        if extra is not False:
-            if not isinstance(extra, (str, bool)):
-                raise TypeError(f"The extra must be a str|bool: {extra!r}")
-            metadata[_META_EXTRA] = extra
-        hide = hide or metadata.pop(_META_HIDE, False)
-        if hide:
-            metadata[_META_HIDE] = True
-        return dataclasses.field(
-            default=default,
-            default_factory=default_factory,
-            init=init,
-            repr=repr,
-            hash=hash,
-            compare=compare,
-            metadata=(metadata or None),
-            kw_only=kw_only,
-            **kwargs,
-        )
 
     def get_unioncast(self, args: tuple[type, ...]) -> Unioncast:
         try:

@@ -3,7 +3,15 @@ from typing import Literal
 
 import pytest
 
-from typeable import capture, localcontext, typecast
+from typeable import (
+    JsonValue,
+    Metadata,
+    Missing,
+    MissingType,
+    capture,
+    localcontext,
+    typecast,
+)
 
 
 def test_cast():
@@ -159,7 +167,7 @@ def test_alias():
 
     @dataclass
     class X:
-        _schema: str = typecast.field(alias="$schema")
+        _schema: str = field(metadata=Metadata(alias="$schema"))
 
     data = {"$schema": "https://json-schema.org/draft/2020-12/schema"}
     x = typecast(X, data)
@@ -173,12 +181,26 @@ def test_hide():
     @dataclass
     class X:
         id: str
-        password: str = typecast.field(hide=True)
+        password: str = field(metadata=Metadata(hide=True))
 
     data = {"id": "id", "password": "password"}
     x = typecast(X, data)
     assert x.password == "password"
     assert typecast(dict, x) == {"id": "id"}
+
+
+def test_Missing():
+    """dict 로 표현될 때 Missing 은 생략된다."""
+
+    @dataclass
+    class X:
+        i: JsonValue | MissingType = Missing
+
+    x = X(i=None)
+    assert typecast(dict, x) == {"i": None}
+
+    x = X()
+    assert typecast(dict, x) == {}
 
 
 def test_hide_default_none():
@@ -229,7 +251,7 @@ def test_extra_simple():
     @dataclass
     class X:
         i: int
-        extra: dict = typecast.field(extra=True)
+        extra: dict = field(metadata=Metadata(extra=True))
 
     data = {"i": 0, "j": 1, 0: 0}
 
@@ -246,8 +268,8 @@ def test_extra_pattern():
     class X:
         S_: dict = field(metadata={"extra": "^S_"})
         i: int
-        x: dict[str, int] = typecast.field(extra="^x-")
-        ext: dict = typecast.field(extra=True)
+        x: dict[str, int] = field(metadata=Metadata(extra="^x-"))
+        ext: dict = field(metadata=Metadata(extra=True))
 
     data = {
         "i": 0,

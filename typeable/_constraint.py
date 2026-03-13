@@ -1,12 +1,30 @@
-from dataclasses import dataclass
-from re import search
-from typing import Any, Callable
+import re
+from collections.abc import Callable, Mapping, Sequence
+from dataclasses import dataclass, fields, is_dataclass
+from datetime import datetime, time
+from importlib import import_module
+from inspect import signature
+from typing import Any, Literal, get_args, get_origin
+
+from ._typecast import _BEFORE, _META_ALIAS
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True, kw_only=True)
 class Constraint:
-    def __call__(self, val) -> bool:
+    quiet: bool = False
+
+    def evaluate(self, val, before) -> bool | None:
         raise NotImplementedError
+
+    def __call__(self, val, before) -> bool:
+        ret = self.evaluate(val, before)
+        if ret is None:
+            if self.quiet:
+                return True
+            raise TypeError(
+                f"'{self!r}' is not applicable to {val.__class__.__qualname__}."
+            )
+        return ret
 
     def __bool__(self):
         raise RuntimeError(
@@ -28,15 +46,29 @@ class Constraint:
         return NotImplemented
 
 
-@dataclass(slots=True)
+def enforce_constraints(obj, *args: Constraint) -> bool:
+    if not is_dataclass(obj):
+        raise TypeError("obj MUST be a dataclass.")
+    before = _BEFORE.get()
+    if before is not None:
+        for arg in args:
+            if not isinstance(arg, Constraint):
+                raise TypeError("arg MUST be a Constraint.")
+            if not arg(obj, before):
+                raise ValueError(f"Constraint {arg!r} failed")
+        return True
+    return False
+
+
+@dataclass(frozen=True)
 class Combined(Constraint):
     args: tuple[Constraint, ...]
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True)
 class AllOf(Combined):
-    def __call__(self, val) -> bool:
-        return all(arg(val) for arg in self.args)
+    def evaluate(self, val, before) -> bool | None:
+        return all(arg(val, before) for arg in self.args)
 
     def __repr__(self) -> str:
         return " & ".join(f"({arg!r})" for arg in self.args)
@@ -49,10 +81,10 @@ class AllOf(Combined):
         return NotImplemented
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True)
 class AnyOf(Combined):
-    def __call__(self, val) -> bool:
-        return any(arg(val) for arg in self.args)
+    def evaluate(self, val, before) -> bool | None:
+        return any(arg(val, before) for arg in self.args)
 
     def __repr__(self) -> str:
         return " | ".join(f"({arg!r})" for arg in self.args)
@@ -65,141 +97,545 @@ class AnyOf(Combined):
         return NotImplemented
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True)
 class Not(Constraint):
     arg: Constraint
 
-    def __call__(self, val) -> bool:
-        return not self.arg(val)
+    def evaluate(self, val, before) -> bool | None:
+        if isinstance(self.arg, Constraint):
+            return not self.arg(val, before)
 
     def __repr__(self) -> str:
         return f"~({self.arg!r})"
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True)
 class ExclusiveMinimum(Constraint):
     exclusiveMinimum: int | float
 
-    def __call__(self, val: int | float) -> bool:
-        return val > self.exclusiveMinimum
+    def evaluate(self, val, before) -> bool | None:
+        if isinstance(val, (int, float)):
+            return val > self.exclusiveMinimum
 
     def __repr__(self) -> str:
         return f"Value > {self.exclusiveMinimum}"
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True)
 class Minimum(Constraint):
     minimum: int | float
 
-    def __call__(self, val: int | float) -> bool:
-        return val >= self.minimum
+    def evaluate(self, val, before) -> bool | None:
+        if isinstance(val, (int, float)):
+            return val >= self.minimum
 
     def __repr__(self) -> str:
         return f"Value >= {self.minimum}"
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True)
 class ExclusiveMaximum(Constraint):
     exclusiveMaximum: int | float
 
-    def __call__(self, val: int | float) -> bool:
-        return val < self.exclusiveMaximum
+    def evaluate(self, val, before) -> bool | None:
+        if isinstance(val, (int, float)):
+            return val < self.exclusiveMaximum
 
     def __repr__(self) -> str:
         return f"Value < {self.exclusiveMaximum}"
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True)
 class Maximum(Constraint):
     maximum: int | float
 
-    def __call__(self, val: int | float) -> bool:
-        return val <= self.maximum
+    def evaluate(self, val, before) -> bool | None:
+        if isinstance(val, (int, float)):
+            return val <= self.maximum
 
     def __repr__(self) -> str:
         return f"Value <= {self.maximum}"
 
 
-@dataclass(slots=True)
-class MinLength(Constraint):
-    minLength: int
-
-    def __call__(self, val: str | dict | list | tuple) -> bool:
-        return len(val) >= self.minLength
-
-    def __repr__(self) -> str:
-        return f"Value.length >= {self.minLength}"
-
-
-@dataclass(slots=True)
+@dataclass(frozen=True)
 class MaxLength(Constraint):
     maxLength: int
 
-    def __call__(self, val: str | dict | list | tuple) -> bool:
-        return len(val) <= self.maxLength
+    def evaluate(self, val, before) -> bool | None:
+        if isinstance(val, (str, bytes, bytearray, memoryview)):
+            return len(val) <= self.maxLength
 
     def __repr__(self) -> str:
-        return f"Value.length <= {self.maxLength}"
+        return f"Value.maxLength({self.maxLength})"
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True)
+class MinLength(Constraint):
+    minLength: int
+
+    def evaluate(self, val, before) -> bool | None:
+        if isinstance(val, (str, bytes, bytearray, memoryview)):
+            return len(val) >= self.minLength
+
+    def __repr__(self) -> str:
+        return f"Value.minLength({self.minLength})"
+
+
+@dataclass(frozen=True)
+class MaxItems(Constraint):
+    maxItems: int
+
+    def evaluate(self, val, before) -> bool | None:
+        if isinstance(val, Sequence) and not isinstance(
+            val, (str, bytes, bytearray, memoryview)
+        ):
+            return len(val) <= self.maxItems
+
+    def __repr__(self) -> str:
+        return f"Value.maxItems({self.maxItems})"
+
+
+@dataclass(frozen=True)
+class MinItems(Constraint):
+    minItems: int
+
+    def evaluate(self, val, before) -> bool | None:
+        if isinstance(val, Sequence) and not isinstance(
+            val, (str, bytes, bytearray, memoryview)
+        ):
+            return len(val) >= self.minItems
+
+    def __repr__(self) -> str:
+        return f"Value.minItems({self.minItems})"
+
+
+@dataclass(frozen=True)
+class MaxProperties(Constraint):
+    maxProperties: int
+
+    def evaluate(self, val, before) -> bool | None:
+        if isinstance(val, Mapping):
+            return len(val) <= self.maxProperties
+        elif is_dataclass(val) and isinstance(before, Mapping):
+            return len(before) <= self.maxProperties
+
+    def __repr__(self) -> str:
+        return f"Value.maxProperties({self.maxProperties})"
+
+
+@dataclass(frozen=True)
+class MinProperties(Constraint):
+    minProperties: int
+
+    def evaluate(self, val, before) -> bool | None:
+        if isinstance(val, Mapping):
+            return len(val) >= self.minProperties
+        elif is_dataclass(val) and isinstance(before, Mapping):
+            return len(before) >= self.minProperties
+
+    def __repr__(self) -> str:
+        return f"Value.minProperties({self.minProperties})"
+
+
+@dataclass(frozen=True)
+class HasConstraint(Constraint):
+    names: tuple[str, ...]
+
+    def _evaluate(self, val: Mapping, names) -> bool:
+        raise NotImplementedError
+
+    def evaluate(self, val, before) -> bool | None:
+        if isinstance(val, Mapping):
+            return self._evaluate(val, self.names)
+        elif is_dataclass(val) and isinstance(before, Mapping):
+            aliases = {
+                f.name: (f.metadata or {}).get(_META_ALIAS, f.name) for f in fields(val)
+            }
+            names = [aliases.get(name) for name in self.names]
+            return self._evaluate(before, names)
+
+
+@dataclass(frozen=True)
+class HasAny(HasConstraint):
+    def _evaluate(self, val: Mapping, names) -> bool:
+        return any(map(lambda x: x in val, names))
+
+    def __repr__(self) -> str:
+        return f"Value.hasAny({self.names})"
+
+
+@dataclass(frozen=True)
+class HasOne(HasConstraint):
+    def _evaluate(self, val: Mapping, names) -> bool:
+        return sum(map(lambda x: x in val, names)) == 1
+
+    def __repr__(self) -> str:
+        return f"Value.hasOne({self.names})"
+
+
+@dataclass(frozen=True)
+class HasNotAll(HasConstraint):
+    def _evaluate(self, val: Mapping, names) -> bool:
+        return not all(map(lambda x: x in val, names))
+
+    def __repr__(self) -> str:
+        return f"Value.hasNotAll({self.names})"
+
+
+_none = object()
+
+
+@dataclass(frozen=True)
+class HasConst(Constraint):
+    name: str
+    const: Any
+
+    def evaluate(self, val, before) -> bool | None:
+        if isinstance(val, Mapping):
+            return val.get(self.name, _none) == self.const
+        elif is_dataclass(val):
+            return getattr(val, self.name, _none) == self.const
+
+    def __repr__(self) -> str:
+        return f'Value.hasConst("{self.name}", {self.const!r})'
+
+
+@dataclass(frozen=True)
 class MultipleOf(Constraint):
     multipleOf: int | float
 
-    def __call__(self, val: int | float) -> bool:
-        return val % self.multipleOf == 0
+    def evaluate(self, val, before) -> bool | None:
+        if isinstance(val, (int, float)):
+            return val % self.multipleOf == 0
 
     def __repr__(self) -> str:
         return f"Value.multipleOf({self.multipleOf})"
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True)
 class Pattern(Constraint):
     pattern: str
 
-    def __call__(self, val: str) -> bool:
-        return search(self.pattern, val) is not None
+    def evaluate(self, val, before) -> bool | None:
+        if isinstance(val, str):
+            return re.search(self.pattern, val) is not None
 
     def __repr__(self) -> str:
         return f"Value.pattern({self.pattern!r})"
 
 
-@dataclass(slots=True)
-class Validator(Constraint):
-    callable: Callable[[Any], bool]
+@dataclass(frozen=True)
+class UniqueItems(Constraint):
+    def evaluate(self, val, before) -> bool | None:
+        if isinstance(val, (list, tuple)):
+            last = object()
+            for v in sorted(val):
+                if last == v:
+                    return False
+                last = v
+            return True
 
-    def __call__(self, val) -> bool:
-        return self.callable(val)
+    def __repr__(self) -> str:
+        return "Value.uniqueItems()"
+
+
+@dataclass(frozen=True)
+class LocalTime(Constraint):
+    def evaluate(self, val, before) -> bool | None:
+        if isinstance(val, (datetime, time)):
+            return val.tzinfo is None
+
+    def __repr__(self) -> str:
+        return "Value.localTime()"
+
+
+@dataclass(frozen=True)
+class ZonedTime(Constraint):
+    def evaluate(self, val, before) -> bool | None:
+        if isinstance(val, (datetime, time)):
+            return val.tzinfo is not None
+
+    def __repr__(self) -> str:
+        return "Value.zonedTime()"
+
+
+@dataclass(frozen=True)
+class Validator(Constraint):
+    callable: Callable[[Any, Any], bool | None]
+
+    def evaluate(self, val, before) -> bool | None:
+        return self.callable(val, before)
 
     def __repr__(self) -> str:
         return f"Value.validate({self.callable!r})"
 
 
-class _LengthType:
-    def __gt__(self, other: int) -> Constraint:
-        if isinstance(other, int):
-            return MinLength(other + 1)
-        return NotImplemented
+def _import_fqn(val: str) -> Any:
+    spec = val.rsplit(".", maxsplit=1)
+    if len(spec) == 1:
+        modname = "builtins"
+        parts = spec
+    else:
+        modname = spec[0]
+        parts = [spec[1]]
+    if not (modname and parts[0]):
+        raise TypeError
+    while True:
+        try:
+            mod = import_module(modname)
+            break
+        except ModuleNotFoundError:
+            spec = modname.rsplit(".", maxsplit=1)
+            if len(spec) <= 1:
+                raise
+            modname = spec[0]
+            parts.append(spec[1])
+            continue
+    cls = mod
+    for part in reversed(parts):
+        cls = getattr(cls, part)
+    return cls
 
-    def __ge__(self, other: int) -> Constraint:
-        if isinstance(other, int):
-            return MinLength(other)
-        return NotImplemented
 
-    def __lt__(self, other: int) -> Constraint:
-        if isinstance(other, int):
-            return MaxLength(other - 1)
-        return NotImplemented
+def _type_from_str(val: str, T=None):
+    cls = _import_fqn(val)
+    if not isinstance(cls, type):
+        raise TypeError
+    if T and T is not Any and not issubclass(cls, T):
+        raise TypeError
+    return cls
 
-    def __le__(self, other: int) -> Constraint:
-        if isinstance(other, int):
-            return MaxLength(other)
-        return NotImplemented
 
-    def __eq__(self, other: int) -> Constraint:
-        if isinstance(other, int):
-            return MinLength(other) & MaxLength(other)
-        return NotImplemented
+def _Callable_from_object(val: object, PT=None, RT=None):
+    if not callable(val):
+        raise TypeError
+    if isinstance(PT, list):
+        # check only structural compatibility of arguments
+        sig = signature(val)
+        args = [None] * len(PT)
+        sig.bind(*args)  # may raise TypeError
+    return val
+
+
+def _Callable_from_str(val: str, PT=None, RT=None):
+    f = _import_fqn(val)
+    return _Callable_from_object(f, PT, RT)
+
+
+@dataclass(frozen=True)
+class ImportPath(Constraint):
+    spec: type | None = None
+
+    def __post_init__(self):
+        if self.spec:
+            origin = get_origin(self.spec) or self.spec
+            if origin not in {type, Callable}:
+                raise TypeError(
+                    f"Value.importPath() support only type or Callable, but {self.spec!r} given."
+                )
+
+    def evaluate(self, val, before) -> bool | None:
+        if isinstance(val, str):
+            if self.spec:
+                origin = get_origin(self.spec) or self.spec
+                if origin is type:
+                    try:
+                        _type_from_str(val, *get_args(self.spec))
+                    except Exception:
+                        return False
+                else:
+                    try:
+                        _Callable_from_str(val, *get_args(self.spec))
+                    except Exception:
+                        return False
+            else:
+                try:
+                    _import_fqn(val)
+                except Exception:
+                    return False
+            return True
+
+    def __repr__(self) -> str:
+        return f"Value.importPath({self.spec})"
+
+
+FormatLiteral = Literal["email", "media-range", "regex", "uri", "uri-reference"]
+
+# https://jmrware.com/articles/2009/uri_regexp/URI_regex.html
+re_python_rfc3986_URI = re.compile(
+    r""" ^
+    # RFC-3986 URI component:  URI
+    [A-Za-z][A-Za-z0-9+\-.]* :                                      # scheme ":"
+    (?: //                                                          # hier-part
+      (?: (?:[A-Za-z0-9\-._~!$&'()*+,;=:]|%[0-9A-Fa-f]{2})* @)?
+      (?:
+        \[
+        (?:
+          (?:
+            (?:                                                    (?:[0-9A-Fa-f]{1,4}:){6}
+            |                                                   :: (?:[0-9A-Fa-f]{1,4}:){5}
+            | (?:                            [0-9A-Fa-f]{1,4})? :: (?:[0-9A-Fa-f]{1,4}:){4}
+            | (?: (?:[0-9A-Fa-f]{1,4}:){0,1} [0-9A-Fa-f]{1,4})? :: (?:[0-9A-Fa-f]{1,4}:){3}
+            | (?: (?:[0-9A-Fa-f]{1,4}:){0,2} [0-9A-Fa-f]{1,4})? :: (?:[0-9A-Fa-f]{1,4}:){2}
+            | (?: (?:[0-9A-Fa-f]{1,4}:){0,3} [0-9A-Fa-f]{1,4})? ::    [0-9A-Fa-f]{1,4}:
+            | (?: (?:[0-9A-Fa-f]{1,4}:){0,4} [0-9A-Fa-f]{1,4})? ::
+            ) (?:
+                [0-9A-Fa-f]{1,4} : [0-9A-Fa-f]{1,4}
+              | (?: (?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?) \.){3}
+                    (?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)
+              )
+          |   (?: (?:[0-9A-Fa-f]{1,4}:){0,5} [0-9A-Fa-f]{1,4})? ::    [0-9A-Fa-f]{1,4}
+          |   (?: (?:[0-9A-Fa-f]{1,4}:){0,6} [0-9A-Fa-f]{1,4})? ::
+          )
+        | [Vv][0-9A-Fa-f]+\.[A-Za-z0-9\-._~!$&'()*+,;=:]+
+        )
+        \]
+      | (?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}
+           (?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)
+      | (?:[A-Za-z0-9\-._~!$&'()*+,;=]|%[0-9A-Fa-f]{2})*
+      )
+      (?: : [0-9]* )?
+      (?:/ (?:[A-Za-z0-9\-._~!$&'()*+,;=:@]|%[0-9A-Fa-f]{2})* )*
+    | /
+      (?:    (?:[A-Za-z0-9\-._~!$&'()*+,;=:@]|%[0-9A-Fa-f]{2})+
+        (?:/ (?:[A-Za-z0-9\-._~!$&'()*+,;=:@]|%[0-9A-Fa-f]{2})* )*
+      )?
+    |        (?:[A-Za-z0-9\-._~!$&'()*+,;=:@]|%[0-9A-Fa-f]{2})+
+        (?:/ (?:[A-Za-z0-9\-._~!$&'()*+,;=:@]|%[0-9A-Fa-f]{2})* )*
+    |
+    )
+    (?:\? (?:[A-Za-z0-9\-._~!$&'()*+,;=:@/?]|%[0-9A-Fa-f]{2})* )?   # [ "?" query ]
+    (?:\# (?:[A-Za-z0-9\-._~!$&'()*+,;=:@/?]|%[0-9A-Fa-f]{2})* )?   # [ "#" fragment ]
+    $ """,
+    re.VERBOSE,
+)
+re_python_rfc3986_URI_reference = re.compile(
+    r""" ^
+    # RFC-3986 URI component: URI-reference
+    (?:                                                               # (
+      [A-Za-z][A-Za-z0-9+\-.]* :                                      # URI
+      (?: //
+        (?: (?:[A-Za-z0-9\-._~!$&'()*+,;=:]|%[0-9A-Fa-f]{2})* @)?
+        (?:
+          \[
+          (?:
+            (?:
+              (?:                                                    (?:[0-9A-Fa-f]{1,4}:){6}
+              |                                                   :: (?:[0-9A-Fa-f]{1,4}:){5}
+              | (?:                            [0-9A-Fa-f]{1,4})? :: (?:[0-9A-Fa-f]{1,4}:){4}
+              | (?: (?:[0-9A-Fa-f]{1,4}:){0,1} [0-9A-Fa-f]{1,4})? :: (?:[0-9A-Fa-f]{1,4}:){3}
+              | (?: (?:[0-9A-Fa-f]{1,4}:){0,2} [0-9A-Fa-f]{1,4})? :: (?:[0-9A-Fa-f]{1,4}:){2}
+              | (?: (?:[0-9A-Fa-f]{1,4}:){0,3} [0-9A-Fa-f]{1,4})? ::    [0-9A-Fa-f]{1,4}:
+              | (?: (?:[0-9A-Fa-f]{1,4}:){0,4} [0-9A-Fa-f]{1,4})? ::
+              ) (?:
+                  [0-9A-Fa-f]{1,4} : [0-9A-Fa-f]{1,4}
+                | (?: (?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?) \.){3}
+                      (?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)
+                )
+            |   (?: (?:[0-9A-Fa-f]{1,4}:){0,5} [0-9A-Fa-f]{1,4})? ::    [0-9A-Fa-f]{1,4}
+            |   (?: (?:[0-9A-Fa-f]{1,4}:){0,6} [0-9A-Fa-f]{1,4})? ::
+            )
+          | [Vv][0-9A-Fa-f]+\.[A-Za-z0-9\-._~!$&'()*+,;=:]+
+          )
+          \]
+        | (?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}
+             (?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)
+        | (?:[A-Za-z0-9\-._~!$&'()*+,;=]|%[0-9A-Fa-f]{2})*
+        )
+        (?: : [0-9]* )?
+        (?:/ (?:[A-Za-z0-9\-._~!$&'()*+,;=:@]|%[0-9A-Fa-f]{2})* )*
+      | /
+        (?:    (?:[A-Za-z0-9\-._~!$&'()*+,;=:@]|%[0-9A-Fa-f]{2})+
+          (?:/ (?:[A-Za-z0-9\-._~!$&'()*+,;=:@]|%[0-9A-Fa-f]{2})* )*
+        )?
+      |        (?:[A-Za-z0-9\-._~!$&'()*+,;=:@]|%[0-9A-Fa-f]{2})+
+          (?:/ (?:[A-Za-z0-9\-._~!$&'()*+,;=:@]|%[0-9A-Fa-f]{2})* )*
+      |
+      )
+      (?:\? (?:[A-Za-z0-9\-._~!$&'()*+,;=:@/?]|%[0-9A-Fa-f]{2})* )?
+      (?:\# (?:[A-Za-z0-9\-._~!$&'()*+,;=:@/?]|%[0-9A-Fa-f]{2})* )?
+    | (?: //                                                          # / relative-ref
+        (?: (?:[A-Za-z0-9\-._~!$&'()*+,;=:]|%[0-9A-Fa-f]{2})* @)?
+        (?:
+          \[
+          (?:
+            (?:
+              (?:                                                    (?:[0-9A-Fa-f]{1,4}:){6}
+              |                                                   :: (?:[0-9A-Fa-f]{1,4}:){5}
+              | (?:                            [0-9A-Fa-f]{1,4})? :: (?:[0-9A-Fa-f]{1,4}:){4}
+              | (?: (?:[0-9A-Fa-f]{1,4}:){0,1} [0-9A-Fa-f]{1,4})? :: (?:[0-9A-Fa-f]{1,4}:){3}
+              | (?: (?:[0-9A-Fa-f]{1,4}:){0,2} [0-9A-Fa-f]{1,4})? :: (?:[0-9A-Fa-f]{1,4}:){2}
+              | (?: (?:[0-9A-Fa-f]{1,4}:){0,3} [0-9A-Fa-f]{1,4})? ::    [0-9A-Fa-f]{1,4}:
+              | (?: (?:[0-9A-Fa-f]{1,4}:){0,4} [0-9A-Fa-f]{1,4})? ::
+              ) (?:
+                  [0-9A-Fa-f]{1,4} : [0-9A-Fa-f]{1,4}
+                | (?: (?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?) \.){3}
+                      (?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)
+                )
+            |   (?: (?:[0-9A-Fa-f]{1,4}:){0,5} [0-9A-Fa-f]{1,4})? ::    [0-9A-Fa-f]{1,4}
+            |   (?: (?:[0-9A-Fa-f]{1,4}:){0,6} [0-9A-Fa-f]{1,4})? ::
+            )
+          | [Vv][0-9A-Fa-f]+\.[A-Za-z0-9\-._~!$&'()*+,;=:]+
+          )
+          \]
+        | (?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}
+             (?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)
+        | (?:[A-Za-z0-9\-._~!$&'()*+,;=]|%[0-9A-Fa-f]{2})*
+        )
+        (?: : [0-9]* )?
+        (?:/ (?:[A-Za-z0-9\-._~!$&'()*+,;=:@]|%[0-9A-Fa-f]{2})* )*
+      | /
+        (?:    (?:[A-Za-z0-9\-._~!$&'()*+,;=:@]|%[0-9A-Fa-f]{2})+
+          (?:/ (?:[A-Za-z0-9\-._~!$&'()*+,;=:@]|%[0-9A-Fa-f]{2})* )*
+        )?
+      |        (?:[A-Za-z0-9\-._~!$&'()*+,;=@] |%[0-9A-Fa-f]{2})+
+          (?:/ (?:[A-Za-z0-9\-._~!$&'()*+,;=:@]|%[0-9A-Fa-f]{2})* )*
+      |
+      )
+      (?:\? (?:[A-Za-z0-9\-._~!$&'()*+,;=:@/?]|%[0-9A-Fa-f]{2})* )?
+      (?:\# (?:[A-Za-z0-9\-._~!$&'()*+,;=:@/?]|%[0-9A-Fa-f]{2})* )?
+    )                                                                       # )
+    $ """,
+    re.VERBOSE,
+)
+
+re_python_rfc5322_email_simplified = re.compile(
+    r""" ^
+    [a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@
+    (?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?
+    $ """,
+    re.VERBOSE,
+)
+re_python_rfc9110_media_range = re.compile(
+    r""" ^
+    (\*|\w[\w!#$%&'*+-.^_`|~-]*)\/(\*|\w[\w!#$%&'*+-.^_`|~-]*)(?:\s*;\s*.*)?
+    $ """,
+    re.VERBOSE,
+)
+
+
+@dataclass(frozen=True)
+class Format(Constraint):
+    format: FormatLiteral
+
+    def evaluate(self, val, before) -> bool | None:
+        if isinstance(val, str):
+            match self.format:
+                case "email":
+                    return re_python_rfc5322_email_simplified.match(val) is not None
+                case "media-range":
+                    return re_python_rfc9110_media_range.match(val) is not None
+                case "regex":
+                    try:
+                        re.compile(val)
+                        return True
+                    except Exception:
+                        return False
+                case "uri":
+                    return re_python_rfc3986_URI.match(val) is not None
+                case "uri-reference":
+                    return re_python_rfc3986_URI_reference.match(val) is not None
+            return False
 
 
 class _ValueType:
@@ -223,18 +659,77 @@ class _ValueType:
             return Maximum(other)
         return NotImplemented
 
-    @property
-    def length(self):
-        return _LengthType()
+    def exclusiveMaximum(
+        self, exclusiveMaximum: int | float, *, quiet: bool = False
+    ) -> Constraint:
+        return ExclusiveMaximum(exclusiveMaximum, quiet=quiet)
 
-    def multipleOf(self, multipleOf: int | float) -> Constraint:
-        return MultipleOf(multipleOf)
+    def exclusiveMinimum(
+        self, exclusiveMinimum: int | float, *, quiet: bool = False
+    ) -> Constraint:
+        return ExclusiveMinimum(exclusiveMinimum, quiet=quiet)
 
-    def pattern(self, pattern: str) -> Constraint:
-        return Pattern(pattern)
+    def format(self, format: FormatLiteral, *, quiet: bool = False) -> Constraint:
+        return Format(format, quiet=quiet)
 
-    def validate(self, callable: Callable[[Any], bool]) -> Constraint:
-        return Validator(callable)
+    def hasAny(self, name: str, *names: str, quiet: bool = False) -> Constraint:
+        return HasAny((name,) + names, quiet=quiet)
+
+    def hasConst(self, name: str, const: Any, quiet: bool = False) -> Constraint:
+        return HasConst(name, const, quiet=quiet)
+
+    def hasNotAll(self, name: str, *names: str, quiet: bool = False) -> Constraint:
+        return HasNotAll((name,) + names, quiet=quiet)
+
+    def hasOne(self, name: str, *names: str, quiet: bool = False) -> Constraint:
+        return HasOne((name,) + names, quiet=quiet)
+
+    def importPath(self, spec=None, *, quiet: bool = False) -> Constraint:
+        return ImportPath(spec, quiet=quiet)
+
+    def localTime(self, *, quiet: bool = False) -> Constraint:
+        return LocalTime(quiet=quiet)
+
+    def maximum(self, maximum: int | float, *, quiet: bool = False) -> Constraint:
+        return Maximum(maximum, quiet=quiet)
+
+    def maxItems(self, maxItems: int, *, quiet: bool = False) -> Constraint:
+        return MaxItems(maxItems, quiet=quiet)
+
+    def maxLength(self, maxLength: int, *, quiet: bool = False) -> Constraint:
+        return MaxLength(maxLength, quiet=quiet)
+
+    def maxProperties(self, maxProperties: int, *, quiet: bool = False) -> Constraint:
+        return MaxProperties(maxProperties, quiet=quiet)
+
+    def minimum(self, minimum: int | float, *, quiet: bool = False) -> Constraint:
+        return Minimum(minimum, quiet=quiet)
+
+    def minItems(self, minItems: int, *, quiet: bool = False) -> Constraint:
+        return MinItems(minItems, quiet=quiet)
+
+    def minLength(self, minLength: int, *, quiet: bool = False) -> Constraint:
+        return MinLength(minLength, quiet=quiet)
+
+    def minProperties(self, minProperties: int, *, quiet: bool = False) -> Constraint:
+        return MinProperties(minProperties, quiet=quiet)
+
+    def multipleOf(self, multipleOf: int | float, *, quiet: bool = False) -> Constraint:
+        return MultipleOf(multipleOf, quiet=quiet)
+
+    def pattern(self, pattern: str, *, quiet: bool = False) -> Constraint:
+        return Pattern(pattern, quiet=quiet)
+
+    def uniqueItems(self, *, quiet: bool = False) -> Constraint:
+        return UniqueItems(quiet=quiet)
+
+    def validate(
+        self, callable: Callable[[Any, Any], bool | None], *, quiet: bool = False
+    ) -> Constraint:
+        return Validator(callable, quiet=quiet)
+
+    def zonedTime(self, *, quiet: bool = False) -> Constraint:
+        return ZonedTime(quiet=quiet)
 
 
 V = _ValueType()

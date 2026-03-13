@@ -2,11 +2,10 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta, timezone
 from enum import Enum, Flag, IntEnum, IntFlag
+import sys
 
-import pytest
 
-
-from typeable import JsonValue, localcontext, typecast
+from typeable import JsonValue, typecast
 
 from .test_type import OuterClass
 
@@ -97,6 +96,17 @@ def test_type():
         typecast(JsonValue, OuterClass.InnerClass)
         == "tests.test_type.OuterClass.InnerClass"
     )
+
+
+class MyClass:
+    def method(self): ...
+
+
+def test_Callable():
+    assert typecast(JsonValue, callable) == "callable"
+    assert typecast(JsonValue, sys.exc_info) == "sys.exc_info"
+    assert typecast(JsonValue, test_Callable) == "tests.test_jsonvalue.test_Callable"
+    assert typecast(JsonValue, MyClass.method) == "tests.test_jsonvalue.MyClass.method"
 
 
 def test_Enum():
